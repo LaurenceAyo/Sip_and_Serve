@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\KioskController;
 use Illuminate\Support\Facades\Route;
 
 //remove me after testing
@@ -28,6 +29,13 @@ Route::get('/sales', function () {
 Route::get('/product', function () {
     return view('profile.product');
 })->name('product');
+
+Route::post('/kiosk/main', [KioskController::class, 'main'])->name('kiosk.main');
+
+//Kiosk routes
+Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk.index');
+Route::post('/kiosk/dine-in', [KioskController::class, 'dineIn'])->name('kiosk.dine-in');
+Route::post('/kiosk/take-out', [KioskController::class, 'takeOut'])->name('kiosk.take-out');
 
 // Admin dashboard with different view
 Route::get('/admin/sip-serve-dashboard', function () {
