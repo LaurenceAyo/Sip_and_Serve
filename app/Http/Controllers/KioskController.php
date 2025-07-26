@@ -3,6 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\MenuItem;
+use Illuminate\Support\Facades\DB;
+
+use App\Models\Category;
 
 class KioskController extends Controller
 {
@@ -48,6 +54,334 @@ class KioskController extends Controller
         // Store the order type in session
         session(['order_type' => $orderType]);
         
-        return view('kioskMain');
+        // Get menu items for display
+        $menuItems = MenuItem::where('is_available', true)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
+        
+        return view('kioskMain', compact('menuItems'));
+    }
+
+    /**
+     * Display the place order page
+     */
+    public function placeOrder(Request $request)
+    {
+        // Get cart items from session
+        $cartItems = session('cart', []);
+        $orderType = session('order_type', 'dine_in');
+        
+        // Calculate totals
+        $subtotal = 0;
+        foreach ($cartItems as $item) {
+            $menuItem = MenuItem::find($item['menu_item_id']);
+            if ($menuItem) {
+                $subtotal += $menuItem->price * $item['quantity'];
+            }
+        }
+        
+        $tax = $subtotal * 0.10; // 10% tax
+        $total = $subtotal + $tax;
+        
+        return view('kioskPlaceOrder', compact('cartItems', 'orderType', 'subtotal', 'tax', 'total'));
+    }
+
+    /**
+     * Add item to cart
+     */
+    public function addToCart(Request $request)
+{
+    $request->validate([
+        'menu_item_id' => 'required|exists:menu_items,id',
+        'quantity' => 'required|integer|min:1',
+        'special_instructions' => 'nullable|string|max:255'
+    ]);
+
+    $cart = session('cart', []);
+    $itemKey = $request->input('menu_item_id') . '_' . md5($request->input('special_instructions') ?? '');
+
+    if (isset($cart[$itemKey])) {
+        $cart[$itemKey]['quantity'] += $request->input('quantity');
+    } else {
+        $cart[$itemKey] = [
+            'menu_item_id' => $request->input('menu_item_id'),
+            'quantity' => $request->input('quantity'), // Use input() method
+            'special_instructions' => $request->input('special_instructions')
+        ];
+    }
+
+    session(['cart' => $cart]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Item added to cart',
+        'cart_count' => array_sum(array_column($cart, 'quantity'))
+    ]);
+}
+
+    /**
+     * Remove item from cart
+     */
+    public function removeFromCart(Request $request)
+    {
+        $itemKey = $request->input('item_key');
+        $cart = session('cart', []);
+
+        if (isset($cart[$itemKey])) {
+            unset($cart[$itemKey]);
+            session(['cart' => $cart]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item removed from cart',
+            'cart_count' => array_sum(array_column($cart, 'quantity'))
+        ]);
+    }
+
+    
+    /**
+     * Submit the order
+     */
+    public function submitOrder(Request $request)
+    {
+        $request->validate([
+            'table_number' => 'nullable|integer|min:1|max:50',
+            'customer_name' => 'nullable|string|max:100'
+        ]);
+
+        $cart = session('cart', []);
+        $orderType = session('order_type', 'dine_in');
+
+        if (empty($cart)) {
+            return redirect()->back()->with('error', 'Your cart is empty.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    $subtotal += $menuItem->price * $item['quantity'];
+                }
+            }
+
+            $tax = $subtotal * 0.10;
+            $total = $subtotal + $tax;
+
+            // Create the order using your actual database columns
+            $order = Order::create([
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'discount_amount' => 0.00,
+                'total_amount' => $total,
+                'payment_method' => 'cash',
+                'payment_status' => 'pending',
+                'status' => 'pending',
+                'notes' => "Order Type: {$orderType}" . ($orderType === 'dine_in' && $request->input('table_number') ? ", Table: {$request->input('table_number')}" : '') . ($request->input('customer_name') ? ", Customer: {$request->input('customer_name')}" : ''),
+                'created_at' => now()
+            ]);
+
+            // Create order items using your actual database columns
+            foreach ($cart as $item) {
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'menu_item_id' => $item['menu_item_id'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $menuItem->price,
+                        'total_price' => $menuItem->price * $item['quantity'],
+                        'special_instructions' => $item['special_instructions'],
+                        'status' => 'pending'
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            // Clear the cart and order type from session
+            session()->forget(['cart', 'order_type']);
+
+            return redirect()->route('kiosk.orderConfirmation', $order->id)
+                ->with('success', 'Order placed successfully!');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Failed to place order. Please try again.');
+        }
+    }
+
+    /**
+     * Display order confirmation
+     */
+    public function orderConfirmation($orderId)
+    {
+        $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
+        
+        return view('kioskOrderConfirmation', compact('order'));
+    }
+
+    /**
+     * Display kitchen screen
+     */
+    public function kitchen()
+    {
+        $pendingOrders = Order::with(['orderItems.menuItem'])
+            ->where('status', 'pending')
+            ->orderBy('created_at')
+            ->get();
+
+        $processingOrders = Order::with(['orderItems.menuItem'])
+            ->where('status', 'processing')
+            ->orderBy('updated_at')
+            ->get();
+
+        // Add calculated fields for display
+        foreach ($pendingOrders as $order) {
+            $order->order_type = $this->extractOrderType($order->notes);
+            $order->table_number = $this->extractTableNumber($order->notes);
+            $order->customer_name = $this->extractCustomerName($order->notes);
+            $order->estimated_prep_time = $this->calculatePrepTime($order->orderItems);
+        }
+
+        foreach ($processingOrders as $order) {
+            $order->order_type = $this->extractOrderType($order->notes);
+            $order->table_number = $this->extractTableNumber($order->notes);
+            $order->customer_name = $this->extractCustomerName($order->notes);
+            $order->started_at = $order->updated_at; // Use updated_at as started_at
+        }
+
+        // If this is an AJAX request, return only the data
+        if (request()->ajax()) {
+            return view('kitchen', compact('pendingOrders', 'processingOrders'));
+        }
+
+        return view('kitchen', compact('pendingOrders', 'processingOrders'));
+    }
+
+    /**
+     * Start processing an order
+     */
+    public function startOrder($orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        
+        $order->update([
+            'status' => 'processing',
+            'started_at' => now()
+        ]);
+
+        return redirect()->route('kiosk.kitchen')->with('success', 'Order started!');
+    }
+
+    /**
+     * Complete an order
+     */
+    public function completeOrder($orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        
+        $order->update([
+            'status' => 'completed',
+            'completed_at' => now()
+        ]);
+
+        return redirect()->route('kiosk.kitchen')->with('success', 'Order completed!');
+    }
+
+    /**
+     * Calculate estimated preparation time based on cart items or order items
+     */
+    private function calculatePrepTime($items)
+    {
+        $totalTime = 0;
+        $itemCount = 0;
+
+        foreach ($items as $item) {
+            if (is_array($item)) {
+                // Cart item
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    $baseTime = $menuItem->preparation_time ?? 5;
+                    $totalTime += $baseTime * $item['quantity'];
+                    $itemCount += $item['quantity'];
+                }
+            } else {
+                // Order item (from database)
+                $baseTime = $item->menuItem->preparation_time ?? 5;
+                $totalTime += $baseTime * $item->quantity;
+                $itemCount += $item->quantity;
+            }
+        }
+
+        // Apply some logic to calculate realistic prep time
+        $estimatedTime = max(15, min(45, $totalTime + ($itemCount * 2)));
+
+        return $estimatedTime;
+    }
+
+    /**
+     * Extract order type from notes
+     */
+    private function extractOrderType($notes)
+    {
+        if (strpos($notes, 'Order Type: dine_in') !== false) {
+            return 'dine-in';
+        } elseif (strpos($notes, 'Order Type: take_out') !== false) {
+            return 'takeout';
+        }
+        return 'dine-in'; // default
+    }
+
+    /**
+     * Extract table number from notes
+     */
+    private function extractTableNumber($notes)
+    {
+        if (preg_match('/Table: (\d+)/', $notes, $matches)) {
+            return $matches[1];
+        }
+        return null;
+    }
+
+    /**
+     * Extract customer name from notes
+     */
+    private function extractCustomerName($notes)
+    {
+        if (preg_match('/Customer: ([^,]+)/', $notes, $matches)) {
+            return trim($matches[1]);
+        }
+        return null;
+    }
+
+    /**
+     * Get cart contents (for AJAX)
+     */
+    public function getCart()
+    {
+        $cart = session('cart', []);
+        $cartWithDetails = [];
+        
+        foreach ($cart as $key => $item) {
+            $menuItem = MenuItem::find($item['menu_item_id']);
+            if ($menuItem) {
+                $cartWithDetails[$key] = array_merge($item, [
+                    'name' => $menuItem->name,
+                    'price' => $menuItem->price,
+                    'subtotal' => $menuItem->price * $item['quantity']
+                ]);
+            }
+        }
+
+        return response()->json([
+            'cart' => $cartWithDetails,
+            'cart_count' => array_sum(array_column($cart, 'quantity'))
+        ]);
     }
 }
