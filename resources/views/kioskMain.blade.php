@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>L'PRIMERO CAFE - Menu</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -22,16 +26,27 @@
             height: 100vh;
             display: flex;
             background: #f5f1e8;
+            width: 100%;
+            /* Add this */
+            overflow: hidden;
+            /* Add this to prevent horizontal scroll */
         }
 
         /* Left Sidebar */
         .sidebar {
-            width: 250px;
+            flex: 0 0 200px;
+            /* Don't grow, don't shrink, stay 200px */
+            min-width: 200px;
+            /* Minimum width */
+            max-width: 200px;
+            /* Maximum width */
             background: #F5E6D3;
             border-right: 5px solid #d4c4a8;
             display: flex;
             flex-direction: column;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .sidebar-header {
@@ -91,9 +106,12 @@
 
         /* Main Content */
         .main-content {
+            min-width: 0;
+            /* Allows flex shrinking */
             flex: 1;
-            display: flex;
-            flex-direction: column;
+            /* This should take up remaining space */
+            overflow-x: auto;
+            /* Add this if content might overflow */
         }
 
         .menu-header {
@@ -229,6 +247,16 @@
             transition: all 0.3s ease;
             cursor: pointer;
             border: 2px solid transparent;
+
+            display: block;
+        }
+
+        .product-card.hide {
+            display: none !important;
+        }
+
+        .product-card.show {
+            display: block !important;
         }
 
         .product-card:hover {
@@ -263,12 +291,23 @@
         }
 
         /* Bottom Cart Section */
+
         .cart-section {
             background: white;
             border-top: 2px solid #d4c4a8;
             padding: 20px 30px;
             box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
             transition: height 0.3s ease, padding 0.3s ease;
+            position: fixed;
+            /* Add this */
+            bottom: 0;
+            /* Add this */
+            left: 200px;
+            /* Add this - starts after sidebar width */
+            right: 0;
+            /* Add this - extends to right edge */
+            z-index: 1000;
+            /* Add this - keeps it above other content */
         }
 
         .cart-buttons {
@@ -318,6 +357,25 @@
             transform: translateY(-2px);
         }
 
+        .category-prompt {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            color: #8b4513;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .category-prompt h2 {
+            margin: 0;
+            padding: 20px;
+            background: rgba(245, 230, 211, 0.8);
+            border-radius: 10px;
+            border: 2px solid #d4c4a8;
+        }
+
         .cart-total {
             display: flex;
             justify-content: space-between;
@@ -340,7 +398,8 @@
             gap: 15px;
         }
 
-        .checkout-btn, .cancel-btn {
+        .checkout-btn,
+        .cancel-btn {
             flex: 1;
             padding: 15px;
             border: none;
@@ -439,6 +498,15 @@
             background: #f0f0f0;
             transform: translateY(-2px);
         }
+
+        .product-card.hide {
+            display: none;
+        }
+
+        .product-card.show {
+            display: block;
+        }
+
         .item-counter {
             position: absolute;
             top: -8px;
@@ -461,20 +529,48 @@
                 top: 15px;
                 right: 15px;
             }
-            
+
             .dropdown-btn {
                 padding: 10px 15px;
                 font-size: 0.9rem;
                 min-width: 100px;
             }
-            
+
             .menu-title {
                 font-size: 2rem;
                 margin-right: 140px;
             }
+
+            .sidebar {
+                width: 150px !important;
+                flex-shrink: 0;
+                /* Prevents shrinking */
+                flex-grow: 0;
+                /* Prevents growing */
+            }
+
+            .kiosk-container {
+                flex-wrap: nowrap;
+            }
+
+            .main-content {
+                min-width: 0;
+                /* Allows flex shrinking */
+                flex: 1;
+                /* Add this line - takes up remaining space */
+            }
+
+            .products-section {
+                flex: 1;
+                padding: 30px;
+                padding-bottom: 120px;
+                /* Add this - adjust based on your cart height */
+                overflow-y: auto;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="kiosk-container">
         <!-- Left Sidebar -->
@@ -482,33 +578,22 @@
             <div class="sidebar-header">
                 <h2 class="sidebar-title">Sip & Serve</h2>
             </div>
-            
+
             <div class="category-list">
-                <div class="category-item active" data-category="coffee">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%238B4513' rx='8'/><circle cx='30' cy='30' r='15' fill='%23D2691E'/><circle cx='30' cy='25' r='8' fill='%23F4A460'/></svg>" alt="Coffee" class="category-image">
-                    <span class="category-name">Coffee</span>
-                </div>
-                {{-- You can import additional categories from a partial if needed --}}
-                {{-- @include('kiosk') --}}
-                <div class="category-item" data-category="noodles">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23DAA520' rx='8'/><rect x='10' y='20' width='40' height='20' fill='%23FFD700' rx='4'/><rect x='15' y='25' width='30' height='3' fill='%23FFA500'/><rect x='15' y='32' width='30' height='3' fill='%23FFA500'/></svg>" alt="Noodles" class="category-image">
-                    <span class="category-name">Noodles<br>& Pasta</span>
-                </div>
-                
-                <div class="category-item" data-category="salads">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23228B22' rx='8'/><circle cx='30' cy='30' r='15' fill='%2332CD32'/><circle cx='25' cy='25' r='4' fill='%23ADFF2F'/><circle cx='35' cy='28' r='3' fill='%23ADFF2F'/><circle cx='30' cy='35' r='3' fill='%23ADFF2F'/></svg>" alt="Salads" class="category-image">
-                    <span class="category-name">Salads</span>
-                </div>
-                
-                <div class="category-item" data-category="appetizers">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23FF6347' rx='8'/><rect x='15' y='20' width='30' height='20' fill='%23FFA07A' rx='4'/><rect x='20' y='25' width='20' height='2' fill='%23FF4500'/><rect x='20' y='30' width='20' height='2' fill='%23FF4500'/><rect x='20' y='35' width='20' height='2' fill='%23FF4500'/></svg>" alt="Appetizers" class="category-image">
-                    <span class="category-name">Appetizers</span>
-                </div>
-                
-                <div class="category-item" data-category="rice">
-                    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23DEB887' rx='8'/><rect x='10' y='15' width='40' height='30' fill='%23F5DEB3' rx='6'/><circle cx='20' cy='25' r='2' fill='%23FFE4B5'/><circle cx='30' cy='30' r='2' fill='%23FFE4B5'/><circle cx='40' cy='35' r='2' fill='%23FFE4B5'/></svg>" alt="Rice Meals" class="category-image">
-                    <span class="category-name">Rice Meals</span>
-                </div>
+                @foreach($categories as $index => $category)
+                    <div class="category-item {{ $index === 0 ? 'active' : '' }}"
+                        data-category="{{ strtolower(str_replace(' ', '_', $category->name)) }}"
+                        data-category-id="{{ $category->id }}">
+                        @if($category->image && file_exists(public_path('assets/' . $category->image)))
+                            <img src="{{ asset('assets/' . $category->image) }}" alt="{{ $category->name }}"
+                                class="category-image">
+                        @else
+                            <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'><rect width='60' height='60' fill='%238B4513' rx='8'/><circle cx='30' cy='30' r='15' fill='%23D2691E'/><circle cx='30' cy='25' r='8' fill='%23F4A460'/></svg>"
+                                alt="{{ $category->name }}" class="category-image">
+                        @endif
+                        <span class="category-name">{{ str_replace('_', ' ', $category->name) }}</span>
+                    </div>
+                @endforeach
             </div>
         </aside>
 
@@ -517,16 +602,18 @@
             <!-- Menu Header -->
             <header class="menu-header">
                 <h1 class="menu-title">MENU</h1>
-                
+
                 <!-- Order Type Dropdown -->
                 <div class="order-type-dropdown">
                     <button class="dropdown-btn" id="orderTypeBtn">
-                        <span id="selectedOrderType">{{ strtoupper($orderType ?? 'DINE IN') }}</span>
+                        <span id="selectedOrderType">{{ strtoupper(str_replace('-', ' ', $orderType)) }}</span>
                         <span class="dropdown-arrow">▼</span>
                     </button>
                     <div class="dropdown-menu" id="orderTypeMenu">
-                        <div class="dropdown-item" data-type="dine-in">DINE IN</div>
-                        <div class="dropdown-item" data-type="take-out">TAKE OUT</div>
+                        <div class="dropdown-item {{ $orderType === 'dine-in' ? 'selected' : '' }}" data-type="dine-in">
+                            DINE IN</div>
+                        <div class="dropdown-item {{ $orderType === 'take-out' ? 'selected' : '' }}"
+                            data-type="take-out">TAKE OUT</div>
                     </div>
                 </div>
             </header>
@@ -534,54 +621,33 @@
             <!-- Products Section -->
             <section class="products-section">
                 <div class="products-grid" id="productsGrid">
-                    <!-- Coffee Items -->
-                    <div class="product-card" data-category="coffee" data-name="Affogato" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='40' fill='%238B4513'/><circle cx='100' cy='65' r='25' fill='%23D2691E'/><circle cx='100' cy='55' r='15' fill='%23F4A460'/></svg>" alt="Affogato" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Affogato</h3>
-                            <p class="product-price">PHP 150.00</p>
-                        </div>
+                    <div id="categoryPrompt" class="category-prompt">
+                        <h2>PLEASE CHOOSE FROM CATEGORY</h2>
                     </div>
+                    @foreach($menuItems as $item)
+                        <div class="product-card hide"
+                            data-category="{{ strtolower(str_replace(' ', '_', $item->category->name)) }}"
+                            data-name="{{ $item->name }}" data-price="{{ $item->price }}" data-id="{{ $item->id }}"
+                            data-has-variants="{{ $item->has_variants ? 'true' : 'false' }}">
 
-                    <div class="product-card" data-category="coffee" data-name="Espresso" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='35' fill='%23654321'/><circle cx='100' cy='70' r='20' fill='%238B4513'/></svg>" alt="Espresso" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Espresso</h3>
-                            <p class="product-price">PHP 150.00</p>
-                        </div>
-                    </div>
+                            @if($item->image && file_exists(public_path('assets/' . $item->image)))
+                                <img src="{{ asset('assets/' . $item->image) }}" alt="{{ $item->name }}" class="product-image">
+                            @else
+                                <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='40' fill='%238B4513'/><circle cx='100' cy='65' r='25' fill='%23D2691E'/><circle cx='100' cy='55' r='15' fill='%23F4A460'/></svg>"
+                                    alt="{{ $item->name }}" class="product-image">
+                            @endif
 
-                    <div class="product-card" data-category="coffee" data-name="Affogato Special" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='40' fill='%238B4513'/><circle cx='100' cy='65' r='25' fill='%23D2691E'/><circle cx='100' cy='55' r='15' fill='%23FFFACD'/><rect x='90' y='40' width='20' height='8' fill='%23DEB887'/></svg>" alt="Affogato Special" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Affogato</h3>
-                            <p class="product-price">PHP 150.00</p>
+                            <div class="product-info">
+                                <h3 class="product-name">{{ $item->name }}</h3>
+                                <p class="product-price">PHP {{ number_format($item->price, 2) }}</p>
+                                @if($item->description)
+                                    <p class="product-description" style="font-size: 0.8rem; color: #666; margin-top: 4px;">
+                                        {{ Str::limit($item->description, 50) }}
+                                    </p>
+                                @endif
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="product-card" data-category="coffee" data-name="Latte" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='80' r='45' fill='%23DEB887'/><circle cx='100' cy='75' r='30' fill='%23F4A460'/><circle cx='100' cy='65' r='15' fill='%23FFFACD'/></svg>" alt="Latte" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Latte</h3>
-                            <p class="product-price">PHP 150.00</p>
-                        </div>
-                    </div>
-
-                    <div class="product-card" data-category="coffee" data-name="Cold Brew" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><rect x='70' y='40' width='60' height='80' fill='%23654321' rx='8'/><rect x='75' y='45' width='50' height='70' fill='%238B4513' rx='4'/></svg>" alt="Cold Brew" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Cold Brew</h3>
-                            <p class="product-price">PHP 150.00</p>
-                        </div>
-                    </div>
-
-                    <div class="product-card" data-category="coffee" data-name="Doppio" data-price="150.00">
-                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='30' fill='%232F1B14'/><circle cx='100' cy='70' r='18' fill='%23654321'/></svg>" alt="Doppio" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-name">Doppio</h3>
-                            <p class="product-price">PHP 150.00</p>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
             </section>
 
@@ -592,12 +658,12 @@
                         V HIDE CART
                     </button>
                 </div>
-                
+
                 <div class="cart-total">
                     <span class="total-label">TOTAL:</span>
                     <span class="total-amount" id="totalAmount">PHP 0.00</span>
                 </div>
-                
+
                 <div class="checkout-actions">
                     <button class="checkout-btn" id="checkoutBtn">CHECKOUT</button>
                     <button class="cancel-btn" id="cancelBtn">CANCEL</button>
@@ -619,6 +685,8 @@
         let cart = [];
         let total = 0;
         let currentOrderType = '{{ $orderType ?? "dine-in" }}';
+        let menuItems = @json($menuItems);
+        let categories = @json($categories);
 
         // Order Type Dropdown functionality
         const orderTypeBtn = document.getElementById('orderTypeBtn');
@@ -626,52 +694,75 @@
         const selectedOrderTypeSpan = document.getElementById('selectedOrderType');
 
         // Toggle dropdown
-        orderTypeBtn.addEventListener('click', function(e) {
+        orderTypeBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             orderTypeBtn.classList.toggle('active');
             orderTypeMenu.classList.toggle('active');
         });
 
         // Close dropdown when clicking outside
-        document.addEventListener('click', function() {
+        document.addEventListener('click', function () {
             orderTypeBtn.classList.remove('active');
             orderTypeMenu.classList.remove('active');
         });
 
         // Handle dropdown item selection
         document.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function () {
                 const selectedType = this.dataset.type;
                 const displayText = this.textContent;
-                
+
                 // Update button text
+                document.querySelector('.dropdown-btn span').textContent = displayText;
                 selectedOrderTypeSpan.textContent = displayText;
-                currentOrderType = selectedType;
-                
+
                 // Update selected state
                 document.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
                 this.classList.add('selected');
-                
+
                 // Close dropdown
                 orderTypeBtn.classList.remove('active');
                 orderTypeMenu.classList.remove('active');
-                
-                // Optional: Update session or send to server
+
+                // Update order type
                 updateOrderType(selectedType);
             });
         });
 
-        // Set initial selected state
-        document.addEventListener('DOMContentLoaded', function() {
+        // DOMContentLoaded event handler
+        document.addEventListener('DOMContentLoaded', function () {
+            // Set initial dropdown text based on order type
+            const orderType = '{{ $orderType ?? "dine-in" }}';
+            const displayText = orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT';
+            document.querySelector('.dropdown-btn span').textContent = displayText;
+
+            // Set initial selected state for order type
             const initialType = currentOrderType;
             const initialItem = document.querySelector(`[data-type="${initialType}"]`);
             if (initialItem) {
                 initialItem.classList.add('selected');
             }
+
+            // IMPORTANT: Remove initial active state and hide all products
+            document.querySelector('.category-item.active')?.classList.remove('active');
+
+            // Hide all products initially and show category prompt
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.classList.remove('show');
+                card.classList.add('hide');
+                card.style.display = 'none';
+            });
+
+            // Show the category prompt
+            const categoryPrompt = document.getElementById('categoryPrompt');
+            if (categoryPrompt) {
+                categoryPrompt.style.display = 'block';
+            }
         });
 
         function updateOrderType(type) {
-            // You can send an AJAX request to update the session
+            currentOrderType = type;
+            // Send AJAX request to update session
             fetch('/kiosk/update-order-type', {
                 method: 'POST',
                 headers: {
@@ -684,114 +775,346 @@
             });
         }
 
-        // Category switching
-        document.querySelectorAll('.category-item').forEach(item => {
-            item.addEventListener('click', function() {
+        // SINGLE CATEGORY CLICK HANDLER - This replaces all the conflicting ones
+        document.addEventListener('click', function (e) {
+            // Check if clicked element is a category item or inside one
+            const categoryItem = e.target.closest('.category-item');
+
+            if (categoryItem) {
                 // Remove active class from all items
                 document.querySelectorAll('.category-item').forEach(cat => cat.classList.remove('active'));
                 // Add active class to clicked item
-                this.classList.add('active');
-                
-                // Filter products (for now, show all coffee items)
-                const category = this.dataset.category;
-                filterProducts(category);
-            });
+                categoryItem.classList.add('active');
+
+                // Hide category prompt
+                const categoryPrompt = document.getElementById('categoryPrompt');
+                if (categoryPrompt) {
+                    categoryPrompt.style.display = 'none';
+                }
+
+                const categoryId = categoryItem.dataset.categoryId;
+                const category = categoryItem.dataset.category;
+
+                console.log('Category clicked:', category, 'ID:', categoryId);
+
+                // Hide all products first
+                document.querySelectorAll('.product-card').forEach(card => {
+                    card.classList.remove('show');
+                    card.classList.add('hide');
+                    card.style.display = 'none';
+                });
+
+                // Show products for selected category
+                const categoryProducts = document.querySelectorAll(`.product-card[data-category="${category}"]`);
+                console.log('Found products for category:', categoryProducts.length);
+
+                categoryProducts.forEach(card => {
+                    card.classList.remove('hide');
+                    card.classList.add('show');
+                    card.style.display = 'block';
+                });
+
+                // If no products found, try fetching from server
+                if (categoryProducts.length === 0 && categoryId) {
+                    fetch(`/category/${categoryId}/items`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Fetched items:', data);
+                            menuItems = data.menuItems;
+                            updateProductsGrid(data.menuItems);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching category items:', error);
+                        });
+                }
+            }
         });
 
-        // Product selection
-        document.querySelectorAll('.product-card').forEach(card => {
-            card.addEventListener('click', function() {
-                const name = this.dataset.name;
-                const price = parseFloat(this.dataset.price);
-                
-                // Add to cart
-                const existingItem = cart.find(item => item.name === name);
-                if (existingItem) {
-                    existingItem.quantity++;
+        function updateProductsGrid(items) {
+            const productsGrid = document.getElementById('productsGrid');
+            productsGrid.innerHTML = '';
+
+            items.forEach(item => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card show';
+                productCard.dataset.category = item.category ? item.category.name.toLowerCase().replace(' ', '_') : '';
+                productCard.dataset.name = item.name;
+                productCard.dataset.price = item.price;
+                productCard.dataset.id = item.id;
+                productCard.dataset.hasVariants = item.has_variants ? 'true' : 'false';
+
+                const imageUrl = item.image && item.image !== ''
+                    ? `/assets/${item.image}`
+                    : "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='%23F5F5F5'/><circle cx='100' cy='75' r='40' fill='%238B4513'/><circle cx='100' cy='65' r='25' fill='%23D2691E'/><circle cx='100' cy='55' r='15' fill='%23F4A460'/></svg>";
+
+                productCard.innerHTML = `
+            <img src="${imageUrl}" alt="${item.name}" class="product-image">
+            <div class="product-info">
+                <h3 class="product-name">${item.name}</h3>
+                <p class="product-price">PHP ${parseFloat(item.price).toFixed(2)}</p>
+                ${item.description ? `<p class="product-description" style="font-size: 0.8rem; color: #666; margin-top: 4px;">${item.description.substring(0, 50)}${item.description.length > 50 ? '...' : ''}</p>` : ''}
+            </div>
+        `;
+
+                // Add click event for the new product card
+                productCard.addEventListener('click', function () {
+                    const itemId = parseInt(this.dataset.id);
+                    const hasVariants = this.dataset.hasVariants === 'true';
+                    const menuItem = menuItems.find(item => item.id === itemId);
+
+                    if (!menuItem) return;
+
+                    if (hasVariants && menuItem.variants && menuItem.variants.length > 0) {
+                        showVariantModal(menuItem);
+                    } else {
+                        addToCart(menuItem);
+                    }
+
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+
+                productsGrid.appendChild(productCard);
+            });
+        }
+
+        // Product selection with variant support
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.product-card')) {
+                const card = e.target.closest('.product-card');
+                const itemId = parseInt(card.dataset.id);
+                const hasVariants = card.dataset.hasVariants === 'true';
+                const menuItem = menuItems.find(item => item.id === itemId);
+
+                if (!menuItem) return;
+
+                if (hasVariants && menuItem.variants && menuItem.variants.length > 0) {
+                    showVariantModal(menuItem);
                 } else {
-                    cart.push({ name, price, quantity: 1 });
+                    addToCart(menuItem);
                 }
-                
-                updateTotal();
-                updateCartDisplay();
-                
-                // Visual feedback
-                this.style.transform = 'scale(0.95)';
+
+                card.style.transform = 'scale(0.95)';
                 setTimeout(() => {
-                    this.style.transform = '';
+                    card.style.transform = '';
                 }, 150);
-            });
+            }
         });
 
-        function filterProducts(category) {
-            const products = document.querySelectorAll('.product-card');
-            products.forEach(product => {
-                if (product.dataset.category === category) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
+        function showVariantModal(menuItem) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.display = 'flex';
+
+            let variantOptions = '';
+            menuItem.variants.forEach(variant => {
+                const variantPrice = parseFloat(menuItem.price) + parseFloat(variant.price_adjustment || 0);
+                variantOptions += `
+        <button class="modal-btn modal-btn-variant" 
+                data-variant-id="${variant.id}" 
+                data-variant-name="${variant.variant_name}: ${variant.variant_value}"
+                data-variant-price="${variantPrice}">
+            ${variant.variant_name}: ${variant.variant_value} - PHP ${variantPrice.toFixed(2)}
+        </button>
+    `;
+            });
+
+            modal.innerHTML = `
+    <div class="modal-content">
+        <h3 class="modal-title">Choose ${menuItem.name}</h3>
+        ${variantOptions}
+        <button class="modal-btn modal-btn-no" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+    </div>
+`;
+
+            document.body.appendChild(modal);
+
+            modal.querySelectorAll('.modal-btn-variant').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const variantId = this.dataset.variantId;
+                    const variantName = this.dataset.variantName;
+                    const variantPrice = parseFloat(this.dataset.variantPrice);
+
+                    addToCart(menuItem, {
+                        id: variantId,
+                        name: variantName,
+                        price: variantPrice
+                    });
+
+                    modal.remove();
+                });
+            });
+
+            modal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    this.remove();
                 }
             });
+        }
+
+        function addToCart(menuItem, variant = null) {
+            const itemName = variant ? `${menuItem.name} (${variant.name})` : menuItem.name;
+            const itemPrice = variant ? variant.price : parseFloat(menuItem.price);
+            const itemId = menuItem.id;
+            const variantId = variant ? variant.id : null;
+
+            const existingItemIndex = cart.findIndex(item =>
+                item.menu_item_id === itemId && item.variant_id === variantId
+            );
+
+            if (existingItemIndex !== -1) {
+                cart[existingItemIndex].quantity++;
+            } else {
+                cart.push({
+                    menu_item_id: itemId,
+                    variant_id: variantId,
+                    name: itemName,
+                    price: itemPrice,
+                    quantity: 1
+                });
+            }
+
+            updateTotal();
+            updateCartDisplay();
         }
 
         function updateTotal() {
             total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             document.getElementById('totalAmount').textContent = `PHP ${total.toFixed(2)}`;
+
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const closeBtn = document.getElementById('closeCartBtn');
+            const cartSection = document.querySelector('.cart-section');
+
+            if (totalItems > 0) {
+                if (cartSection.classList.contains('minimized')) {
+                    closeBtn.innerHTML = `Λ SHOW CART (${totalItems})`;
+                } else {
+                    closeBtn.innerHTML = `V HIDE CART (${totalItems})`;
+                }
+            } else {
+                if (cartSection.classList.contains('minimized')) {
+                    closeBtn.textContent = 'Λ SHOW CART';
+                } else {
+                    closeBtn.textContent = 'V HIDE CART';
+                }
+            }
         }
 
         function updateCartDisplay() {
-            // Update cart count display (could add visual indicators)
             console.log('Cart updated:', cart);
         }
 
         // Checkout functionality
-        document.getElementById('checkoutBtn').addEventListener('click', function() {
+        document.getElementById('checkoutBtn').addEventListener('click', function () {
             if (cart.length === 0) {
                 alert('Your cart is empty!');
                 return;
             }
-            
-            // Process checkout
-            alert(`Order type: ${currentOrderType.toUpperCase()}\nOrder total: PHP ${total.toFixed(2)}\nProceeding to payment...`);
+
+            const orderData = {
+                order_type: currentOrderType,
+                items: cart,
+                total: total,
+                subtotal: total,
+                tax_amount: 0,
+                discount_amount: 0
+            };
+
+            fetch('/kiosk/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify(orderData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect_url || '/kiosk/payment';
+                    } else {
+                        alert('Error processing order: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Checkout error:', error);
+                    alert('Error processing order. Please try again.');
+                });
         });
 
-        document.getElementById('cancelBtn').addEventListener('click', function() {
+        document.getElementById('cancelBtn').addEventListener('click', function () {
             document.getElementById('cancelModal').style.display = 'flex';
         });
 
-        document.getElementById('confirmYes').addEventListener('click', function() {
-            window.location.href = 'http://127.0.0.1:8000/kiosk/';
+        document.getElementById('confirmYes').addEventListener('click', function () {
+            cart = [];
+            total = 0;
+            updateTotal();
+            window.location.href = '/kiosk';
         });
 
-        document.getElementById('confirmNo').addEventListener('click', function() {
+        document.getElementById('confirmNo').addEventListener('click', function () {
             document.getElementById('cancelModal').style.display = 'none';
         });
 
-        // Close modal when clicking outside
-        document.getElementById('cancelModal').addEventListener('click', function(e) {
+        document.getElementById('cancelModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 this.style.display = 'none';
             }
         });
 
         // Cart toggle functionality
-        document.getElementById('closeCartBtn').addEventListener('click', function() {
+        document.getElementById('closeCartBtn').addEventListener('click', function () {
             const cartSection = document.querySelector('.cart-section');
             const closeBtn = this;
-            
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
             if (cartSection.classList.contains('minimized')) {
-                // Restore cart
                 cartSection.classList.remove('minimized');
-                closeBtn.textContent = 'V HIDE CART';
+                closeBtn.innerHTML = totalItems > 0 ? `V HIDE CART (${totalItems})` : 'V HIDE CART';
             } else {
-                // Minimize cart
                 cartSection.classList.add('minimized');
-                closeBtn.textContent = 'Λ SHOW CART';
+                closeBtn.innerHTML = totalItems > 0 ? `Λ SHOW CART (${totalItems})` : 'Λ SHOW CART';
             }
         });
 
-        // Initialize with coffee category
-        filterProducts('coffee');
+        // Add CSS for variant modal buttons
+        const additionalStyles = `
+.modal-btn-variant {
+    background: white;
+    color: #2c1810;
+    border: 2px solid #d4c4a8;
+    margin-bottom: 10px;
+    text-align: left;
+    padding: 12px 20px;
+}
+
+.modal-btn-variant:hover {
+    background: #F5E6D3;
+    border-color: #8b4513;
+}
+
+.product-card.hide {
+    display: none !important;
+}
+
+.product-card.show {
+    display: block !important;
+}
+`;
+
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = additionalStyles;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
+
 </html>

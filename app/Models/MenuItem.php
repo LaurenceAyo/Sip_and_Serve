@@ -20,7 +20,6 @@ class MenuItem extends Model
         'has_variants',
         'preparation_time',
         'is_available',
-        'image_url',
         'stock_quantity'
     ];
 
@@ -30,7 +29,7 @@ class MenuItem extends Model
         'has_variants' => 'boolean',
         'is_available' => 'boolean',
         'preparation_time' => 'integer',
-        'stock_quantity' => 'integer',
+        'stock_quantity' => 'integer'
     ];
 
     public function category()
@@ -43,17 +42,21 @@ class MenuItem extends Model
         return $this->hasMany(MenuVariant::class);
     }
 
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-
     public function inventory()
     {
         return $this->hasOne(Inventory::class);
     }
-    public function getNameAttribute()
-{
-    return $this->attributes['name'] ?? $this->attributes['item_name'] ?? 'Unknown Item';
-}
+
+    public function getImageUrlAttribute()
+    {
+        if ($this->image) {
+            return asset('assets/' . $this->image);
+        }
+        return asset('assets/default-item.jpg'); // fallback image
+    }
+
+    public function getFormattedPriceAttribute()
+    {
+        return number_format((float)$this->price, 2);
+    }
 }

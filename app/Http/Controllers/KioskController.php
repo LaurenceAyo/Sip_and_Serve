@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\MenuItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 use App\Models\Category;
 
@@ -25,11 +26,8 @@ class KioskController extends Controller
      */
     public function dineIn(Request $request)
     {
-        // Store the selection in session
-        session(['order_type' => 'dine_in']);
-        
-        // Redirect back with message for now
-        return redirect()->back()->with('message', 'Dine-in selected! Order type saved.');
+        Session::put('order_type', 'dine-in');
+        return redirect()->route('kiosk.main');
     }
 
     /**
@@ -37,32 +35,62 @@ class KioskController extends Controller
      */
     public function takeOut(Request $request)
     {
-        // Store the selection in session
-        session(['order_type' => 'take_out']);
-        
-        // Redirect back with message for now
-        return redirect()->back()->with('message', 'Take-out selected! Order type saved.');
+        Session::put('order_type', 'take-out');
+        return redirect()->route('kiosk.main');
     }
 
     /**
      * Display the main menu page
      */
-    public function main(Request $request)
+    /**
+ * Display the main menu page
+ */
+public function main(Request $request)
+{
+    // Get order type from session or default to 'dine-in'
+    $orderType = Session::get('order_type', 'dine-in');
+    
+    // Get all categories with their menu items
+    $categories = Category::where('is_active', 1)
+        ->orderBy('sort_order')
+        ->get();
+    
+    // Get all menu items with their categories, ordered by category
+    // Filter out items without categories to prevent null reference errors
+    $menuItems = MenuItem::with(['category', 'variants'])
+        ->where('is_available', 1)
+        ->whereHas('category') // This ensures only items with categories are included
+        ->get()
+        ->filter(function($item) {
+            return $item->category !== null; // Additional safety check
+        })
+        ->sortBy(function($item) {
+            return [$item->category->sort_order ?? 999, $item->name];
+        });
+    
+    // Group menu items by category for easier frontend handling
+    $itemsByCategory = $menuItems->groupBy('category.name');
+    
+    return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
+}
+    public function getCategoryItems($categoryId)
     {
-        $orderType = $request->input('order_type'); // 'dine-in' or 'take-out'
-        
-        // Store the order type in session
-        session(['order_type' => $orderType]);
-        
-        // Get menu items for display
-        $menuItems = MenuItem::where('is_available', true)
-            ->orderBy('category')
-            ->orderBy('name')
-            ->get();
-        
-        return view('kioskMain', compact('menuItems'));
+        $menuItems = MenuItem::where('category_id', $categoryId)
+                    ->where('is_available', true)
+                    ->get();
+    
+        return response()->json(['menuItems' => $menuItems]);
     }
+    
 
+    //Update order type
+    public function updateOrderType(Request $request)
+    {
+        $orderType = $request->input('order_type', 'dine-in');
+        Session::put('order_type', $orderType);
+        
+        return response()->json(['status' => 'success', 'order_type' => $orderType]);
+    }
     /**
      * Display the place order page
      */

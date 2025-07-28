@@ -34,14 +34,16 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             position: relative;
             z-index: 10;
+            font-family: sans-serif; /* Add this line */
         }
 
         .cafe-title {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #2c1810;
+            color: #2F1B14;
             letter-spacing: 2px;
             text-transform: uppercase;
+            font-family: sans-serif; /* Add this line */
         }
 
         /* Side Navigation */
@@ -51,12 +53,12 @@
             top: 0;
             height: 100vh;
             width: 80px;
-            background: rgba(44, 24, 16, 0.9);
+            
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding-top: 10vh; /* Move "Sip & Serve" higher */
+            padding-top: 15vh; /* Move "Sip & Serve" higher */
             z-index: 5;
         }
 
@@ -147,7 +149,7 @@
             align-items: center;
             position: absolute;
             top: 50%;
-            left: 50%;
+            left: 40%;
             transform: translate(-50%, -50%);
             margin-left: 0; /* Remove offset for perfect centering */
         }
@@ -265,23 +267,21 @@
                 
 
                 <!-- Action Buttons -->
-                <div class="action-buttons">
-                <form method="POST" action="{{ route('kiosk.main') }}" style="display: inline;">
-                @csrf
-                <input type="hidden" name="order_type" value="dine-in">
-                    <button type="submit" class="action-btn dine-in-btn">
-                        Dine In
-                    </button>
-                </form>
-    
-                    <form method="POST" action="{{ route('kiosk.main') }}" style="display: inline;">
-                    @csrf
-                        <input type="hidden" name="order_type" value="take-out">
-                            <button type="submit" class="action-btn take-out-btn">
-                                Take Out
-                            </button>
-                    </form>
-                </div>
+<div class="action-buttons">
+    <form method="POST" action="{{ route('kiosk.dineIn') }}" style="display: inline;">
+        @csrf
+        <button type="submit" class="action-btn dine-in-btn">
+            Dine In
+        </button>
+    </form>
+
+    <form method="POST" action="{{ route('kiosk.takeOut') }}" style="display: inline;">
+        @csrf
+        <button type="submit" class="action-btn take-out-btn">
+            Take Out
+        </button>
+    </form>
+</div>
             </div>
         </main>
 

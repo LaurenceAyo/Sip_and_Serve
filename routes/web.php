@@ -35,14 +35,18 @@ Route::get('/product', function () {
 })->name('product');
 
 // Kiosk routes grouped together
-
-Route::match(['GET', 'POST'], '/kiosk/main', [KioskController::class, 'main'])->name('kiosk.main');
-Route::prefix('kiosk')->name('kiosk.')->group(function () {
+    Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
+    Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
+    Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/', [KioskController::class, 'index'])->name('index');
     Route::post('/dine-in', [KioskController::class, 'dineIn'])->name('dineIn');
     Route::post('/take-out', [KioskController::class, 'takeOut'])->name('takeOut');
     Route::get('/main', [KioskController::class, 'main'])->name('main');
+    Route::post('/main', [KioskController::class, 'main'])->name('main.post');
     Route::get('/place-order', [KioskController::class, 'placeOrder'])->name('placeOrder');
+    
+    // New route for updating order type
+    Route::post('/update-order-type', [KioskController::class, 'updateOrderType'])->name('updateOrderType');
     
     // Cart management
     Route::post('/cart/add', [KioskController::class, 'addToCart'])->name('addToCart');
@@ -78,7 +82,6 @@ Route::get('/cashier', function () {
     
     return view('cashier', compact('pendingOrders'));
 });
-
 
 Route::get('/kiosk/kitchen', [OrderController::class, 'kitchen'])->name('kiosk.kitchen');
 Route::post('/order/{id}/start', [OrderController::class, 'startOrder'])->name('order.start');
