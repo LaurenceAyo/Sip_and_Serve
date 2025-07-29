@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,20 +12,141 @@
             background: linear-gradient(135deg, #f5f1eb 0%, #e8ddd4 100%);
             min-height: 100vh;
         }
-        
+
         .dashboard-container {
             background: white;
             min-height: 100vh;
         }
-        
+
+        /* Tablet responsive styles */
+        @media (max-width: 1024px) {
+            .header-section {
+                padding: 1rem 0;
+            }
+
+            .header-section h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-section h2 {
+                font-size: 1.8rem;
+            }
+
+            .max-w-7xl {
+                padding: 0 1rem;
+            }
+
+            .flex.justify-between.items-center.mb-6 {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .filter-dropdown {
+                width: 100%;
+                padding: 12px;
+                font-size: 1rem;
+            }
+
+            .flex.items-center.space-x-4:last-child {
+                display: grid;
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 0.5rem;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+                width: 100%;
+            }
+
+            .inventory-table th {
+                padding: 12px 4px;
+                font-size: 0.8rem;
+            }
+
+            .inventory-table td {
+                padding: 12px 4px;
+                font-size: 0.85rem;
+            }
+
+            .flex.space-x-5 {
+                position: static;
+                transform: none;
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+
+            .tab-button {
+                padding: 12px 20px;
+                font-size: 0.9rem;
+            }
+
+            .logout-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 1rem;
+            }
+
+            .flex.justify-between.items-center.mt-8 {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .modal-content {
+                width: 90%;
+                max-width: 350px;
+                margin: 0 1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .table-container {
+                max-height: 50vh;
+            }
+
+            .inventory-table th,
+            .inventory-table td {
+                padding: 8px 2px;
+                font-size: 0.75rem;
+            }
+
+            .status-indicator {
+                width: 16px;
+                height: 16px;
+            }
+        }
+
+
+
+        .table-container {
+            max-height: 400px;
+            /* Adjust height as needed */
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        .table-container table {
+            width: 100%;
+        }
+
+        .table-container thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+        }
+
         .header-section {
             background: #F5E6D3;
             color: #5d4037;
             padding: 1.5rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border-bottom: 3px solid #8b4513;
         }
-        
+
         .inventory-table {
             border-collapse: collapse;
             width: 100%;
@@ -32,7 +154,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         .inventory-table th {
             background: #d4c5a9;
             color: #5d4037;
@@ -41,28 +163,36 @@
             text-align: center;
             border-bottom: 2px solid #b8a082;
         }
-        
+
         .inventory-table td {
             padding: 12px;
             text-align: center;
             border-bottom: 1px solid #e0d4c3;
         }
-        
+
         .inventory-table tr:hover {
             background: #f0ebe1;
         }
-        
-        .status-good { background: #4caf50; }
-        .status-low { background: #ff9800; }
-        .status-critical { background: #f44336; }
-        
+
+        .status-good {
+            background: #4caf50;
+        }
+
+        .status-low {
+            background: #ff9800;
+        }
+
+        .status-critical {
+            background: #f44336;
+        }
+
         .status-indicator {
             width: 20px;
             height: 20px;
             border-radius: 3px;
             display: inline-block;
         }
-        
+
         .btn-primary {
             background: #8b4513;
             color: white;
@@ -73,12 +203,12 @@
             font-weight: 500;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary:hover {
             background: #6d3410;
             transform: translateY(-1px);
         }
-        
+
         .btn-secondary {
             background: #d4c5a9;
             color: #5d4037;
@@ -89,11 +219,11 @@
             font-weight: 500;
             transition: all 0.3s ease;
         }
-        
+
         .btn-secondary:hover {
             background: #b8a082;
         }
-        
+
         .filter-dropdown {
             background: #f8f6f0;
             border: 2px solid #d4c5a9;
@@ -103,7 +233,7 @@
             font-weight: 500;
             cursor: pointer;
         }
-        
+
         .tab-button {
             background: none;
             border: none;
@@ -116,21 +246,21 @@
             flex: 1;
             text-align: center;
         }
-        
+
         .tab-button.active {
             background: #5d4037;
             color: white;
             border-bottom: 3px solid #d4c5a9;
         }
-        
+
         .tab-button:hover {
             background: #f0ebe1;
         }
-        
+
         .tab-button.active:hover {
             background: #5d4037;
         }
-        
+
         .logout-btn {
             background: #8b4513;
             color: white;
@@ -141,7 +271,7 @@
             font-weight: 500;
             transition: all 0.3s ease;
         }
-        
+
         .logout-btn:hover {
             background: #6d3410;
         }
@@ -248,6 +378,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Header Section -->
@@ -267,7 +398,7 @@
         <!-- Main Content -->
         <div class="max-w-7xl mx-auto px-4 py-6">
             <!-- Controls Section -->
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
                 <div class="flex items-center space-x-4">
                     <select class="filter-dropdown">
                         <option>ALL ITEMS</option>
@@ -276,11 +407,9 @@
                         <option>INGREDIENTS</option>
                     </select>
                 </div>
-                
+
                 <div class="flex items-center space-x-4">
-                    <button class="btn-primary">
-                        🛒 Generate Shopping List
-                    </button>
+                    <button class="btn-primary">🛒 Generate Shopping List</button>
                     <button class="btn-primary">+ ADD ITEM</button>
                     <button class="btn-secondary">EDIT ITEMS</button>
                 </div>
@@ -305,166 +434,102 @@
 
             <!-- Inventory Table -->
             <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-                <table class="inventory-table">
-                    <thead>
-                        <tr>
-                            <th>ITEMS</th>
-                            <th>IN</th>
-                            <th>OUT</th>
-                            <th>CURRENTLY IN STOCK</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="font-medium">Almond Milk</td>
-                            <td>20</td>
-                            <td>3.0</td>
-                            <td>17.0 liters</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Arabica Coffee Beans</td>
-                            <td>20</td>
-                            <td>5.5</td>
-                            <td>14.5 kg</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Caramel Syrup</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 liters</td>
-                            <td><div class="status-indicator status-low"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Espresso Blend</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 kg</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Kape Barako Beans</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 kg</td>
-                            <td><div class="status-indicator status-critical"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Whole Milk</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 liters</td>
-                            <td><div class="status-indicator status-critical"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">White Sugar</td>
-                            <td>20</td>
-                            <td>15.6</td>
-                            <td>4.4 kg</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Milk</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>8.2 kg</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Eggs</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 kg</td>
-                            <td><div class="status-indicator status-critical"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Bread</td>
-                            <td>20</td>
-                            <td>3.2</td>
-                            <td>16.8 liters</td>
-                            <td><div class="status-indicator status-critical"></div></td>
-                        </tr>
-                        <tr>
-                            <td class="font-medium">Kape Barako Beans</td>
-                            <td>20</td>
-                            <td>15.6</td>
-                            <td>4.4 kg</td>
-                            <td><div class="status-indicator status-good"></div></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Bottom Navigation -->
-            <div class="flex justify-between items-center mt-8">
-                <div class="flex space-x-5 absolute left-1/2 transform -translate-x-1/2">
-                    <button class="tab-button active">INVENTORY</button>
-                    <button class="tab-button">SALES</button>
-                    <button class="tab-button">PRODUCT</button>
+                <div class="table-container">
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>ITEMS</th>
+                                <th>IN</th>
+                                <th>OUT</th>
+                                <th>CURRENTLY IN STOCK</th>
+                                <th>STATUS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($inventoryItems as $item)
+                                <tr>
+                                    <td class="font-medium">{{ $item->menuItem->name ?? 'Unknown Item' }}</td>
+                                    <td>{{ $item->maximum_stock }}</td>
+                                    <td>{{ $item->maximum_stock - $item->current_stock }}</td>
+                                    <td>{{ $item->current_stock }} {{ $item->unit }}</td>
+                                    <td>
+                                        <div class="status-indicator status-{{ $item->status }}"></div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-                
-                <button class="logout-btn" onclick="openLogoutModal()">
-                    🚪 LOG OUT
-                </button>
+
+                <!-- Bottom Navigation -->
+                <div class="flex flex-col lg:flex-row justify-between items-center mt-8 gap-4">
+                    <div class="flex space-x-5 absolute left-1/2 transform -translate-x-1/2">
+                        <button class="tab-button active">INVENTORY</button>
+                        <button class="tab-button">SALES</button>
+                        <button class="tab-button">PRODUCT</button>
+                    </div>
+
+                    <button class="logout-btn" onclick="openLogoutModal()">
+                        🚪 LOG OUT
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Logout Modal -->
-    <div id="logoutModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-title">Logout Account?</div>
-            <button class="modal-btn modal-btn-logout" onclick="confirmLogout()">Logout</button>
-            <button class="modal-btn modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+        <!-- Logout Modal -->
+        <div id="logoutModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-title">Logout Account?</div>
+                <button class="modal-btn modal-btn-logout" onclick="confirmLogout()">Logout</button>
+                <button class="modal-btn modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
+            </div>
         </div>
-    </div>
 
-    <script>
-        // Modal functions
-        function openLogoutModal() {
-            document.getElementById('logoutModal').classList.add('show');
-        }
-
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').classList.remove('show');
-        }
-
-        function confirmLogout() {
-            // Redirect to logout URL
-            window.location.href = 'http://127.0.0.1:8000';
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('logoutModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLogoutModal();
+        <script>
+            // Modal functions
+            function openLogoutModal() {
+                document.getElementById('logoutModal').classList.add('show');
             }
-        });
 
-        // Tab switching functionality
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Handle navigation
-                if (this.textContent.trim() === 'SALES') {
-                    window.location.href = '/sales';
-                } else if (this.textContent.trim() === 'PRODUCT') {
-                    window.location.href = '/product';
+            function closeLogoutModal() {
+                document.getElementById('logoutModal').classList.remove('show');
+            }
+
+            function confirmLogout() {
+                // Redirect to logout URL
+                window.location.href = 'http://127.0.0.1:8000';
+            }
+
+            // Close modal when clicking outside
+            document.getElementById('logoutModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeLogoutModal();
                 }
             });
-        });
 
-        // Filter dropdown functionality
-        document.querySelector('.filter-dropdown').addEventListener('change', function() {
-            console.log('Filter changed to:', this.value);
-            // Add your filter logic here
-        });
-    </script>
+            // Tab switching functionality
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', function () {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+
+                    // Handle navigation
+                    if (this.textContent.trim() === 'SALES') {
+                        window.location.href = '/sales';
+                    } else if (this.textContent.trim() === 'PRODUCT') {
+                        window.location.href = '/product';
+                    }
+                });
+            });
+
+            // Filter dropdown functionality
+            document.querySelector('.filter-dropdown').addEventListener('change', function () {
+                console.log('Filter changed to:', this.value);
+                // Add your filter logic here
+            });
+        </script>
 </body>
+
 </html>

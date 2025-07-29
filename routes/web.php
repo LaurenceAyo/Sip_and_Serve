@@ -5,25 +5,22 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 
 // Home route
 Route::get('/', function () {
     return view('welcome');
 });
-
+Route::post('/dashboard', function() {
+    return redirect()->route('dashboard');
+})->middleware(['auth', 'verified']);
 // Login routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 
 // Dashboard route
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-// Admin dashboard
-Route::get('/admin/sip-serve-dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('admin.dashboard');
+Route::get('/dashboard', [KioskController::class, 'dashboard'])->middleware(['auth', 'verified'])->name('dashboard');
 
 // Sales and Product routes
 Route::get('/sales', function () {
@@ -35,9 +32,9 @@ Route::get('/product', function () {
 })->name('product');
 
 // Kiosk routes grouped together
-    Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
-    Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
-    Route::prefix('kiosk')->name('kiosk.')->group(function () {
+Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
+Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
+Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/', [KioskController::class, 'index'])->name('index');
     Route::post('/dine-in', [KioskController::class, 'dineIn'])->name('dineIn');
     Route::post('/take-out', [KioskController::class, 'takeOut'])->name('takeOut');
@@ -86,8 +83,29 @@ Route::get('/cashier', function () {
 Route::get('/kiosk/kitchen', [OrderController::class, 'kitchen'])->name('kiosk.kitchen');
 Route::post('/order/{id}/start', [OrderController::class, 'startOrder'])->name('order.start');
 Route::post('/order/{id}/complete', [OrderController::class, 'completeOrder'])->name('order.complete');
-    
-// Profile routes
+
+// Admin contact route (outside auth middleware so anyone can access)
+Route::get('/adminContact', function () {
+    return view('adminContact');
+})->name('admin.contact');
+// Forgot password Routes (outside auth middleware for guest access)
+Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.request');
+
+Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.email');
+
+Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.reset');
+
+Route::post('reset-password', [NewPasswordController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.store');
+
+// Profile routes (these need authentication)
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [LoginController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [LoginController::class, 'update'])->name('profile.update');

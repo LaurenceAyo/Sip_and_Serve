@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 class LoginController extends Controller
 {
 
-    
 public function login(Request $request)
 {
     $credentials = $request->validate([
@@ -19,14 +18,10 @@ public function login(Request $request)
 
     if (Auth::attempt($credentials)) {
         $request->session()->regenerate();
-        
-        // Set success session message
         session()->flash('login_success', true);
         
-        // Get redirect destination from form or default to dashboard
-        $redirectTo = $request->input('redirect_to', '/dashboard');
-        
-        return redirect()->intended($redirectTo);
+        // Simple redirect to dashboard
+        return redirect()->route('dashboard');
     }
 
     return back()->withErrors([
