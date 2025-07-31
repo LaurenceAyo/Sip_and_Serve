@@ -29,7 +29,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Redirect to your custom SIP Serve Dashboard instead of default dashboard
-        return redirect()->intended('/admin/sip-serve-dashboard');
+        return redirect()->intended(route('dashboard'));
     }
 
     /**

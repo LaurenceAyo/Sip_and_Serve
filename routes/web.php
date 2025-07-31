@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -12,12 +13,6 @@ use App\Http\Controllers\Auth\NewPasswordController;
 Route::get('/', function () {
     return view('welcome');
 });
-Route::post('/dashboard', function() {
-    return redirect()->route('dashboard');
-})->middleware(['auth', 'verified']);
-// Login routes
-Route::get('/login', [LoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
-Route::post('/login', [LoginController::class, 'login']);
 
 // Dashboard route
 Route::get('/dashboard', [KioskController::class, 'dashboard'])->middleware(['auth', 'verified'])->name('dashboard');
@@ -27,9 +22,18 @@ Route::get('/sales', function () {
     return view('profile.sales');
 })->name('sales');
 
-Route::get('/product', function () {
-    return view('profile.product');
-})->name('product');
+Route::get('/product', [ProductController::class, 'index'])->name('products');
+Route::post('/product', [ProductController::class, 'store'])->name('products.store');
+Route::put('/product/{product}', [ProductController::class, 'update'])->name('products.update');
+Route::delete('/product/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+// Inventory route
+Route::get('/inventory', function () {
+    return view('profile.inventory');
+})->name('inventory');
+
+
+
 
 // Kiosk routes grouped together
 Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');

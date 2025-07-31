@@ -18,10 +18,10 @@
             min-height: 100vh;
         }
 
-        /* Tablet responsive styles */
-        @media (max-width: 1024px) {
+        /* Enhanced Tablet Responsiveness */
+        @media (max-width: 1280px) {
             .header-section {
-                padding: 1rem 0;
+                padding: 1.25rem 0;
             }
 
             .header-section h1 {
@@ -29,101 +29,233 @@
             }
 
             .header-section h2 {
-                font-size: 1.8rem;
+                font-size: 1.75rem;
             }
 
             .max-w-7xl {
-                padding: 0 1rem;
+                padding: 0 1.5rem;
             }
 
-            .flex.justify-between.items-center.mb-6 {
+            .controls-section {
                 flex-direction: column;
-                gap: 1rem;
+                gap: 1.5rem;
                 align-items: stretch;
             }
 
-            .filter-dropdown {
+            .filter-section {
                 width: 100%;
-                padding: 12px;
-                font-size: 1rem;
+                justify-content: center;
             }
 
-            .flex.items-center.space-x-4:last-child {
+            .filter-dropdown {
+                width: 280px;
+                padding: 14px 20px;
+                font-size: 1rem;
+                text-align: center;
+            }
+
+            .button-group {
                 display: grid;
-                grid-template-columns: 2fr 1fr 1fr;
-                gap: 0.5rem;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                width: 100%;
+            }
+
+            .button-group .btn-secondary {
+                grid-column: span 2;
             }
 
             .btn-primary,
             .btn-secondary {
-                padding: 12px 16px;
-                font-size: 0.9rem;
+                padding: 14px 20px;
+                font-size: 1rem;
                 width: 100%;
+                min-height: 50px;
+            }
+
+            .legend-section {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1.5rem;
+                padding: 1rem;
+                background: rgba(245, 230, 211, 0.3);
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+            }
+
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-size: 1rem;
             }
 
             .inventory-table th {
-                padding: 12px 4px;
-                font-size: 0.8rem;
+                padding: 16px 8px;
+                font-size: 0.9rem;
+                font-weight: 700;
             }
 
+            .inventory-table td {
+                padding: 16px 8px;
+                font-size: 0.95rem;
+            }
+
+            .table-container {
+                max-height: 55vh;
+                border-radius: 12px;
+                border: 2px solid #d4c5a9;
+            }
+
+            .bottom-nav {
+                flex-direction: column;
+                gap: 2rem;
+                margin-top: 2rem;
+                padding: 1.5rem;
+                background: rgba(245, 230, 211, 0.2);
+                border-radius: 12px;
+            }
+
+            .tab-section {
+                position: static;
+                transform: none;
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 0;
+                background: rgba(212, 197, 169, 0.3);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .tab-button {
+                padding: 16px 20px;
+                font-size: 1rem;
+                border-radius: 0;
+                min-height: 60px;
+            }
+
+            .tab-button:first-child {
+                border-top-left-radius: 8px;
+                border-bottom-left-radius: 8px;
+            }
+
+            .tab-button:last-child {
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+
+            .logout-btn {
+                width: 100%;
+                padding: 16px;
+                font-size: 1.1rem;
+                min-height: 60px;
+                border-radius: 8px;
+            }
+
+            .modal-content {
+                width: 85%;
+                max-width: 400px;
+                margin: 1rem;
+                padding: 2.5rem;
+            }
+
+            .modal-title {
+                font-size: 1.3rem;
+                margin-bottom: 2rem;
+            }
+
+            .modal-btn {
+                padding: 16px 24px;
+                font-size: 1.1rem;
+                min-height: 55px;
+            }
+
+            .manager-info {
+                padding: 12px 16px;
+                font-size: 1rem;
+            }
+
+            .separator-line {
+                height: 50px;
+                margin: 0 15px;
+            }
+        }
+
+        /* Smaller tablet adjustments */
+        @media (max-width: 900px) {
+            .header-flex {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .separator-line {
+                display: none;
+            }
+
+            .header-section h1 {
+                font-size: 1.3rem;
+            }
+
+            .header-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .inventory-table th,
             .inventory-table td {
                 padding: 12px 4px;
                 font-size: 0.85rem;
             }
 
-            .flex.space-x-5 {
-                position: static;
-                transform: none;
-                width: 100%;
-                justify-content: center;
-                margin-bottom: 1rem;
-            }
-
-            .tab-button {
-                padding: 12px 20px;
-                font-size: 0.9rem;
-            }
-
-            .logout-btn {
-                width: 100%;
-                padding: 12px;
-                font-size: 1rem;
-            }
-
-            .flex.justify-between.items-center.mt-8 {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .modal-content {
-                width: 90%;
-                max-width: 350px;
-                margin: 0 1rem;
+            .table-container {
+                max-height: 50vh;
             }
         }
 
+        /* Portrait tablet */
         @media (max-width: 768px) {
-            .table-container {
-                max-height: 50vh;
+            .max-w-7xl {
+                padding: 0 1rem;
             }
 
             .inventory-table th,
             .inventory-table td {
-                padding: 8px 2px;
-                font-size: 0.75rem;
+                padding: 10px 2px;
+                font-size: 0.8rem;
             }
 
             .status-indicator {
                 width: 16px;
                 height: 16px;
             }
+
+            .button-group {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .button-group .btn-secondary {
+                grid-column: span 1;
+            }
+
+            .legend-section {
+                gap: 1rem;
+            }
+
+            .legend-item {
+                font-size: 0.9rem;
+            }
+
+            .tab-button {
+                padding: 14px 16px;
+                font-size: 0.9rem;
+                min-height: 55px;
+            }
         }
-
-
 
         .table-container {
             max-height: 400px;
-            /* Adjust height as needed */
             overflow-y: auto;
             border: 1px solid #ddd;
         }
@@ -135,7 +267,7 @@
         .table-container thead th {
             position: sticky;
             top: 0;
-            background-color: #f8f9fa;
+            background-color: #d4c5a9;
             z-index: 10;
         }
 
@@ -383,14 +515,16 @@
     <div class="dashboard-container">
         <!-- Header Section -->
         <div class="header-section">
-            <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
-                <div class="flex items-center space-x-4">
-                    <h1 class="text-2xl font-bold header-title">Sip & Serve</h1>
-                    <div class="separator-line"></div>
-                    <h2 class="text-3xl font-light header-title">CAFE DASHBOARD</h2>
-                </div>
-                <div class="manager-info">
-                    <p class="text-sm font-medium">Manager ID: 10023</p>
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="header-flex flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-2xl font-bold header-title">Sip & Serve</h1>
+                        <div class="separator-line"></div>
+                        <h2 class="text-3xl font-light header-title">CAFE DASHBOARD</h2>
+                    </div>
+                    <div class="manager-info">
+                        <p class="text-sm font-medium">Manager ID: 10023</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -398,22 +532,24 @@
         <!-- Main Content -->
         <div class="max-w-7xl mx-auto px-4 py-6">
             <!-- Controls Section -->
-            <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
-                <div class="flex items-center space-x-4">
-                    <select class="filter-dropdown">
-                        <option>ALL ITEMS</option>
-                        <option>BEVERAGES</option>
-                        <option>FOOD</option>
-                        <option>INGREDIENTS</option>
-                    </select>
+            <div class="controls-section flex justify-between items-center mb-6">
+                <div class="filter-section flex items-center space-x-4">
+                    <!-- Empty div to maintain layout -->
                 </div>
 
-                <div class="flex items-center space-x-4">
+                <div class="button-group flex items-center space-x-4">
                     <button class="btn-primary">🛒 Generate Shopping List</button>
                     <button class="btn-primary">+ ADD ITEM</button>
                     <button class="btn-secondary">EDIT ITEMS</button>
                 </div>
+                <select class="filter-dropdown">
+                    <option>ALL ITEMS</option>
+                    <option>BEVERAGES</option>
+                    <option>FOOD</option>
+                    <option>INGREDIENTS</option>
+                </select>
             </div>
+
 
             <!-- Stock Level Legend -->
             <div class="flex items-center space-x-6 mb-4">
@@ -462,8 +598,8 @@
                 </div>
 
                 <!-- Bottom Navigation -->
-                <div class="flex flex-col lg:flex-row justify-between items-center mt-8 gap-4">
-                    <div class="flex space-x-5 absolute left-1/2 transform -translate-x-1/2">
+                <div class="bottom-nav flex justify-between items-center">
+                    <div class="tab-section flex space-x-5">
                         <button class="tab-button active">INVENTORY</button>
                         <button class="tab-button">SALES</button>
                         <button class="tab-button">PRODUCT</button>

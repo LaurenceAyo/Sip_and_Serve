@@ -8,7 +8,6 @@ use App\Models\OrderItem;
 use App\Models\MenuItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
-
 use App\Models\Category;
 use App\Models\Inventory;
 
@@ -21,6 +20,10 @@ class KioskController extends Controller
     {
         return view('kiosk');
     }
+
+    /**
+     * Display the dashboard
+     */
     public function dashboard()
     {
         $inventoryItems = Inventory::with('menuItem')->get();

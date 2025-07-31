@@ -213,8 +213,10 @@
                 <span class="toggle-password" onclick="togglePassword()" id="toggle-icon">👁️‍🗨️</span>
             </div>
 
-            <a href="{{ route('password.request') }}" class="forgot">Forgot Password?</a>
-
+            <!-- <a href="{{ route('password.request') }}" class="forgot">Forgot Password?</a> -->
+            <div >
+                &nbsp;
+            </div>
             <button type="submit" id="loginBtn">
                 <span class="button-text">LOGIN</span>
                 <div class="loading-spinner" id="loadingSpinner">
