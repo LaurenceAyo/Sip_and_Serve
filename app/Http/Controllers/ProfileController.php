@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
 class ProfileController extends Controller
 {
     /**
-     * Show the login form
+     * Show the login form.
      */
     public function showLoginForm()
     {
@@ -20,36 +18,31 @@ class ProfileController extends Controller
     }
 
     /**
-     * Handle login authentication
+     * Handle login authentication.
      */
     public function login(Request $request)
     {
-        // Validate the input
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Check if user exists in database first
         $user = User::where('email', $credentials['email'])->first();
-        
+
         if (!$user) {
             return back()->withErrors([
                 'email' => 'No account found with this email address.',
             ])->onlyInput('email');
         }
 
-        // Try to authenticate
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
-            // Set success session message
+
+            // Optional: Flash success message
             session()->flash('login_success', true);
-            
-            // Get redirect destination from form or default to dashboard
-            $redirectTo = $request->input('redirect_to', '/dashboard');
-            
-            return redirect()->intended($redirectTo);
+
+            // Redirect to intended URL or dashboard
+            return redirect()->intended(route('dashboard', '/', false));
         }
 
         return back()->withErrors([

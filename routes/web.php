@@ -32,7 +32,10 @@ Route::get('/inventory', function () {
     return view('profile.inventory');
 })->name('inventory');
 
-
+//review order route
+Route::get('/review-order', function () {
+   return view('reviewOrder');
+})->name('review.order');
 
 
 // Kiosk routes grouped together
