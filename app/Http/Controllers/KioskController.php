@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use App\Models\Category;
 use App\Models\Inventory;
+use App\Models\Ingredient;
 
 class KioskController extends Controller
 {
@@ -26,9 +27,14 @@ class KioskController extends Controller
      */
     public function dashboard()
     {
-        $inventoryItems = Inventory::with('menuItem')->get();
-        return view('dashboard', compact('inventoryItems'));
+         $ingredients = \App\Models\Ingredient::all();
+        return view('dashboard', compact('ingredients'));
     }
+
+
+
+
+    
     /**
      * Handle dine-in selection
      */

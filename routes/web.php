@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\KioskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\IngredientController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -13,6 +14,9 @@ use App\Http\Controllers\Auth\NewPasswordController;
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+Route::post('/ingredients/update', [IngredientController::class, 'updateStock']);
 
 // Dashboard route
 Route::get('/dashboard', [KioskController::class, 'dashboard'])->middleware(['auth', 'verified'])->name('dashboard');
