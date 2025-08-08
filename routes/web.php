@@ -6,6 +6,7 @@ use App\Http\Controllers\KioskController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\IngredientController;
+use App\Http\Controllers\MenuItemController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -15,36 +16,43 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// FIXED: Use KioskController for menu items AJAX operations
+Route::post('/menu-items/store', [KioskController::class, 'storeMenuItem']);
+Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem']);  
+Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem']);
 
+// FIXED: Single product route pointing to KioskController
+Route::get('/product', [KioskController::class, 'product'])->name('product');
+
+// Ingredients route
 Route::post('/ingredients/update', [IngredientController::class, 'updateStock']);
 
 // Dashboard route
 Route::get('/dashboard', [KioskController::class, 'dashboard'])->middleware(['auth', 'verified'])->name('dashboard');
 
-// Sales and Product routes
+// Sales route
 Route::get('/sales', function () {
     return view('profile.sales');
 })->name('sales');
 
-Route::get('/product', [ProductController::class, 'index'])->name('products');
-Route::post('/product', [ProductController::class, 'store'])->name('products.store');
-Route::put('/product/{product}', [ProductController::class, 'update'])->name('products.update');
-Route::delete('/product/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+// REMOVED: Duplicate product routes that conflict
+// Route::get('/product', [ProductController::class, 'index'])->name('products');
+// Route::post('/product', [ProductController::class, 'store'])->name('products.store');
+// Route::put('/product/{product}', [ProductController::class, 'update'])->name('products.update');
+// Route::delete('/product/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
 // Inventory route
-Route::get('/inventory', function () {
-    return view('profile.inventory');
-})->name('inventory');
+Route::get('/inventory', [KioskController::class, 'dashboard'])->name('inventory');
 
-//review order route
+// Review order route
 Route::get('/review-order', function () {
    return view('reviewOrder');
 })->name('review.order');
 
+// Category items route (FIXED: removed duplicate)
+Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
 
 // Kiosk routes grouped together
-Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
-Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
 Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/', [KioskController::class, 'index'])->name('index');
     Route::post('/dine-in', [KioskController::class, 'dineIn'])->name('dineIn');
@@ -53,7 +61,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::post('/main', [KioskController::class, 'main'])->name('main.post');
     Route::get('/place-order', [KioskController::class, 'placeOrder'])->name('placeOrder');
     
-    // New route for updating order type
+    // Route for updating order type
     Route::post('/update-order-type', [KioskController::class, 'updateOrderType'])->name('updateOrderType');
     
     // Cart management
@@ -73,7 +81,7 @@ Route::prefix('kitchen')->name('kitchen.')->group(function () {
     Route::post('/complete/{id}', [KioskController::class, 'completeOrder'])->name('complete');
 });
 
-//Cashier routes
+// Cashier routes
 Route::get('/cashier', function () {
     $pendingOrders = [
         [
@@ -91,14 +99,16 @@ Route::get('/cashier', function () {
     return view('cashier', compact('pendingOrders'));
 });
 
-Route::get('/kiosk/kitchen', [OrderController::class, 'kitchen'])->name('kiosk.kitchen');
-Route::post('/order/{id}/start', [OrderController::class, 'startOrder'])->name('order.start');
-Route::post('/order/{id}/complete', [OrderController::class, 'completeOrder'])->name('order.complete');
+// REMOVED: Duplicate kitchen routes
+// Route::get('/kiosk/kitchen', [OrderController::class, 'kitchen'])->name('kiosk.kitchen');
+// Route::post('/order/{id}/start', [OrderController::class, 'startOrder'])->name('order.start');
+// Route::post('/order/{id}/complete', [OrderController::class, 'completeOrder'])->name('order.complete');
 
 // Admin contact route (outside auth middleware so anyone can access)
 Route::get('/adminContact', function () {
     return view('adminContact');
 })->name('admin.contact');
+
 // Forgot password Routes (outside auth middleware for guest access)
 Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
     ->middleware('guest')

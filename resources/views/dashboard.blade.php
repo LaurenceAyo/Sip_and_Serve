@@ -19,177 +19,249 @@
             min-height: 100vh;
         }
 
-        /* Enhanced Tablet Responsiveness */
-        @media (max-width: 1280px) {
+        /* CHUWI HIPAD 11 Tablet Optimization (10.9 inch, 2000x1200) */
+        @media (max-width: 1300px) {
             .header-section {
-                padding: 1.25rem 0;
+                padding: 2rem 0;
             }
 
             .header-section h1 {
-                font-size: 1.5rem;
+                font-size: 2rem;
+                font-weight: 700;
             }
 
             .header-section h2 {
-                font-size: 1.75rem;
+                font-size: 2.5rem;
+                font-weight: 600;
             }
 
             .max-w-7xl {
-                padding: 0 1.5rem;
+                padding: 0 2rem;
             }
 
             .controls-section {
-                flex-direction: column;
-                gap: 1.5rem;
-                align-items: stretch;
+                flex-direction: row;
+                gap: 2rem;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 2rem;
             }
 
             .filter-section {
-                width: 100%;
-                justify-content: center;
+                width: auto;
+                justify-content: flex-start;
             }
 
             .filter-dropdown {
-                position: sticky;
-                width: 280px;
-                padding: 14px 20px;
-                font-size: 1rem;
+                width: 320px;
+                padding: 18px 24px;
+                font-size: 1.2rem;
                 text-align: center;
+                border: 3px solid #d4c5a9;
+                border-radius: 8px;
             }
 
             .button-group {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-                width: 100%;
-            }
-
-            .button-group .btn-secondary {
-                grid-column: span 2;
+                display: flex;
+                gap: 1.5rem;
+                width: auto;
             }
 
             .btn-primary,
             .btn-secondary {
-                padding: 14px 20px;
-                font-size: 1rem;
-                width: 100%;
-                min-height: 50px;
+                padding: 18px 28px;
+                font-size: 1.2rem;
+                width: auto;
+                min-height: 60px;
+                min-width: 180px;
+                border-radius: 8px;
+                font-weight: 600;
             }
 
             .legend-section {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 1.5rem;
-                padding: 1rem;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                gap: 3rem;
+                padding: 1.5rem;
                 background: rgba(245, 230, 211, 0.3);
-                border-radius: 8px;
-                margin-bottom: 1.5rem;
+                border-radius: 12px;
+                margin-bottom: 2rem;
             }
 
             .legend-item {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
-                font-size: 1rem;
+                gap: 1rem;
+                font-size: 1.3rem;
+                font-weight: 600;
+            }
+
+            .status-indicator {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
             }
 
             .table-container {
-                max-height: 55vh;
+                max-height: 50vh;
                 border-radius: 12px;
-                border: 2px solid #d4c5a9;
+                border: 3px solid #d4c5a9;
+            }
+
+            .inventory-table thead th {
+                padding: 20px 12px;
+                font-size: 1.2rem;
+                font-weight: 700;
+            }
+
+            .inventory-table td {
+                padding: 18px 8px;
+                font-size: 1.1rem;
+                font-weight: 500;
             }
 
             .bottom-nav {
-                flex-direction: column;
-                gap: 2rem;
-                margin-top: 2rem;
-                padding: 1.5rem;
-                background: rgba(245, 230, 211, 0.2);
-                border-radius: 12px;
+                flex-direction: row;
+                gap: 0;
+                margin-top: 3rem;
+                padding: 0;
+                background: none;
+                border-radius: 0;
+                justify-content: space-between;
+                align-items: center;
             }
 
             .tab-section {
                 position: static;
                 transform: none;
-                width: 100%;
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
+                width: auto;
+                display: flex;
                 gap: 0;
-                background: rgba(212, 197, 169, 0.3);
-                border-radius: 8px;
+                background: rgba(212, 197, 169, 0.4);
+                border-radius: 12px;
                 overflow: hidden;
+                border: 3px solid #d4c5a9;
             }
 
             .tab-button {
-                padding: 16px 20px;
-                font-size: 1rem;
+                padding: 20px 40px;
+                font-size: 1.3rem;
                 border-radius: 0;
-                min-height: 60px;
+                min-height: 70px;
+                min-width: 150px;
+                font-weight: 600;
             }
 
             .tab-button:first-child {
-                border-top-left-radius: 8px;
-                border-bottom-left-radius: 8px;
+                border-top-left-radius: 9px;
+                border-bottom-left-radius: 9px;
             }
 
             .tab-button:last-child {
-                border-top-right-radius: 8px;
-                border-bottom-right-radius: 8px;
+                border-top-right-radius: 9px;
+                border-bottom-right-radius: 9px;
             }
 
             .logout-btn {
-                width: 100%;
-                padding: 16px;
-                font-size: 1.1rem;
-                min-height: 60px;
-                border-radius: 8px;
+                width: auto;
+                padding: 20px 32px;
+                font-size: 1.3rem;
+                min-height: 70px;
+                min-width: 160px;
+                border-radius: 12px;
+                font-weight: 600;
             }
 
             .modal-content {
-                width: 85%;
-                max-width: 400px;
-                margin: 1rem;
-                padding: 2.5rem;
+                width: 70%;
+                max-width: 500px;
+                margin: 2rem;
+                padding: 3rem;
+                border-radius: 16px;
             }
-
-            /*color coding scheme status*/
-            .status-in-stock {
-                background-color: #22c55e;
-                /* Green */
-                color: white;
-            }
-
-            .status-low-stock {
-                background-color: #f59e0b;
-                /* Orange */
-                color: white;
-            }
-
-            .status-out-of-stock {
-                background-color: #ef4444;
-                /* Red */
-                color: white;
-            }
-
 
             .modal-title {
-                font-size: 1.3rem;
-                margin-bottom: 2rem;
+                font-size: 1.8rem;
+                margin-bottom: 2.5rem;
+                font-weight: 700;
             }
 
             .modal-btn {
-                padding: 16px 24px;
-                font-size: 1.1rem;
-                min-height: 55px;
+                padding: 20px 32px;
+                font-size: 1.4rem;
+                min-height: 70px;
+                border-radius: 35px;
+                margin: 10px 0;
             }
 
             .manager-info {
-                padding: 12px 16px;
-                font-size: 1rem;
+                padding: 16px 20px;
+                font-size: 1.2rem;
+                border-radius: 8px;
+                border: 2px solid #8b4513;
             }
 
             .separator-line {
-                height: 50px;
-                margin: 0 15px;
+                height: 60px;
+                margin: 0 20px;
+                width: 3px;
+            }
+
+            /* Add Item Modal adjustments */
+            .add-modal-content {
+                width: 70%;
+                max-width: 500px;
+                padding: 3rem;
+                border-radius: 16px;
+            }
+
+            .add-modal-title {
+                font-size: 1.8rem;
+                margin-bottom: 2.5rem;
+                font-weight: 700;
+            }
+
+            .form-group label {
+                font-size: 1.2rem;
+                margin-bottom: 0.8rem;
+                font-weight: 600;
+            }
+
+            .form-group input {
+                padding: 1.2rem;
+                font-size: 1.1rem;
+                border: 2px solid #d1d5db;
+                border-radius: 8px;
+            }
+
+            .unit-option {
+                gap: 0.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .unit-option label {
+                font-size: 1.1rem;
+                margin: 0;
+            }
+
+            .unit-option input[type="radio"] {
+                width: 20px;
+                height: 20px;
+            }
+
+            .btn-cancel-add,
+            .btn-save-add {
+                padding: 1.2rem 2rem;
+                font-size: 1.1rem;
+                border-radius: 8px;
+                font-weight: 600;
+            }
+
+            .success-popup {
+                padding: 1.5rem 3rem;
+                font-size: 1.4rem;
+                border-radius: 12px;
+                font-weight: 700;
             }
         }
 
@@ -306,8 +378,6 @@
             text-align: center;
             border-bottom: 2px solid #b8a082;
         }
-
-
 
         .status-good {
             background: #4caf50;
@@ -666,6 +736,18 @@
             font-size: 0.85rem;
         }
 
+        .btn-save-add {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
         .success-popup {
             position: fixed;
             top: 25%;
@@ -886,8 +968,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Give alert when stock is below:</label>
-                    <input type="number" id="editAlertLevel" placeholder="minimum stock level" min="0" step="0.1">
+                    <label>Critical Level: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
+                    <input type="number" id="editAlertLevel" placeholder="enter critical stock number" min="1" step="0.1">
                 </div>
                 
                 <div class="add-modal-actions">
@@ -1041,9 +1123,9 @@
             
             const itemName = document.getElementById('editItemName').value;
             const newQuantity = parseFloat(document.getElementById('editQuantity').value);
-            const alertLevel = document.getElementById('editAlertLevel').value;
+            const criticalLevel = document.getElementById('editAlertLevel').value ? parseFloat(document.getElementById('editAlertLevel').value) : null;
             
-            console.log('Submitting:', { itemName, newQuantity, alertLevel }); // Debug log
+            console.log('Submitting:', { itemName, newQuantity, criticalLevel }); // Debug log
             
             if (itemName.trim()) {
                 // Check if CSRF token exists
@@ -1064,7 +1146,7 @@
                     body: JSON.stringify({
                         name: itemName,
                         stock_quantity: newQuantity,
-                        alert_level: alertLevel
+                        critical_level: criticalLevel
                     })
                 })
                 .then(response => {
@@ -1075,7 +1157,7 @@
                     console.log('Response data:', data); // Debug log
                     if (data.success) {
                         // Update the table row with new values
-                        updateTableRow(itemName, newQuantity);
+                        updateTableRow(itemName, newQuantity, criticalLevel);
                         closeEditModal();
                         showSuccessPopup('ITEM UPDATED SUCCESSFULLY');
                     } else {
@@ -1091,18 +1173,23 @@
             }
         });
 
-        function updateTableRow(itemName, newQuantity) {
+        function updateTableRow(itemName, newQuantity, criticalLevel = null) {
             const rows = document.querySelectorAll('.inventory-table tbody tr');
             rows.forEach(row => {
                 const nameCell = row.querySelector('td:first-child');
                 if (nameCell && nameCell.textContent.trim() === itemName) {
                     const cells = row.querySelectorAll('td');
                     cells[1].textContent = newQuantity.toFixed(2); // IN column
-                    cells[3].textContent = `${newQuantity.toFixed(2)} ${cells[3].textContent.split(' ')[1]}`; // CURRENT INVENTORY
                     
-                    // Update status indicator
+                    // Get the updated unit from the edit form
+                    const updatedUnit = document.getElementById('editUnitDisplay').value || 'grams';
+                    cells[3].textContent = `${newQuantity.toFixed(2)} ${updatedUnit}`; // CURRENT INVENTORY with updated unit
+                    
+                    // Update status indicator with new logic
                     const statusCell = cells[4].querySelector('.status-indicator');
-                    statusCell.className = `status-indicator ${getStockLevel(newQuantity)}`;
+                    statusCell.className = `status-indicator ${getStockLevel(newQuantity, criticalLevel)}`;
+                    
+                    console.log(`Updated ${itemName}: quantity=${newQuantity}, critical=${criticalLevel}, status=${getStockLevel(newQuantity, criticalLevel)}`);
                 }
             });
         }
@@ -1291,7 +1378,26 @@
             document.getElementById('quantity').value = '1';
         }
 
-        function getStockLevel(quantity) {
+        function getStockLevel(quantity, criticalLevel = null) {
+            // If criticalLevel is provided, use the new logic
+            if (criticalLevel !== null && criticalLevel > 0) {
+                const warningLevel = criticalLevel * 0.25; // 1/4 of critical level
+                
+                console.log(`Stock check: quantity=${quantity}, critical=${criticalLevel}, warning=${warningLevel}`);
+                
+                if (quantity <= criticalLevel) {
+                    console.log('Status: CRITICAL (red)');
+                    return 'status-critical'; // Red when at or below critical
+                }
+                if (quantity <= warningLevel) {
+                    console.log('Status: LOW (orange)');
+                    return 'status-low'; // Orange when at or below 1/4 of critical
+                }
+                console.log('Status: GOOD (green)');
+                return 'status-good'; // Green otherwise
+            }
+            
+            // Fallback to original logic if no criticalLevel
             if (quantity < 2) return 'status-critical';
             if (quantity < 5) return 'status-low';
             return 'status-good';

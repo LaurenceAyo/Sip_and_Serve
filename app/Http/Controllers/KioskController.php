@@ -3,14 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\MenuItem;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use App\Models\Category;
-use App\Models\Inventory;
-use App\Models\Ingredient;
+use Illuminate\View\View;
+use App\Models\{Order, OrderItem, MenuItem, Category, Inventory, Ingredient};
+use Illuminate\Support\Facades\{DB, Session, Log};
 
 class KioskController extends Controller
 {
@@ -27,13 +22,176 @@ class KioskController extends Controller
      */
     public function dashboard()
     {
-         $ingredients = \App\Models\Ingredient::all();
+         $ingredients = Ingredient::all();
         return view('dashboard', compact('ingredients'));
     }
 
+    /**
+     * Display the products page
+     */
+    public function product(): View
+    {
+        $menu_items = MenuItem::all();
+        return view('profile.product', compact('menu_items'));
+    }
 
+    /**
+     * Store a new menu item via AJAX
+     */
+    public function storeMenuItem(Request $request)
+{
+    try {
+        Log::info('=== storeMenuItem called ===');
+        Log::info('Request data:', $request->all());
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0'
+        ]);
 
+        Log::info('Validation passed');
 
+        // Get the first available category or create a default one
+        $defaultCategory = Category::first();
+        if (!$defaultCategory) {
+            Log::info('No categories found, creating default category');
+            // Create a default category using your exact fillable fields
+            $defaultCategory = Category::create([
+                'name' => 'Uncategorized',
+                'description' => 'Default category for new menu items',
+                'image' => null,
+                'is_active' => true,  // Using boolean as per your casts
+                'sort_order' => 999
+            ]);
+            Log::info('Default category created:', ['category' => $defaultCategory]);
+        }
+
+        Log::info('Using category:', ['category_id' => $defaultCategory->id]);
+
+        $item = MenuItem::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            'cost' => $request->price * 0.6,
+            'category_id' => $defaultCategory->id,
+            'description' => '',
+            'is_available' => 1,
+            'preparation_time' => 10
+        ]);
+        
+        Log::info('MenuItem created successfully:', ['item' => $item]);
+        
+        return response()->json([
+            'success' => true, 
+            'item' => $item,
+            'message' => 'Menu item added successfully!'
+        ]);
+        
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::error('Validation failed:', ['errors' => $e->errors()]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+        
+    } catch (\Exception $e) {
+        Log::error('storeMenuItem error:', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+    /**
+     * Update menu item price via AJAX
+     */
+    public function updateMenuItem(Request $request)
+    {
+        try {
+            Log::info('=== updateMenuItem called ===');
+            Log::info('Request data:', $request->all());
+            
+            $request->validate([
+                'id' => 'required|exists:menu_items,id',
+                'price' => 'required|numeric|min:0'
+            ]);
+
+            $item = MenuItem::find($request->id);
+            $item->update(['price' => $request->price]);
+            
+            Log::info('MenuItem updated successfully');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Menu item price updated successfully!'
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed:', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('updateMenuItem error:', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete menu item via AJAX
+     */
+    public function deleteMenuItem(Request $request)
+    {
+        try {
+            Log::info('=== deleteMenuItem called ===');
+            Log::info('Request data:', $request->all());
+            
+            $request->validate([
+                'id' => 'required|exists:menu_items,id'
+            ]);
+
+            $item = MenuItem::find($request->id);
+            $itemName = $item->name;
+            $item->delete();
+            
+            Log::info('MenuItem deleted successfully');
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Menu item '{$itemName}' deleted successfully!"
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed:', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('deleteMenuItem error:', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     
     /**
      * Handle dine-in selection
@@ -56,37 +214,35 @@ class KioskController extends Controller
     /**
      * Display the main menu page
      */
-    /**
- * Display the main menu page
- */
-public function main(Request $request)
-{
-    // Get order type from session or default to 'dine-in'
-    $orderType = Session::get('order_type', 'dine-in');
-    
-    // Get all categories with their menu items
-    $categories = Category::where('is_active', 1)
-        ->orderBy('sort_order')
-        ->get();
-    
-    // Get all menu items with their categories, ordered by category
-    // Filter out items without categories to prevent null reference errors
-    $menuItems = MenuItem::with(['category', 'variants'])
-        ->where('is_available', 1)
-        ->whereHas('category') // This ensures only items with categories are included
-        ->get()
-        ->filter(function($item) {
-            return $item->category !== null; // Additional safety check
-        })
-        ->sortBy(function($item) {
-            return [$item->category->sort_order ?? 999, $item->name];
-        });
-    
-    // Group menu items by category for easier frontend handling
-    $itemsByCategory = $menuItems->groupBy('category.name');
-    
-    return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
-}
+    public function main(Request $request)
+    {
+        // Get order type from session or default to 'dine-in'
+        $orderType = Session::get('order_type', 'dine-in');
+        
+        // Get all categories with their menu items
+        $categories = Category::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->get();
+        
+        // Get all menu items with their categories, ordered by category
+        // Filter out items without categories to prevent null reference errors
+        $menuItems = MenuItem::with(['category', 'variants'])
+            ->where('is_available', 1)
+            ->whereHas('category') // This ensures only items with categories are included
+            ->get()
+            ->filter(function($item) {
+                return $item->category !== null; // Additional safety check
+            })
+            ->sortBy(function($item) {
+                return [$item->category->sort_order ?? 999, $item->name];
+            });
+        
+        // Group menu items by category for easier frontend handling
+        $itemsByCategory = $menuItems->groupBy('category.name');
+        
+        return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
+    }
+
     public function getCategoryItems($categoryId)
     {
         $menuItems = MenuItem::where('category_id', $categoryId)
@@ -105,6 +261,7 @@ public function main(Request $request)
         
         return response()->json(['status' => 'success', 'order_type' => $orderType]);
     }
+
     /**
      * Display the place order page
      */
@@ -133,34 +290,34 @@ public function main(Request $request)
      * Add item to cart
      */
     public function addToCart(Request $request)
-{
-    $request->validate([
-        'menu_item_id' => 'required|exists:menu_items,id',
-        'quantity' => 'required|integer|min:1',
-        'special_instructions' => 'nullable|string|max:255'
-    ]);
+    {
+        $request->validate([
+            'menu_item_id' => 'required|exists:menu_items,id',
+            'quantity' => 'required|integer|min:1',
+            'special_instructions' => 'nullable|string|max:255'
+        ]);
 
-    $cart = session('cart', []);
-    $itemKey = $request->input('menu_item_id') . '_' . md5($request->input('special_instructions') ?? '');
+        $cart = session('cart', []);
+        $itemKey = $request->input('menu_item_id') . '_' . md5($request->input('special_instructions') ?? '');
 
-    if (isset($cart[$itemKey])) {
-        $cart[$itemKey]['quantity'] += $request->input('quantity');
-    } else {
-        $cart[$itemKey] = [
-            'menu_item_id' => $request->input('menu_item_id'),
-            'quantity' => $request->input('quantity'), // Use input() method
-            'special_instructions' => $request->input('special_instructions')
-        ];
+        if (isset($cart[$itemKey])) {
+            $cart[$itemKey]['quantity'] += $request->input('quantity');
+        } else {
+            $cart[$itemKey] = [
+                'menu_item_id' => $request->input('menu_item_id'),
+                'quantity' => $request->input('quantity'), // Use input() method
+                'special_instructions' => $request->input('special_instructions')
+            ];
+        }
+
+        session(['cart' => $cart]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item added to cart',
+            'cart_count' => array_sum(array_column($cart, 'quantity'))
+        ]);
     }
-
-    session(['cart' => $cart]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Item added to cart',
-        'cart_count' => array_sum(array_column($cart, 'quantity'))
-    ]);
-}
 
     /**
      * Remove item from cart
@@ -318,7 +475,7 @@ public function main(Request $request)
             'started_at' => now()
         ]);
 
-        return redirect()->route('kiosk.kitchen')->with('success', 'Order started!');
+        return redirect()->route('kitchen.index')->with('success', 'Order started!');
     }
 
     /**
@@ -333,7 +490,7 @@ public function main(Request $request)
             'completed_at' => now()
         ]);
 
-        return redirect()->route('kiosk.kitchen')->with('success', 'Order completed!');
+        return redirect()->route('kitchen.index')->with('success', 'Order completed!');
     }
 
     /**

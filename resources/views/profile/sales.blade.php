@@ -9,7 +9,7 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f1eb 0%, #e8ddd4 100%);
+            background: white;
             min-height: 100vh;
         }
 
@@ -18,173 +18,207 @@
             min-height: 100vh;
         }
 
-        /* Enhanced Tablet Responsiveness */
-        @media (max-width: 1280px) {
+        /* CHUWI HIPAD 11 Tablet Optimization (10.9 inch, 2000x1200) */
+        @media (max-width: 1300px) {
             .header-section {
-                padding: 1.25rem 0;
+                padding: 2rem 0;
             }
 
             .header-section h1 {
-                font-size: 1.5rem;
+                font-size: 2rem;
+                font-weight: 700;
             }
 
             .header-section h2 {
-                font-size: 1.75rem;
+                font-size: 2.5rem;
+                font-weight: 600;
             }
 
             .max-w-7xl {
-                padding: 0 1.5rem;
+                padding: 0 2rem;
             }
 
             .controls-section {
-                gap: 1.5rem;
-                align-items: stretch;
+                flex-direction: row;
+                gap: 2rem;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 2rem;
             }
 
             .filter-section {
-                justify-content: left;
+                width: auto;
+                justify-content: flex-start;
             }
 
             .filter-dropdown {
-                width: 130px;
-                padding: 14px 20px;
-                font-size: 1rem;
+                width: 200px;
+                padding: 18px 24px;
+                font-size: 1.2rem;
                 text-align: center;
+                border: 3px solid #d4c5a9;
+                border-radius: 8px;
             }
 
             .button-group {
-                justify-content: LEFT;
-                width: 100%;
+                display: flex;
+                gap: 1.5rem;
+                width: auto;
             }
 
             .btn-primary {
-                padding: 14px 20px;
-                font-size: 1rem;
-                min-height: 50px;
+                padding: 18px 28px;
+                font-size: 1.2rem;
+                width: auto;
+                min-height: 60px;
+                min-width: 200px;
+                border-radius: 8px;
+                font-weight: 600;
             }
 
             .metrics-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2rem;
                 margin-bottom: 2rem;
             }
 
             .sales-card {
-                padding: 1.5rem;
-                border-width: 15px;
+                padding: 2rem;
+                border-width: 20px;
+                border-radius: 16px;
             }
 
             .metric-card {
-                padding: 1.5rem;
+                padding: 2rem;
                 margin-bottom: 0;
+                border-radius: 8px;
             }
 
             .metric-card h4 {
-                font-size: 1.1rem;
-                margin-bottom: 1rem;
+                font-size: 1.4rem;
+                margin-bottom: 1.5rem;
+                font-weight: 600;
             }
 
             .metric-card p {
-                font-size: 1.5rem;
+                font-size: 2rem;
+                font-weight: 700;
             }
 
             .top-items {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.5rem;
             }
 
             .item-card {
-                padding: 1.5rem;
+                padding: 2rem;
+                border-radius: 12px;
             }
 
             .item-image {
-                width: 70px;
-                height: 70px;
-                margin-bottom: 1rem;
+                width: 90px;
+                height: 90px;
+                margin-bottom: 1.5rem;
+                border-radius: 12px;
             }
 
             .item-card h5 {
-                font-size: 1rem;
-                margin-bottom: 0.5rem;
+                font-size: 1.2rem;
+                margin-bottom: 0.8rem;
+                font-weight: 600;
             }
 
             .item-card p {
-                font-size: 0.9rem;
+                font-size: 1rem;
+                color: #6b7280;
             }
 
             .bottom-nav {
-                flex-direction: column;
-                gap: 2rem;
-                margin-top: 2rem;
-                padding: 1.5rem;
-                background: rgba(245, 230, 211, 0.2);
-                border-radius: 12px;
+                flex-direction: row;
+                gap: 0;
+                margin-top: 3rem;
+                padding: 0;
+                background: none;
+                border-radius: 0;
+                justify-content: space-between;
+                align-items: center;
             }
 
             .tab-section {
                 position: static;
                 transform: none;
-                width: 100%;
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
+                width: auto;
+                display: flex;
                 gap: 0;
-                background: rgba(212, 197, 169, 0.3);
-                border-radius: 8px;
+                background: rgba(212, 197, 169, 0.4);
+                border-radius: 12px;
                 overflow: hidden;
+                border: 3px solid #d4c5a9;
             }
 
             .tab-button {
-                padding: 16px 20px;
-                font-size: 1rem;
+                padding: 20px 40px;
+                font-size: 1.3rem;
                 border-radius: 0;
-                min-height: 60px;
+                min-height: 70px;
+                min-width: 150px;
+                font-weight: 600;
             }
 
             .tab-button:first-child {
-                border-top-left-radius: 8px;
-                border-bottom-left-radius: 8px;
+                border-top-left-radius: 9px;
+                border-bottom-left-radius: 9px;
             }
 
             .tab-button:last-child {
-                border-top-right-radius: 8px;
-                border-bottom-right-radius: 8px;
+                border-top-right-radius: 9px;
+                border-bottom-right-radius: 9px;
             }
 
             .logout-btn {
-                width: 100%;
-                padding: 16px;
-                font-size: 1.1rem;
-                min-height: 60px;
-                border-radius: 8px;
+                width: auto;
+                padding: 20px 32px;
+                font-size: 1.3rem;
+                min-height: 70px;
+                min-width: 160px;
+                border-radius: 12px;
+                font-weight: 600;
                 margin-left: 0;
             }
 
             .modal-content {
-                width: 85%;
-                max-width: 400px;
-                margin: 1rem;
-                padding: 2.5rem;
+                width: 70%;
+                max-width: 500px;
+                margin: 2rem;
+                padding: 3rem;
+                border-radius: 16px;
             }
 
             .modal-title {
-                font-size: 1.3rem;
-                margin-bottom: 2rem;
+                font-size: 1.8rem;
+                margin-bottom: 2.5rem;
+                font-weight: 700;
             }
 
             .modal-btn {
-                padding: 16px 24px;
-                font-size: 1.1rem;
-                min-height: 55px;
+                padding: 20px 32px;
+                font-size: 1.4rem;
+                min-height: 70px;
+                border-radius: 35px;
+                margin: 10px 0;
             }
 
             .manager-info {
-                padding: 12px 16px;
-                font-size: 1rem;
+                padding: 16px 20px;
+                font-size: 1.2rem;
+                border-radius: 8px;
+                border: 2px solid #8b4513;
             }
 
             .separator-line {
-                height: 50px;
-                margin: 0 15px;
+                height: 60px;
+                margin: 0 20px;
+                width: 3px;
             }
         }
 
@@ -519,6 +553,171 @@
             border-radius: 5px;
             border: 1px solid #8b4513;
         }
+
+        /* Export Report Modal Styles */
+        .export-modal-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .export-modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #5d4037;
+            margin-bottom: 2rem;
+            text-align: center;
+            border-bottom: 3px solid #d4c5a9;
+            padding-bottom: 1rem;
+        }
+
+        .report-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f8f6f0;
+            border-radius: 12px;
+            border: 2px solid #d4c5a9;
+        }
+
+        .report-section h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #8b4513;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #d4c5a9;
+            padding-bottom: 0.5rem;
+        }
+
+        .report-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .report-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #d4c5a9;
+            text-align: center;
+        }
+
+        .report-item-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-item-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #5d4037;
+        }
+
+        .top-items-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .top-items-list li {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid #d4c5a9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-items-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .item-rank {
+            background: #8b4513;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .item-details {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #5d4037;
+        }
+
+        .item-sales {
+            color: #8b4513;
+            font-weight: 500;
+        }
+
+        .export-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 2px solid #d4c5a9;
+        }
+
+        .btn-print {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.1rem;
+            min-width: 120px;
+        }
+
+        .btn-print:hover {
+            background: #047857;
+        }
+
+        .btn-close {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.1rem;
+            min-width: 120px;
+        }
+
+        .btn-close:hover {
+            background: #4b5563;
+        }
+
+        .report-date {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
     </style>
 </head>
 
@@ -542,6 +741,66 @@
 
         <!-- Main Content -->
         <div class="max-w-7xl mx-auto px-4 py-6">
+
+            <!-- Export Report Modal -->
+            <div id="exportReportModal" class="modal-overlay">
+                <div class="export-modal-content">
+                    <h2 class="export-modal-title">📊 DAILY SALES REPORT</h2>
+                    <div class="report-date" id="reportDate"></div>
+                    
+                    <!-- Sales Summary Section -->
+                    <div class="report-section">
+                        <h3>📈 Sales Summary</h3>
+                        <div class="report-data">
+                            <div class="report-item">
+                                <div class="report-item-label">Today's Total</div>
+                                <div class="report-item-value" id="reportTotalSales">PHP 10,520.00</div>
+                            </div>
+                            <div class="report-item">
+                                <div class="report-item-label">Orders Completed</div>
+                                <div class="report-item-value" id="reportOrdersCompleted">30</div>
+                            </div>
+                        </div>
+                        <div class="report-item" style="margin: 0 auto; max-width: 300px;">
+                            <div class="report-item-label">Average Order</div>
+                            <div class="report-item-value" id="reportAverageOrder">PHP 350.67</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Selling Items Section -->
+                    <div class="report-section">
+                        <h3>🏆 Top 3 Selling Items</h3>
+                        <ul class="top-items-list">
+                            <li>
+                                <div class="item-rank">1</div>
+                                <div class="item-details">
+                                    <span class="item-name">Espresso</span>
+                                    <span class="item-sales">15 sold</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="item-rank">2</div>
+                                <div class="item-details">
+                                    <span class="item-name">Pad Thai</span>
+                                    <span class="item-sales">12 sold</span>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="item-rank">3</div>
+                                <div class="item-details">
+                                    <span class="item-name">Iced Coffee</span>
+                                    <span class="item-sales">10 sold</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="export-modal-actions">
+                        <button class="btn-print" onclick="printReport()">🖨️ PRINT</button>
+                        <button class="btn-close" onclick="closeExportModal()">✖️ CLOSE</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Logout Modal -->
             <div id="logoutModal" class="modal-overlay">
@@ -588,7 +847,7 @@
                 </div>
 
                 <div class="button-group flex items-center space-x-4">
-                    <button class="btn-primary">📊 Export Report</button>
+                    <button class="btn-primary" onclick="openExportModal()">📊 Export Report</button>
                 </div>
             </div>
 
@@ -651,6 +910,157 @@
     </div>
 
     <script>
+        // Export Report Modal functions
+        function openExportModal() {
+            // Set current date
+            const today = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('reportDate').textContent = 
+                `Report generated on ${today.toLocaleDateString('en-US', options)}`;
+            
+            document.getElementById('exportReportModal').classList.add('show');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportReportModal').classList.remove('show');
+        }
+
+        function printReport() {
+            const printWindow = window.open('', '_blank');
+            const reportContent = document.querySelector('.export-modal-content').cloneNode(true);
+            
+            // Remove the action buttons from print version
+            const actions = reportContent.querySelector('.export-modal-actions');
+            if (actions) actions.remove();
+            
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Daily Sales Report - Sip & Serve</title>
+                    <style>
+                        body { 
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                            margin: 20px; 
+                            color: #333;
+                        }
+                        .export-modal-title { 
+                            color: #5d4037; 
+                            text-align: center; 
+                            font-size: 1.8rem;
+                            margin-bottom: 1rem;
+                            border-bottom: 3px solid #d4c5a9;
+                            padding-bottom: 1rem;
+                        }
+                        .report-date {
+                            text-align: center;
+                            font-size: 1.1rem;
+                            color: #6b7280;
+                            margin-bottom: 2rem;
+                            font-style: italic;
+                        }
+                        .report-section { 
+                            margin-bottom: 2rem; 
+                            padding: 1.5rem;
+                            background: #f8f6f0;
+                            border-radius: 12px;
+                            border: 2px solid #d4c5a9;
+                        }
+                        .report-section h3 { 
+                            color: #8b4513; 
+                            font-size: 1.3rem;
+                            margin-bottom: 1rem;
+                            border-bottom: 2px solid #d4c5a9;
+                            padding-bottom: 0.5rem;
+                        }
+                        .report-data { 
+                            display: grid; 
+                            grid-template-columns: 1fr 1fr; 
+                            gap: 1rem; 
+                            margin-bottom: 1rem;
+                        }
+                        .report-item { 
+                            background: white;
+                            padding: 1rem;
+                            border-radius: 8px;
+                            border: 1px solid #d4c5a9;
+                            text-align: center;
+                        }
+                        .report-item-label { 
+                            font-size: 0.9rem;
+                            color: #6b7280;
+                            margin-bottom: 0.5rem;
+                        }
+                        .report-item-value { 
+                            font-size: 1.2rem;
+                            font-weight: 700;
+                            color: #5d4037;
+                        }
+                        .top-items-list { 
+                            list-style: none; 
+                            padding: 0; 
+                        }
+                        .top-items-list li { 
+                            background: white;
+                            padding: 1rem;
+                            margin-bottom: 0.5rem;
+                            border-radius: 8px;
+                            border: 1px solid #d4c5a9;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .item-rank { 
+                            background: #8b4513;
+                            color: white;
+                            width: 30px;
+                            height: 30px;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-weight: 600;
+                            margin-right: 1rem;
+                        }
+                        .item-details { 
+                            flex: 1;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .item-name { 
+                            font-weight: 600;
+                            color: #5d4037;
+                        }
+                        .item-sales { 
+                            color: #8b4513;
+                            font-weight: 500;
+                        }
+                        @media print {
+                            body { margin: 0; }
+                            .report-section { break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${reportContent.innerHTML}
+                    <div style="text-align: center; margin-top: 2rem; color: #6b7280; font-size: 0.9rem;">
+                        <p>Generated by Sip & Serve Cafe Management System</p>
+                        <p>Manager ID: 10023</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
         // Tab switching functionality
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', function () {
@@ -688,15 +1098,19 @@
             }
         });
 
+        // Close export modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('exportReportModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeExportModal();
+                }
+            });
+        });
+
         // Filter dropdown functionality
         document.querySelector('.filter-dropdown').addEventListener('change', function () {
             console.log('Filter changed to:', this.value);
             // Add your filter logic here
-        });
-
-        // Export report functionality
-        document.querySelector('.btn-primary').addEventListener('click', function () {
-            alert('Export functionality will be implemented here');
         });
 
         // Touch-friendly enhancements for tablets

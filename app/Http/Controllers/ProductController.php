@@ -8,10 +8,10 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     public function index()
-    {
-        $products = MenuItem::all();
-        return view('profile.product', compact('products'));
-    }
+{
+    $menu_items = MenuItem::all();  // Change this line
+    return view('profile.product', compact('menu_items'));  // And this line
+}
 
     public function store(Request $request)
     {
