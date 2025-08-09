@@ -34,7 +34,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             position: relative;
             z-index: 10;
-            font-family: sans-serif; /* Add this line */
+            font-family: sans-serif;
         }
 
         .cafe-title {
@@ -43,7 +43,7 @@
             color: #2F1B14;
             letter-spacing: 2px;
             text-transform: uppercase;
-            font-family: sans-serif; /* Add this line */
+            font-family: sans-serif;
         }
 
         /* Side Navigation */
@@ -53,22 +53,14 @@
             top: 0;
             height: 100vh;
             width: 80px;
-            
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding-top: 15vh; /* Move "Sip & Serve" higher */
+            padding-top: 15vh;
             z-index: 5;
         }
 
-        @media (max-width: 768px) {
-            .main-content {
-            padding-left: 60px;
-            background-size: cover;
-            min-height: 100vh;
-            }
-        }
         .nav-text {
             color: white;
             font-size: 2.7rem;
@@ -99,33 +91,34 @@
             width: 100%;
         }
 
-        /* Action Buttons */
+        /* Action Buttons - Optimized for Lenovo Tablet */
         .action-buttons {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 30px; /* Increased gap for better touch targets */
             align-items: center;
             position: absolute;
             top: 50%;
-            left: 50%;
+            left: 40%;
             transform: translate(-50%, -50%);
-            margin-left: 40px; /* Account for side nav width */
+            margin-left: 0;
         }
 
         .action-btn {
-            width: 250px;
-            padding: 20px 40px;
-            font-size: 1.8rem;
+            width: 320px; /* Increased width for tablet */
+            padding: 25px 50px; /* Increased padding for better touch */
+            font-size: 2rem; /* Larger font for 11" screen */
             font-weight: bold;
             border: none;
-            border-radius: 15px;
+            border-radius: 20px; /* Larger border radius */
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); /* Enhanced shadow */
             position: relative;
             overflow: hidden;
+            min-height: 80px; /* Minimum touch target height */
         }
 
         .action-btn::before {
@@ -142,26 +135,17 @@
         .action-btn:hover::before {
             left: 100%;
         }
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            position: absolute;
-            top: 50%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-            margin-left: 0; /* Remove offset for perfect centering */
-        }
+
         .dine-in-btn {
             background: linear-gradient(135deg, #27ae60, #2ecc71);
             color: white;
         }
 
-        .dine-in-btn:hover {
+        .dine-in-btn:hover,
+        .dine-in-btn:active {
             background: linear-gradient(135deg, #229954, #27ae60);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.4);
+            transform: translateY(-4px) scale(1.02); /* Enhanced feedback */
+            box-shadow: 0 12px 30px rgba(39, 174, 96, 0.5);
         }
 
         .take-out-btn {
@@ -169,15 +153,17 @@
             color: white;
         }
         
-        .take-out-btn:hover {
+        .take-out-btn:hover,
+        .take-out-btn:active {
             background: linear-gradient(135deg, #d35400, #e67e22);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(230, 126, 34, 0.4);
+            transform: translateY(-4px) scale(1.02); /* Enhanced feedback */
+            box-shadow: 0 12px 30px rgba(230, 126, 34, 0.5);
         }
 
+        /* Touch feedback for tablets */
         .action-btn:active {
-            transform: translateY(1px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
         /* Decorative Elements */
@@ -221,24 +207,118 @@
             50% { transform: translateY(-20px); }
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
+        /* Lenovo Xiaoxin Pad 2024 Optimizations */
+        @media (min-width: 1200px) and (max-width: 1920px) {
+            .cafe-title {
+                font-size: 3rem; /* Larger title for 11" screen */
+            }
+            
+            .action-btn {
+                width: 380px; /* Even larger buttons for landscape */
+                font-size: 2.2rem;
+                padding: 30px 60px;
+                min-height: 90px;
+            }
+            
+            .action-buttons {
+                gap: 40px; /* More spacing in landscape */
+            }
+            
+            .nav-text {
+                font-size: 3rem; /* Larger side text */
+            }
+        }
+
+        /* Portrait mode optimization */
+        @media (orientation: portrait) {
+            .action-buttons {
+                left: 50%;
+                margin-left: 0;
+            }
+            
+            .main-content {
+                padding-left: 60px;
+            }
+            
+            .side-nav {
+                width: 60px;
+            }
+            
+            .nav-text {
+                font-size: 2.2rem;
+            }
+            
+            .action-btn {
+                width: 280px;
+                font-size: 1.8rem;
+                padding: 20px 40px;
+            }
+        }
+
+        /* Standard tablet responsive (768px - 1199px) */
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .cafe-title {
+                font-size: 2.5rem;
+            }
+            
+            .action-btn {
+                width: 300px;
+                font-size: 1.9rem;
+                padding: 22px 45px;
+                min-height: 75px;
+            }
+            
+            .action-buttons {
+                gap: 25px;
+            }
+        }
+
+        /* Mobile fallback */
+        @media (max-width: 767px) {
             .cafe-title {
                 font-size: 2rem;
             }
             
             .action-btn {
-                width: 200px;
-                font-size: 1.5rem;
-                padding: 15px 30px;
+                width: 250px;
+                font-size: 1.6rem;
+                padding: 18px 35px;
+                min-height: 70px;
             }
             
             .action-buttons {
-                margin-left: 20px; /* Adjust for smaller screens */
+                margin-left: 20px;
+                gap: 20px;
             }
             
             .main-content {
-                padding-left: 60px; /* Reduce padding on mobile */
+                padding-left: 60px;
+            }
+            
+            .side-nav {
+                width: 60px;
+            }
+            
+            .nav-text {
+                font-size: 2rem;
+            }
+        }
+
+        /* High DPI display optimization */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .action-btn {
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        /* Battery saving for long kiosk sessions */
+        @media (prefers-reduced-motion: reduce) {
+            .decoration-1, .decoration-2, .decoration-3 {
+                animation: none;
+            }
+            
+            .action-btn::before {
+                transition: none;
             }
         }
     </style>
@@ -260,28 +340,27 @@
             <div class="content-wrapper">
                 <!-- Success Message -->
                 @if(session('message'))
-                    <div style="background: rgba(46, 204, 113, 0.9); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+                    <div style="background: rgba(46, 204, 113, 0.9); color: white; padding: 20px; border-radius: 15px; margin-bottom: 30px; text-align: center; font-weight: bold; font-size: 1.2rem;">
                         {{ session('message') }}
                     </div>
                 @endif
                 
-
                 <!-- Action Buttons -->
-<div class="action-buttons">
-    <form method="POST" action="{{ route('kiosk.dineIn') }}" style="display: inline;">
-        @csrf
-        <button type="submit" class="action-btn dine-in-btn">
-            Dine In
-        </button>
-    </form>
+                <div class="action-buttons">
+                    <form method="POST" action="{{ route('kiosk.dineIn') }}" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="action-btn dine-in-btn">
+                            Dine In
+                        </button>
+                    </form>
 
-    <form method="POST" action="{{ route('kiosk.takeOut') }}" style="display: inline;">
-        @csrf
-        <button type="submit" class="action-btn take-out-btn">
-            Take Out
-        </button>
-    </form>
-</div>
+                    <form method="POST" action="{{ route('kiosk.takeOut') }}" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="action-btn take-out-btn">
+                            Take Out
+                        </button>
+                    </form>
+                </div>
             </div>
         </main>
 
@@ -292,19 +371,34 @@
     </div>
 
     <script>
-        // Add click sound effect (optional)
+        // Enhanced touch feedback for Lenovo tablet
         document.querySelectorAll('.action-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                // Add haptic feedback for mobile devices
+            button.addEventListener('touchstart', function(e) {
+                // Prevent double-tap zoom
+                e.preventDefault();
+                
+                // Enhanced haptic feedback
                 if (navigator.vibrate) {
-                    navigator.vibrate(50);
+                    navigator.vibrate([50, 30, 50]); // Pattern vibration
                 }
                 
-                // Add visual feedback
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
+                // Visual feedback with scale
+                this.style.transform = 'scale(0.96)';
+                this.style.transition = 'transform 0.1s ease';
+            });
+            
+            button.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+                this.style.transition = 'transform 0.3s ease';
+            });
+            
+            // Mouse events for testing on desktop
+            button.addEventListener('mousedown', function() {
+                this.style.transform = 'scale(0.96)';
+            });
+            
+            button.addEventListener('mouseup', function() {
+                this.style.transform = 'scale(1)';
             });
         });
 
@@ -322,6 +416,36 @@
         document.addEventListener('contextmenu', e => e.preventDefault());
         document.addEventListener('selectstart', e => e.preventDefault());
         document.addEventListener('dragstart', e => e.preventDefault());
+
+        // Prevent accidental zoom
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Screen wake lock for kiosk mode (if supported)
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen wake lock activated');
+            } catch (err) {
+                console.log('Wake lock not supported');
+            }
+        }
+
+        // Request wake lock when page loads
+        if ('wakeLock' in navigator) {
+            requestWakeLock();
+        }
+
+        // Optimize for tablet battery life
+        window.addEventListener('beforeunload', function() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+            }
+        });
     </script>
 </body>
 </html>

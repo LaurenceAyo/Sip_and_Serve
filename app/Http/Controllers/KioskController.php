@@ -39,75 +39,267 @@ class KioskController extends Controller
      * Store a new menu item via AJAX
      */
     public function storeMenuItem(Request $request)
-{
-    try {
-        Log::info('=== storeMenuItem called ===');
-        Log::info('Request data:', $request->all());
-        
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0'
-        ]);
-
-        Log::info('Validation passed');
-
-        // Get the first available category or create a default one
-        $defaultCategory = Category::first();
-        if (!$defaultCategory) {
-            Log::info('No categories found, creating default category');
-            // Create a default category using your exact fillable fields
-            $defaultCategory = Category::create([
-                'name' => 'Uncategorized',
-                'description' => 'Default category for new menu items',
-                'image' => null,
-                'is_active' => true,  // Using boolean as per your casts
-                'sort_order' => 999
+    {
+        try {
+            Log::info('=== storeMenuItem called ===');
+            Log::info('Request data:', $request->all());
+            
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'price' => 'required|numeric|min:0'
             ]);
-            Log::info('Default category created:', ['category' => $defaultCategory]);
+
+            Log::info('Validation passed');
+
+            // Get the first available category or create a default one
+            $defaultCategory = Category::first();
+            if (!$defaultCategory) {
+                Log::info('No categories found, creating default category');
+                // Create a default category using your exact fillable fields
+                $defaultCategory = Category::create([
+                    'name' => 'Uncategorized',
+                    'description' => 'Default category for new menu items',
+                    'image' => null,
+                    'is_active' => true,  // Using boolean as per your casts
+                    'sort_order' => 999
+                ]);
+                Log::info('Default category created:', ['category' => $defaultCategory]);
+            }
+
+            Log::info('Using category:', ['category_id' => $defaultCategory->id]);
+
+            $item = MenuItem::create([
+                'name' => $request->name,
+                'price' => $request->price,
+                'cost' => $request->price * 0.6,
+                'category_id' => $defaultCategory->id,
+                'description' => '',
+                'is_available' => 1,
+                'preparation_time' => 10
+            ]);
+            
+            Log::info('MenuItem created successfully:', ['item' => $item]);
+            
+            return response()->json([
+                'success' => true, 
+                'item' => $item,
+                'message' => 'Menu item added successfully!'
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed:', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('storeMenuItem error:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
         }
-
-        Log::info('Using category:', ['category_id' => $defaultCategory->id]);
-
-        $item = MenuItem::create([
-            'name' => $request->name,
-            'price' => $request->price,
-            'cost' => $request->price * 0.6,
-            'category_id' => $defaultCategory->id,
-            'description' => '',
-            'is_available' => 1,
-            'preparation_time' => 10
-        ]);
-        
-        Log::info('MenuItem created successfully:', ['item' => $item]);
-        
-        return response()->json([
-            'success' => true, 
-            'item' => $item,
-            'message' => 'Menu item added successfully!'
-        ]);
-        
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        Log::error('Validation failed:', ['errors' => $e->errors()]);
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors' => $e->errors()
-        ], 422);
-        
-    } catch (\Exception $e) {
-        Log::error('storeMenuItem error:', [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Server error: ' . $e->getMessage()
-        ], 500);
     }
-}
+
+    /**
+     * CHECKOUT - Store cart data in session and prepare for review
+     */
+    public function checkout(Request $request)
+    {
+        try {
+            // Store cart data in session
+            $cartData = $request->input('items', []);
+            $orderType = $request->input('order_type', 'dine-in');
+            
+            // Store in session for review page
+            Session::put('cart', $cartData);
+            Session::put('orderType', $orderType);
+            Session::put('checkout_data', [
+                'subtotal' => $request->input('subtotal', 0),
+                'tax_amount' => $request->input('tax_amount', 0),
+                'discount_amount' => $request->input('discount_amount', 0),
+                'total' => $request->input('total', 0)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cart saved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving cart: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * REVIEW ORDER - Display the order review page
+     */
+    public function reviewOrder()
+    {
+        // Get cart from session
+        $cart = Session::get('cart', []);
+        $orderType = Session::get('orderType', 'dine-in');
+        
+        return view('kioskOrderConfirmation', compact('cart', 'orderType'));
+    }
+
+    /**
+     * UPDATE CART ITEM - Update quantity of item in cart
+     */
+    public function updateCartItem(Request $request)
+    {
+        try {
+            $cart = Session::get('cart', []);
+            $index = $request->input('index');
+            $change = $request->input('change');
+
+            if (isset($cart[$index])) {
+                $cart[$index]['quantity'] += $change;
+                
+                // Remove item if quantity becomes 0 or less
+                if ($cart[$index]['quantity'] <= 0) {
+                    unset($cart[$index]);
+                    $cart = array_values($cart); // Re-index array
+                }
+                
+                Session::put('cart', $cart);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * REMOVE CART ITEM - Remove specific item from cart
+     */
+    public function removeCartItem(Request $request)
+    {
+        try {
+            $cart = Session::get('cart', []);
+            $index = $request->input('index');
+
+            if (isset($cart[$index])) {
+                unset($cart[$index]);
+                $cart = array_values($cart); // Re-index array
+                Session::put('cart', $cart);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * CANCEL ORDER - Clear all cart data and return to start
+     */
+    public function cancelOrder(Request $request)
+    {
+        try {
+            Session::forget(['cart', 'orderType', 'checkout_data']);
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * PROCESS ORDER - Final order processing and save to database
+     */
+    public function processOrder(Request $request)
+    {
+        try {
+            $cart = Session::get('cart', []);
+            $orderType = Session::get('orderType', 'dine-in');
+            
+            if (empty($cart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cart is empty'
+                ]);
+            }
+
+            DB::beginTransaction();
+
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                $subtotal += $itemPrice * $item['quantity'];
+            }
+
+            $tax = $subtotal * 0.10; // 10% tax
+            $total = $subtotal + $tax;
+
+            // Create the order
+            $order = Order::create([
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'discount_amount' => 0.00,
+                'total_amount' => $total,
+                'payment_method' => 'cash',
+                'payment_status' => 'pending',
+                'status' => 'pending',
+                'notes' => "Order Type: {$orderType}",
+                'created_at' => now()
+            ]);
+
+            // Create order items
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $itemPrice,
+                    'total_price' => $itemPrice * $item['quantity'],
+                    'special_instructions' => json_encode($item['addons'] ?? []),
+                    'status' => 'pending'
+                ]);
+            }
+
+            DB::commit();
+
+            // Clear cart data but keep order info for confirmation
+            Session::forget(['cart', 'checkout_data']);
+            Session::put('last_order_id', $order->id);
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('kiosk.orderConfirmation', $order->id)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing order: ' . $e->getMessage()
+            ]);
+        }
+    }
 
     /**
      * Update menu item price via AJAX
@@ -418,12 +610,25 @@ class KioskController extends Controller
     /**
      * Display order confirmation
      */
-    public function orderConfirmation($orderId)
-    {
+    public function orderConfirmation($orderId = null)
+{
+    if ($orderId) {
         $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
-        
-        return view('kioskOrderConfirmation', compact('order'));
+        // Use the SUCCESS confirmation view
+        return view('orderConfirmationSuccess', compact('order'));
+    } else {
+        // Handle case where no order ID is provided (from processOrder)
+        $lastOrderId = Session::get('last_order_id');
+        if ($lastOrderId) {
+            $order = Order::with(['orderItems.menuItem'])->findOrFail($lastOrderId);
+            Session::forget('last_order_id');
+            // Use the SUCCESS confirmation view
+            return view('orderConfirmationSuccess', compact('order'));
+        }
     }
+    
+    return redirect()->route('kiosk.index')->with('error', 'Order not found');
+}
 
     /**
      * Display kitchen screen

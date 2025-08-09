@@ -35,19 +35,13 @@ Route::get('/sales', function () {
     return view('profile.sales');
 })->name('sales');
 
-// REMOVED: Duplicate product routes that conflict
-// Route::get('/product', [ProductController::class, 'index'])->name('products');
-// Route::post('/product', [ProductController::class, 'store'])->name('products.store');
-// Route::put('/product/{product}', [ProductController::class, 'update'])->name('products.update');
-// Route::delete('/product/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
 // Inventory route
 Route::get('/inventory', [KioskController::class, 'dashboard'])->name('inventory');
 
-// Review order route
-Route::get('/review-order', function () {
-   return view('reviewOrder');
-})->name('review.order');
+// REMOVED: This conflicting route that was causing issues
+// Route::get('/review-order', function () {
+//    return view('reviewOrder');
+// })->name('review.order');
 
 // Category items route (FIXED: removed duplicate)
 Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');
@@ -69,9 +63,18 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::delete('/cart/remove', [KioskController::class, 'removeFromCart'])->name('removeFromCart');
     Route::get('/cart', [KioskController::class, 'getCart'])->name('getCart');
     
+    // Order review and checkout routes - FIXED ORDER
+    Route::post('/checkout', [KioskController::class, 'checkout'])->name('checkout');
+    Route::get('/review-order', [KioskController::class, 'reviewOrder'])->name('reviewOrder');
+    Route::post('/update-cart-item', [KioskController::class, 'updateCartItem'])->name('updateCartItem');
+    Route::post('/remove-cart-item', [KioskController::class, 'removeCartItem'])->name('removeCartItem');
+    Route::post('/cancel-order', [KioskController::class, 'cancelOrder'])->name('cancelOrder');
+    Route::post('/process-order', [KioskController::class, 'processOrder'])->name('processOrder');
+    
     // Order processing
     Route::post('/submit-order', [KioskController::class, 'submitOrder'])->name('submitOrder');
-    Route::get('/order-confirmation/{id}', [KioskController::class, 'orderConfirmation'])->name('orderConfirmation');
+    Route::get('/order-confirmation/{id?}', [KioskController::class, 'orderConfirmation'])->name('orderConfirmation');
+    Route::get('/payment', [KioskController::class, 'payment'])->name('payment');
 });
 
 // Kitchen routes (separate from kiosk for better organization)
@@ -98,11 +101,6 @@ Route::get('/cashier', function () {
     
     return view('cashier', compact('pendingOrders'));
 });
-
-// REMOVED: Duplicate kitchen routes
-// Route::get('/kiosk/kitchen', [OrderController::class, 'kitchen'])->name('kiosk.kitchen');
-// Route::post('/order/{id}/start', [OrderController::class, 'startOrder'])->name('order.start');
-// Route::post('/order/{id}/complete', [OrderController::class, 'completeOrder'])->name('order.complete');
 
 // Admin contact route (outside auth middleware so anyone can access)
 Route::get('/adminContact', function () {
