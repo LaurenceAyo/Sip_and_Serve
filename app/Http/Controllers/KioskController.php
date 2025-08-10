@@ -22,8 +22,214 @@ class KioskController extends Controller
      */
     public function dashboard()
     {
-         $ingredients = Ingredient::all();
+        $ingredients = Ingredient::all();
         return view('dashboard', compact('ingredients'));
+    }
+
+    /**
+     * Process payment for both GCash and Cash
+     */
+    public function processPayment(Request $request)
+    {
+        try {
+            $paymentMethod = $request->input('payment_method');
+            
+            if ($paymentMethod === 'gcash') {
+                // Handle GCash payment via PayMongo
+                return $this->processGCashPayment($request);
+            } elseif ($paymentMethod === 'cash') {
+                // Handle cash payment
+                return $this->processCashPayment($request);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payment method'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment processing failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Process GCash payment via PayMongo
+     */
+    private function processGCashPayment(Request $request)
+    {
+        try {
+            $cart = Session::get('cart', []);
+            $orderType = Session::get('orderType', 'dine-in');
+            
+            if (empty($cart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cart is empty'
+                ]);
+            }
+
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                $subtotal += $itemPrice * $item['quantity'];
+            }
+
+            $tax = $subtotal * 0.10; // 10% tax
+            $total = $subtotal + $tax;
+
+            // TODO: Implement actual PayMongo integration here
+            // For now, return a placeholder response
+            
+            // Save order to database first
+            DB::beginTransaction();
+
+            $order = Order::create([
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'discount_amount' => 0.00,
+                'total_amount' => $total,
+                'payment_method' => 'gcash',
+                'payment_status' => 'pending',
+                'status' => 'pending',
+                'notes' => "Order Type: {$orderType}",
+                'created_at' => now()
+            ]);
+
+            // Create order items
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $itemPrice,
+                    'total_price' => $itemPrice * $item['quantity'],
+                    'special_instructions' => json_encode($item['addons'] ?? []),
+                    'status' => 'pending'
+                ]);
+            }
+
+            DB::commit();
+
+            // Clear cart session
+            Session::forget('cart');
+            Session::put('last_order_id', $order->id);
+
+            // For now, simulate PayMongo checkout URL
+            $checkoutUrl = route('kiosk.orderConfirmation', $order->id) . '?payment=gcash';
+
+            return response()->json([
+                'success' => true,
+                'checkout_url' => $checkoutUrl,
+                'order_id' => $order->id,
+                'message' => 'GCash payment initiated'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'GCash payment failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Process cash payment
+     */
+    /**
+     * Process cash payment
+     */
+    private function processCashPayment(Request $request)
+    {
+        try {
+            $cart = Session::get('cart', []);
+            $orderType = Session::get('orderType', 'dine-in');
+            $cashAmount = floatval($request->input('cash_amount', 0));
+            $changeAmount = floatval($request->input('change_amount', 0));
+            
+            if (empty($cart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cart is empty'
+                ]);
+            }
+
+            DB::beginTransaction();
+
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                $subtotal += $itemPrice * $item['quantity'];
+            }
+
+            $tax = $subtotal * 0.10; // 10% tax
+            $total = $subtotal + $tax;
+
+            // Recalculate change to ensure accuracy
+            $actualChange = $cashAmount - $total;
+
+            // Create the order with shortened notes
+            $order = Order::create([
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'discount_amount' => 0.00,
+                'total_amount' => $total,
+                'payment_method' => 'cash',
+                'payment_status' => 'pending',
+                'status' => 'pending',
+                'notes' => "Type: {$orderType}",
+                'created_at' => now()
+            ]);
+
+            // Create order items
+            foreach ($cart as $item) {
+                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
+                
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $itemPrice,
+                    'total_price' => $itemPrice * $item['quantity'],
+                    'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
+                    'status' => 'pending'
+                ]);
+            }
+
+            DB::commit();
+
+            // Generate order number
+            $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
+            // Clear cart session
+            Session::forget('cart');
+            Session::put('last_order_id', $order->id);
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'cash_amount' => $cashAmount,
+                'change_amount' => $actualChange,
+                'total_amount' => $total,
+                'message' => 'Cash order processed successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Cash payment failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Cash payment failed: Please try again'
+            ]);
+        }
     }
 
     /**
@@ -444,7 +650,6 @@ class KioskController extends Controller
         return response()->json(['menuItems' => $menuItems]);
     }
     
-
     //Update order type
     public function updateOrderType(Request $request)
     {
@@ -459,23 +664,8 @@ class KioskController extends Controller
      */
     public function placeOrder(Request $request)
     {
-        // Get cart items from session
-        $cartItems = session('cart', []);
-        $orderType = session('order_type', 'dine_in');
-        
-        // Calculate totals
-        $subtotal = 0;
-        foreach ($cartItems as $item) {
-            $menuItem = MenuItem::find($item['menu_item_id']);
-            if ($menuItem) {
-                $subtotal += $menuItem->price * $item['quantity'];
-            }
-        }
-        
-        $tax = $subtotal * 0.10; // 10% tax
-        $total = $subtotal + $tax;
-        
-        return view('kioskPlaceOrder', compact('cartItems', 'orderType', 'subtotal', 'tax', 'total'));
+        // Redirect to the review order page since you already have that implemented
+    return redirect()->route('kiosk.reviewOrder');
     }
 
     /**
@@ -531,7 +721,6 @@ class KioskController extends Controller
         ]);
     }
 
-    
     /**
      * Submit the order
      */
@@ -611,24 +800,24 @@ class KioskController extends Controller
      * Display order confirmation
      */
     public function orderConfirmation($orderId = null)
-{
-    if ($orderId) {
-        $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
-        // Use the SUCCESS confirmation view
-        return view('orderConfirmationSuccess', compact('order'));
-    } else {
-        // Handle case where no order ID is provided (from processOrder)
-        $lastOrderId = Session::get('last_order_id');
-        if ($lastOrderId) {
-            $order = Order::with(['orderItems.menuItem'])->findOrFail($lastOrderId);
-            Session::forget('last_order_id');
+    {
+        if ($orderId) {
+            $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
             // Use the SUCCESS confirmation view
             return view('orderConfirmationSuccess', compact('order'));
+        } else {
+            // Handle case where no order ID is provided (from processOrder)
+            $lastOrderId = Session::get('last_order_id');
+            if ($lastOrderId) {
+                $order = Order::with(['orderItems.menuItem'])->findOrFail($lastOrderId);
+                Session::forget('last_order_id');
+                // Use the SUCCESS confirmation view
+                return view('orderConfirmationSuccess', compact('order'));
+            }
         }
+        
+        return redirect()->route('kiosk.index')->with('error', 'Order not found');
     }
-    
-    return redirect()->route('kiosk.index')->with('error', 'Order not found');
-}
 
     /**
      * Display kitchen screen
