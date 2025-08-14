@@ -329,7 +329,7 @@
         }
 
         .processing-order-header {
-            background: linear-gradient(135deg, #8b4513, #a0522d);
+            background: linear-gradient(135deg, #f0c8ab, #a0522d);
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -661,6 +661,7 @@
             margin: 5px 0;
             font-weight: 600;
             font-size: 0.95rem;
+
         }
 
         .payment-info-row.expected-change {
@@ -675,6 +676,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+
         }
 
         .edit-amount-note {
@@ -805,7 +807,6 @@
 <body>
     <div class="header">
         SIP & SERVE - CASHIER
-        <button class="refresh-button" onclick="refreshOrders()">🔄 Refresh</button>
     </div>
 
     <div class="container">
@@ -992,7 +993,9 @@
     </div>
 
     <script>
-        // Cashier System with Order Processing Workflow - Fixed Amount Display Bug
+        // Cashier System with Auto-Reload Every 25 Seconds
+        // Fixed Cashier System - Orders properly move from pending to processing
+        // Fixed Cashier System - Orders properly move from pending to processing
         let currentAction = null;
         let currentOrderId = null;
         let currentAmount = 0;
@@ -1001,6 +1004,7 @@
         let cashReceived = 0;
         let changeAmount = 0;
         let processingOrders = new Map();
+        let autoReloadInterval = null;
 
         function debugLog(message, data = null) {
             console.log(`[Cashier Debug] ${message}`, data);
@@ -1015,12 +1019,10 @@
             return token.getAttribute('content');
         }
 
-        // Fixed: Calculate total amount from order items if not provided
+        // Calculate total amount from order items if not provided
         function calculateOrderTotal(order) {
-            // First try to use the provided total_amount
             let total = parseFloat(order.total_amount);
 
-            // If total_amount is null, undefined, NaN, or 0, calculate from items
             if (!total || isNaN(total) || total <= 0) {
                 total = 0;
                 if (order.order_items && Array.isArray(order.order_items)) {
@@ -1042,6 +1044,7 @@
             return total;
         }
 
+        // Enhanced fetchWithErrorHandling with better timeout and retry
         async function fetchWithErrorHandling(url, options = {}) {
             const csrfToken = getCSRFToken();
             if (!csrfToken) {
@@ -1053,7 +1056,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
-                }
+                },
+                timeout: 10000
             };
 
             const finalOptions = {
@@ -1068,7 +1072,12 @@
             debugLog(`Making request to: ${url}`, finalOptions);
 
             try {
-                const response = await fetch(url, finalOptions);
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Request timeout')), finalOptions.timeout);
+                });
+
+                const fetchPromise = fetch(url, finalOptions);
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
 
                 debugLog(`Response status: ${response.status}`, {
                     ok: response.ok,
@@ -1100,92 +1109,236 @@
             }
         }
 
-        function refreshOrders() {
-            const loading = document.getElementById('loading');
-            const refreshBtn = document.querySelector('.refresh-button');
+        // Auto-refresh function with better error handling
+        function autoRefreshOrders() {
+            const paymentModal = document.getElementById('paymentModal');
+            const confirmModal = document.getElementById('confirmModal');
 
-            if (loading) loading.classList.add('show');
-            if (refreshBtn) {
-                refreshBtn.disabled = true;
-                refreshBtn.textContent = '⏳ Refreshing...';
+            if ((paymentModal && paymentModal.classList.contains('show')) ||
+                (confirmModal && confirmModal.classList.contains('show'))) {
+                debugLog('Skipping auto-refresh: Modal is open');
+                return;
             }
 
-            fetchWithErrorHandling('/cashier/refresh', {
-                method: 'GET'
-            })
+            debugLog('Auto-refreshing orders...');
+
+            fetchWithErrorHandling('/cashier/refresh', { method: 'GET' })
                 .then(data => {
-                    if (data.success) {
+                    if (data && data.success === true && Array.isArray(data.orders)) {
+                        const currentPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
+                            parseInt(card.getAttribute('data-order-id'))
+                        );
+
                         updateOrdersDisplay(data.orders);
-                        debugLog('Orders refreshed successfully', data.orders);
+
+                        const newPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
+                            parseInt(card.getAttribute('data-order-id'))
+                        );
+
+                        debugLog('Orders auto-refreshed successfully', {
+                            serverTotal: data.orders.length,
+                            beforePending: currentPendingOrders.length,
+                            afterPending: newPendingOrders.length,
+                            processingCount: processingOrders.size
+                        });
+
+                        showAutoRefreshIndicator();
                     } else {
-                        throw new Error(data.message || 'Failed to refresh orders');
+                        debugLog('Auto-refresh returned invalid data structure', data);
+                        showAutoRefreshError('Invalid data received');
                     }
                 })
                 .catch(error => {
-                    console.error('Error refreshing orders:', error);
-                    showErrorMessage('Failed to refresh orders: ' + error.message);
-                })
-                .finally(() => {
-                    if (loading) loading.classList.remove('show');
-                    if (refreshBtn) {
-                        refreshBtn.disabled = false;
-                        refreshBtn.textContent = '🔄 Refresh';
-                    }
+                    console.error('Error auto-refreshing orders:', error);
+                    debugLog('Auto-refresh failed:', error.message);
+                    showAutoRefreshError(error.message);
                 });
         }
 
+        // Add error indicator for failed auto-refresh
+        function showAutoRefreshError(message) {
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    `;
+
+            indicator.innerHTML = `⚠️ Refresh Failed`;
+            document.body.appendChild(indicator);
+
+            setTimeout(() => {
+                indicator.style.opacity = '1';
+            }, 100);
+
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (indicator.parentElement) {
+                        indicator.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Show a subtle indicator that auto-refresh happened
+        function showAutoRefreshIndicator() {
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(40, 167, 69, 0.9);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    `;
+
+            indicator.innerHTML = '🔄 Updated';
+            document.body.appendChild(indicator);
+
+            setTimeout(() => {
+                indicator.style.opacity = '1';
+            }, 100);
+
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                setTimeout(() => {
+                    if (indicator.parentElement) {
+                        indicator.remove();
+                    }
+                }, 300);
+            }, 2000);
+        }
+
+        // Start auto-reload timer
+        function startAutoReload() {
+            if (autoReloadInterval) {
+                clearInterval(autoReloadInterval);
+            }
+
+            autoReloadInterval = setInterval(autoRefreshOrders, 25000);
+            debugLog('Auto-reload started: every 25 seconds');
+        }
+
+        // Stop auto-reload timer
+        function stopAutoReload() {
+            if (autoReloadInterval) {
+                clearInterval(autoReloadInterval);
+                autoReloadInterval = null;
+                debugLog('Auto-reload stopped');
+            }
+        }
+
+        // ENHANCED: Auto-refresh with better order tracking - PREVENTS RE-ADDING PROCESSED ORDERS
         function updateOrdersDisplay(orders) {
             const container = document.getElementById('ordersContainer');
             const emptyState = document.getElementById('emptyState');
 
-            if (!container) {
-                console.error('Orders container not found');
+            if (!container) return;
+
+            if (!orders || !Array.isArray(orders)) {
+                debugLog('Invalid orders data received, skipping update', orders);
                 return;
             }
 
-            container.innerHTML = '';
-
-            if (!orders || orders.length === 0) {
-                if (emptyState) {
-                    container.appendChild(emptyState);
-                } else {
-                    container.innerHTML = `
-                <div class="empty-state">
+            // Handle empty orders response
+            if (orders.length === 0) {
+                const existingOrders = container.querySelectorAll('.order-card');
+                if (existingOrders.length === 0) {
+                    container.innerHTML = emptyState ? emptyState.outerHTML : `
+                <div class="empty-state" id="emptyState">
                     <div class="empty-state-icon">📭</div>
                     <p>No pending cash orders</p>
                     <small>Orders will appear here when customers place cash orders</small>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <span>🔄</span>
+                        <span>Auto-updating every 25 seconds</span>
+                    </div>
                 </div>
             `;
                 }
-            } else {
-                let hasPendingOrders = false;
-
-                orders.forEach(order => {
-                    if (order.payment_status === 'paid' && order.status === 'preparing') {
-                        // Move to processing panel automatically
-                        const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
-                        const orderTotal = calculateOrderTotal(order);
-                        const actualChange = parseFloat(order.cash_amount || 0) - orderTotal;
-                        showProcessingOrder(order.id, orderNumber, actualChange, true);
-                    } else if (order.payment_status === 'pending') {
-                        // Show pending orders in left panel
-                        const orderCard = createOrderCard(order);
-                        container.appendChild(orderCard);
-                        hasPendingOrders = true;
-                    }
-                });
-
-                // If no pending orders were added, show empty state
-                if (!hasPendingOrders) {
-                    container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No pending cash orders</p>
-                    <small>Orders will appear here when customers place cash orders</small>
-                </div>
-            `;
-                }
+                return;
             }
+
+            const currentOrderIds = Array.from(container.querySelectorAll('.order-card')).map(card => parseInt(card.getAttribute('data-order-id')));
+            const newPendingOrderIds = orders.filter(order => order.payment_status === 'pending').map(order => order.id);
+            const processingOrderIds = Array.from(processingOrders.keys());
+
+            debugLog('Order comparison during auto-refresh', {
+                currentOrderIds,
+                newPendingOrderIds,
+                processingOrderIds,
+                ordersReceived: orders.length
+            });
+
+            // CRITICAL FIX: Don't remove orders that are being processed AND don't re-add them
+            currentOrderIds.forEach(orderId => {
+                if (!newPendingOrderIds.includes(orderId) && !processingOrderIds.includes(orderId)) {
+                    const card = document.getElementById(`order-${orderId}`);
+                    if (card) {
+                        debugLog(`Auto-refresh removing order ${orderId} - confirmed not pending and not processing`);
+                        card.remove();
+                    }
+                } else if (processingOrderIds.includes(orderId)) {
+                    // This order is being processed - REMOVE IT from pending if it exists
+                    const card = document.getElementById(`order-${orderId}`);
+                    if (card) {
+                        debugLog(`REMOVING processed order ${orderId} from pending panel - should only be in processing`);
+                        card.remove();
+                    }
+                }
+            });
+
+            // Add new pending orders (but NEVER add ones we're already processing)
+            orders.forEach(order => {
+                if (order.payment_status === 'pending' &&
+                    !document.getElementById(`order-${order.id}`) &&
+                    !processingOrders.has(order.id)) { // CRITICAL: Don't add if already processing
+
+                    debugLog(`Adding new order ${order.id}`);
+                    container.appendChild(createOrderCard(order));
+
+                    const emptyStateElement = container.querySelector('.empty-state');
+                    if (emptyStateElement) {
+                        emptyStateElement.remove();
+                    }
+                } else if (processingOrders.has(order.id)) {
+                    debugLog(`SKIPPING order ${order.id} - already in processing, should not be in pending`);
+                }
+            });
+
+            // Check if we need to show empty state
+            setTimeout(() => {
+                const remainingCards = container.querySelectorAll('.order-card');
+                if (remainingCards.length === 0) {
+                    container.innerHTML = emptyState ? emptyState.outerHTML : `
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No pending cash orders</p>
+                    <small>Orders will appear here when customers place cash orders</small>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <span>🔄</span>
+                        <span>Auto-updating every 25 seconds</span>
+                    </div>
+                </div>
+            `;
+                }
+            }, 100);
         }
 
         function createOrderCard(order) {
@@ -1199,16 +1352,12 @@
 
             if (order.order_items && Array.isArray(order.order_items)) {
                 order.order_items.forEach(item => {
-                    // Clean the item name to remove any existing quantity info
                     let itemName = item.name || 'Custom Item';
-
-                    // Remove any existing quantity patterns like "x1", "x2", " x1", " x2", etc.
                     itemName = itemName.replace(/\s*x\d+\s*$/, '').trim();
 
                     const quantity = parseInt(item.quantity) || 1;
                     const totalPrice = parseFloat(item.total_price || item.price || 0);
 
-                    // Add to running total for verification
                     itemsTotal += totalPrice;
 
                     itemsHtml += `
@@ -1220,39 +1369,37 @@
                 });
             }
 
-            // Fixed: Use calculateOrderTotal function for accurate total
             const totalAmount = calculateOrderTotal(order);
             const cashAmount = parseFloat(order.cash_amount || 0);
 
-            // Customer payment information section
             let customerPaymentHtml = '';
             if (order.payment_method === 'cash' && cashAmount > 0) {
                 const expectedChange = cashAmount - totalAmount;
 
                 customerPaymentHtml = `
-        <div class="customer-payment-info">
-            <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
-                💰 Customer's Payment Plan
-            </div>
-            <div class="payment-info-row">
-                <span class="payment-info-label">🏷️ Order Total:</span>
-                <span>PHP ${totalAmount.toFixed(2)}</span>
-            </div>
-            <div class="payment-info-row">
-                <span class="payment-info-label">💵 Will Bring:</span>
-                <span>PHP ${cashAmount.toFixed(2)}</span>
-            </div>
-            ${expectedChange > 0 ? `
-                <div class="payment-info-row expected-change">
-                    <span class="payment-info-label">💸 Expected Change:</span>
-                    <span>PHP ${expectedChange.toFixed(2)}</span>
+            <div class="customer-payment-info">
+                <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                    💰 Customer's Payment Plan
                 </div>
-            ` : ''}
-            <div class="edit-amount-note">
-                💡 You can edit the cash amount during payment processing
+                <div class="payment-info-row">
+                    <span class="payment-info-label">🏷️ Order Total:</span>
+                    <span>PHP ${totalAmount.toFixed(2)}</span>
+                </div>
+                <div class="payment-info-row">
+                    <span class="payment-info-label">💵 Will Bring:</span>
+                    <span>PHP ${cashAmount.toFixed(2)}</span>
+                </div>
+                ${expectedChange > 0 ? `
+                    <div class="payment-info-row expected-change">
+                        <span class="payment-info-label">💸 Expected Change:</span>
+                        <span>PHP ${expectedChange.toFixed(2)}</span>
+                    </div>
+                ` : ''}
+                <div class="edit-amount-note">
+                    💡 You can edit the cash amount during payment processing
+                </div>
             </div>
-        </div>
-    `;
+        `;
             }
 
             const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
@@ -1266,39 +1413,39 @@
             const orderType = order.order_type || 'dine-in';
 
             orderCard.innerHTML = `
-    <div class="order-header">
-        <span>Order</span>
-        <span class="order-number">#${orderNumber}</span>
-    </div>
-    <div class="order-time">
-        Placed at ${timeString}
-        <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
-    </div>
-    <div class="status-badge status-pending">Pending Payment</div>
-    
-    <div class="order-items">
-        ${itemsHtml}
-    </div>
+        <div class="order-header">
+            <span>Order</span>
+            <span class="order-number">#${orderNumber}</span>
+        </div>
+        <div class="order-time">
+            Placed at ${timeString}
+            <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
+        </div>
+        <div class="status-badge status-pending">Pending Payment</div>
+        
+        <div class="order-items">
+            ${itemsHtml}
+        </div>
 
-    ${customerPaymentHtml}
-    
-    <div class="order-total">
-        <span>Total Amount:</span>
-        <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
-    </div>
-    
-    <div class="order-actions">
-        <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
-            ✅ Accept
-        </button>
-        <button class="btn btn-edit" onclick="editOrder(${order.id})">
-            ✏️ Edit
-        </button>
-        <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
-            ❌ Cancel
-        </button>
-    </div>
-`;
+        ${customerPaymentHtml}
+        
+        <div class="order-total">
+            <span>Total Amount:</span>
+            <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
+        </div>
+        
+        <div class="order-actions">
+            <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
+                ✅ Accept
+            </button>
+            <button class="btn btn-edit" onclick="editOrder(${order.id})">
+                ✏️ Edit
+            </button>
+            <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
+                ❌ Cancel
+            </button>
+        </div>
+    `;
 
             return orderCard;
         }
@@ -1460,6 +1607,7 @@
             changeAmount = 0;
         }
 
+        // FIXED: Properly move orders from pending to processing and remove from pending
         async function confirmPayment() {
             debugLog('Confirm payment called', {
                 orderId: currentOrderId,
@@ -1493,12 +1641,30 @@
             const processingOrderId = currentOrderId;
             const processingOrderNumber = currentOrderNumber;
 
-            // Remove card instantly when payment is confirmed
+            // Get the order card element BEFORE processing
             const orderCard = document.getElementById(`order-${currentOrderId}`);
+            let orderData = null;
+
             if (orderCard) {
-                orderCard.remove();
-                checkEmptyState();
+                // Extract order data from the card for processing panel
+                orderData = {
+                    id: currentOrderId,
+                    orderNumber: currentOrderNumber,
+                    orderCard: orderCard.cloneNode(true),
+                    totalAmount: orderTotal
+                };
+
+                debugLog('Order card found and data extracted', {
+                    cardId: orderCard.id,
+                    orderData: orderData
+                });
+            } else {
+                debugLog('WARNING: Order card not found!', { orderId: currentOrderId });
             }
+
+            // CRITICAL: Remove from pending IMMEDIATELY before API call
+            // This prevents auto-refresh from bringing it back
+            removeOrderFromPending(processingOrderId);
 
             hidePaymentModal();
 
@@ -1509,49 +1675,131 @@
                 });
 
                 if (data.success) {
-                    moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed);
+                    debugLog('Payment processed successfully, moving order');
+
+                    // Move order to processing panel
+                    moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData);
+
                 } else {
+                    // If payment failed, restore the order to pending
+                    if (orderData && orderData.orderCard) {
+                        restoreOrderToPending(orderData);
+                    }
                     throw new Error(data.message || 'Unknown error occurred');
                 }
             } catch (error) {
                 console.error('Payment processing error:', error);
-                refreshOrders(); // Re-add card on error
+
+                // If payment failed and we removed the order, restore it
+                if (orderData && orderData.orderCard) {
+                    restoreOrderToPending(orderData);
+                }
+
                 showErrorMessage('Payment processing failed: ' + error.message);
             }
         }
 
-        function moveOrderToProcessing(orderId, orderNumber, change, receiptPrinted) {
-            // Card removal moved to confirmPayment() for instant disappearance
+        // NEW: Restore order to pending if payment fails
+        function restoreOrderToPending(orderData) {
+            const container = document.getElementById('ordersContainer');
+            if (!container || !orderData.orderCard) return;
 
-            processingOrders.set(orderId, {
-                orderNumber,
-                change: change, // Use the calculated change passed from confirmPayment
-                receiptPrinted,
-                startTime: new Date(),
-                status: 'preparing'
-            });
+            debugLog('Restoring order to pending after failed payment', orderData);
 
-            showProcessingOrder(orderId, orderNumber, change, receiptPrinted);
+            // Remove empty state if it exists
+            const emptyStateElement = container.querySelector('.empty-state');
+            if (emptyStateElement) {
+                emptyStateElement.remove();
+            }
+
+            // Clone and restore the original order card
+            const restoredCard = orderData.orderCard.cloneNode(true);
+            restoredCard.id = `order-${orderData.id}`;
+            restoredCard.setAttribute('data-order-id', orderData.id);
+
+            container.appendChild(restoredCard);
+            debugLog(`Order ${orderData.id} restored to pending after payment failure`);
         }
 
-        function showProcessingOrder(orderId, orderNumber, actualChangeGiven, receiptPrinted) {
+        // FIXED: Dedicated function to remove order from pending panel
+        function removeOrderFromPending(orderId) {
+            const orderCard = document.getElementById(`order-${orderId}`);
+
+            if (orderCard) {
+                debugLog(`Removing order ${orderId} from pending panel`);
+
+                // Add removal animation
+                orderCard.style.transition = 'all 0.5s ease';
+                orderCard.style.transform = 'translateX(100%)';
+                orderCard.style.opacity = '0';
+                orderCard.style.pointerEvents = 'none';
+
+                // Remove after animation completes
+                setTimeout(() => {
+                    if (orderCard && orderCard.parentNode) {
+                        orderCard.remove();
+                        debugLog(`Order ${orderId} removed from DOM`);
+                        checkEmptyState();
+                    }
+                }, 500);
+            } else {
+                debugLog(`Order card ${orderId} not found for removal`);
+                checkEmptyState();
+            }
+        }
+
+        // Move order to processing with better tracking
+        function moveOrderToProcessing(orderId, orderNumber, change, receiptPrinted, orderData = null) {
+            debugLog('Moving order to processing', {
+                orderId,
+                orderNumber,
+                change,
+                receiptPrinted,
+                hasOrderData: !!orderData
+            });
+
+            // Store in processing orders map
+            processingOrders.set(orderId, {
+                orderNumber,
+                change: change,
+                receiptPrinted,
+                startTime: new Date(),
+                status: 'preparing',
+                orderData: orderData
+            });
+
+            // Show in processing panel
+            showProcessingOrder(orderId, orderNumber, change, receiptPrinted, orderData);
+        }
+
+        // Enhanced: Show processing order with "Move Back to Pending" option
+        function showProcessingOrder(orderId, orderNumber, actualChangeGiven, receiptPrinted, orderData = null) {
             const processingSection = document.getElementById('processingSection');
             if (!processingSection) {
                 console.error('Processing section not found');
                 return;
             }
 
-            // Ensure we have a valid order number
             const displayOrderNumber = orderNumber || orderId.toString().padStart(4, '0');
 
             debugLog('Showing processing order', {
                 orderId,
                 orderNumber: displayOrderNumber,
                 actualChangeGiven,
-                receiptPrinted
+                receiptPrinted,
+                hasOrderData: !!orderData
             });
 
-            processingSection.className = 'processing-section has-order';
+            // Check if this is the first processing order
+            if (!processingSection.classList.contains('has-order')) {
+                processingSection.className = 'processing-section has-order';
+                processingSection.innerHTML = '<div class="processing-orders-container"></div>';
+            }
+
+            const ordersContainer = processingSection.querySelector('.processing-orders-container');
+            if (!ordersContainer) {
+                processingSection.innerHTML = '<div class="processing-orders-container"></div>';
+            }
 
             const receiptStatus = receiptPrinted ?
                 '✅ Receipt printed successfully!' :
@@ -1560,15 +1808,49 @@
             const startTime = new Date();
             const estimatedTime = new Date(startTime.getTime() + (15 * 60000)); // 15 minutes estimated
 
-            processingSection.innerHTML = `
-        <div class="processing-order-header">
-            <div class="processing-order-number">🏷️ Order #${displayOrderNumber}</div>
-            <div class="processing-order-time">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
+            // Extract order items from original order data if available
+            let orderItemsHtml = '';
+            if (orderData && orderData.orderCard) {
+                const originalItems = orderData.orderCard.querySelector('.order-items');
+                if (originalItems) {
+                    orderItemsHtml = `
+                <div class="processing-order-items" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
+                    ${originalItems.innerHTML}
+                </div>
+            `;
+                }
+            }
+
+            // Create individual order processing card
+            const orderProcessingCard = document.createElement('div');
+            orderProcessingCard.className = 'processing-order-card';
+            orderProcessingCard.id = `processing-order-${orderId}`;
+            orderProcessingCard.style.cssText = `
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border: 2px solid #e9ecef;
+        animation: slideInFromLeft 0.5s ease-out;
+    `;
+
+            orderProcessingCard.innerHTML = `
+        <div class="processing-order-header" style="margin-bottom: 20px;">
+            <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
+            <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
         </div>
+        
+        ${orderItemsHtml}
         
         <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
             <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
                 💰 Payment Completed Successfully!
+            </div>
+            <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
+                <span style="color: #155724;">🏷️ Order Total:</span>
+                <span style="font-weight: 700; color: #155724;">PHP ${orderData ? orderData.totalAmount.toFixed(2) : actualChangeGiven.toFixed(2)}</span>
             </div>
             <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
                 <span style="color: #155724;">💸 Change Given:</span>
@@ -1614,13 +1896,119 @@
                 flex: 1;
                 font-weight: 600;
                 transition: background-color 0.3s ease;
-            " onclick="resetProcessingPanel()" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
-                📋 Process Next
+            " onclick="moveBackToPending(${orderId})" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
+                ↩️ Move Back to Pending
             </button>
         </div>
     `;
+
+            // Add to the container
+            const container = processingSection.querySelector('.processing-orders-container');
+            container.appendChild(orderProcessingCard);
+
+            // Update the header to show count
+            updateProcessingHeader();
         }
 
+        // Enhanced: Move order back to pending panel (recreates the order card)
+        function moveBackToPending(orderId) {
+            const processingOrder = processingOrders.get(orderId);
+            if (!processingOrder) {
+                showErrorMessage('Order not found in processing');
+                return;
+            }
+
+            debugLog('Moving order back to pending', { orderId, processingOrder });
+
+            // Remove from processing orders map
+            processingOrders.delete(orderId);
+
+            // Remove processing card with animation
+            const processingCard = document.getElementById(`processing-order-${orderId}`);
+            if (processingCard) {
+                processingCard.style.transition = 'all 0.5s ease';
+                processingCard.style.transform = 'translateX(-100%)';
+                processingCard.style.opacity = '0';
+
+                setTimeout(() => {
+                    processingCard.remove();
+                    updateProcessingHeader();
+
+                    // If no more processing orders, reset panel
+                    const remainingCards = document.querySelectorAll('.processing-order-card');
+                    if (remainingCards.length === 0) {
+                        resetProcessingPanel();
+                    }
+                }, 500);
+            }
+
+            // Recreate the order in pending panel
+            if (processingOrder.orderData && processingOrder.orderData.orderCard) {
+                const container = document.getElementById('ordersContainer');
+
+                if (container) {
+                    // Remove empty state if it exists
+                    const emptyStateElement = container.querySelector('.empty-state');
+                    if (emptyStateElement) {
+                        emptyStateElement.remove();
+                    }
+
+                    // Clone and restore the original order card
+                    const restoredCard = processingOrder.orderData.orderCard.cloneNode(true);
+                    restoredCard.id = `order-${orderId}`;
+                    restoredCard.setAttribute('data-order-id', orderId);
+
+                    // Start with hidden state
+                    restoredCard.style.transform = 'translateX(-100%)';
+                    restoredCard.style.opacity = '0';
+                    restoredCard.style.transition = 'all 0.5s ease';
+
+                    container.appendChild(restoredCard);
+
+                    // Animate in
+                    setTimeout(() => {
+                        restoredCard.style.transform = 'translateX(0)';
+                        restoredCard.style.opacity = '1';
+                        debugLog(`Order ${orderId} restored to pending panel`);
+                    }, 100);
+                }
+            }
+
+            // Show success message
+            showSuccessMessage(`Order #${processingOrder.orderNumber} moved back to pending`);
+        }
+
+        function updateProcessingHeader() {
+            const processingSection = document.getElementById('processingSection');
+            if (!processingSection) return;
+
+            const processingCards = processingSection.querySelectorAll('.processing-order-card');
+            const count = processingCards.length;
+
+            // Add or update header
+            let header = processingSection.querySelector('.processing-section-header');
+            if (!header && count > 0) {
+                header = document.createElement('div');
+                header.className = 'processing-section-header';
+                header.style.cssText = `
+            background: #8B4513;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        `;
+                processingSection.insertBefore(header, processingSection.firstChild);
+            }
+
+            if (header) {
+                header.innerHTML = `🍳 Processing Orders (${count})`;
+            }
+        }
+
+        // Fixed: Individual order completion
         async function completeOrder(orderId) {
             const processingOrder = processingOrders.get(orderId);
             if (!processingOrder) {
@@ -1646,11 +2034,28 @@
 
                 if (data.success) {
                     processingOrders.delete(orderId);
-                    showOrderCompletionMessage(processingOrder.orderNumber);
 
-                    setTimeout(() => {
-                        resetProcessingPanel();
-                    }, 3000);
+                    // Remove the specific order card with animation
+                    const orderCard = document.getElementById(`processing-order-${orderId}`);
+                    if (orderCard) {
+                        orderCard.style.transition = 'all 0.5s ease';
+                        orderCard.style.transform = 'translateX(100%)';
+                        orderCard.style.opacity = '0';
+
+                        setTimeout(() => {
+                            orderCard.remove();
+                            updateProcessingHeader();
+
+                            // If no more processing orders, reset panel
+                            const remainingCards = document.querySelectorAll('.processing-order-card');
+                            if (remainingCards.length === 0) {
+                                resetProcessingPanel();
+                            }
+                        }, 500);
+                    }
+
+                    // Show temporary completion message
+                    showOrderCompletionToast(processingOrder.orderNumber);
                 } else {
                     throw new Error(data.message || 'Failed to complete order');
                 }
@@ -1660,20 +2065,42 @@
             }
         }
 
-        function showOrderCompletionMessage(orderNumber) {
-            const processingSection = document.getElementById('processingSection');
-            if (!processingSection) return;
-
+        function showOrderCompletionToast(orderNumber) {
             const displayOrderNumber = orderNumber || 'Unknown';
 
-            processingSection.innerHTML = `
-        <div style="text-align: center; padding: 40px;">
-            <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
-            <h2 style="color: #155724; margin-bottom: 15px; font-size: 1.8rem;">Order #${displayOrderNumber} Complete!</h2>
-            <p style="color: #155724; font-size: 1.1rem; margin-bottom: 10px;">Order has been completed and saved to sales database.</p>
-            <p style="color: #666; font-size: 0.9rem;">Redirecting to next order in 3 seconds...</p>
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #d4edda;
+        color: #155724;
+        border: 2px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+        z-index: 3000;
+        max-width: 350px;
+        animation: slideIn 0.3s ease-out;
+    `;
+
+            toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.5em;">✅</span>
+            <div>
+                <strong>Order #${displayOrderNumber} Complete!</strong><br>
+                <small>Saved to sales database</small>
+            </div>
         </div>
     `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast && toast.parentElement) {
+                    toast.remove();
+                }
+            }, 4000);
         }
 
         function resetProcessingPanel() {
@@ -1690,6 +2117,10 @@
         <p>Use the <strong>Accept</strong> button to process payment</p>
         <p>Use the <strong>Edit</strong> button to modify orders</p>
         <p>Use the <strong>Cancel</strong> button to cancel orders</p>
+        <div style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <span>🔄</span>
+            <span>Auto-updating every 25 seconds</span>
+        </div>
     `;
         }
 
@@ -1822,18 +2253,30 @@
             const emptyState = document.getElementById('emptyState');
             const ordersContainer = document.getElementById('ordersContainer');
 
+            debugLog('Checking empty state', {
+                orderCardsCount: orderCards.length,
+                hasEmptyState: !!emptyState,
+                hasContainer: !!ordersContainer
+            });
+
             if (orderCards.length === 0 && ordersContainer) {
-                if (!ordersContainer.contains(emptyState) && emptyState) {
-                    ordersContainer.appendChild(emptyState);
-                } else if (!emptyState) {
+                if (!ordersContainer.contains(emptyState)) {
                     ordersContainer.innerHTML = `
                 <div class="empty-state" id="emptyState">
                     <div class="empty-state-icon">📭</div>
                     <p>No pending cash orders</p>
                     <small>Orders will appear here when customers place cash orders</small>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <span>🔄</span>
+                        <span>Auto-updating every 25 seconds</span>
+                    </div>
                 </div>
             `;
+                    debugLog('Empty state added to container');
                 }
+            } else if (orderCards.length > 0 && emptyState) {
+                emptyState.remove();
+                debugLog('Empty state removed - orders present');
             }
         }
 
@@ -1884,6 +2327,42 @@
             }, 10000);
         }
 
+        function showSuccessMessage(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #d4edda;
+        color: #155724;
+        border: 2px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+        z-index: 3000;
+        max-width: 350px;
+        animation: slideIn 0.3s ease-out;
+    `;
+
+            toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.5em;">✅</span>
+            <div>
+                <strong>Success!</strong><br>
+                <small>${message}</small>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast && toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
         // Event listeners
         document.addEventListener('click', function (e) {
             if (e.target.classList.contains('modal-overlay')) {
@@ -1918,13 +2397,63 @@
             }
         });
 
+        // Page visibility API to pause/resume auto-reload when tab is not visible
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopAutoReload();
+                debugLog('Page hidden: Auto-reload paused');
+            } else {
+                startAutoReload();
+                debugLog('Page visible: Auto-reload resumed');
+                // Refresh immediately when user comes back
+                autoRefreshOrders();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             debugLog('Cashier page loaded, initializing...');
             checkEmptyState();
+
+            // Start auto-reload
+            startAutoReload();
+
+            // Do initial refresh after a short delay
+            setTimeout(autoRefreshOrders, 10000);
         });
 
+        // Stop auto-reload when page is about to unload
+        window.addEventListener('beforeunload', function () {
+            stopAutoReload();
+        });
+
+        // Add CSS for animations
+        const style = document.createElement('style');
+        style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideInFromLeft {
+        from {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+        document.head.appendChild(style);
+
         // Global function exports
-        window.refreshOrders = refreshOrders;
         window.acceptOrder = acceptOrder;
         window.editOrder = editOrder;
         window.cancelOrder = cancelOrder;
@@ -1936,6 +2465,7 @@
         window.setQuickCash = setQuickCash;
         window.resetProcessingPanel = resetProcessingPanel;
         window.completeOrder = completeOrder;
+        window.moveBackToPending = moveBackToPending;
     </script>
 </body>
 
