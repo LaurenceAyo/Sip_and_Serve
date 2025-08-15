@@ -661,7 +661,6 @@
             margin: 5px 0;
             font-weight: 600;
             font-size: 0.95rem;
-
         }
 
         .payment-info-row.expected-change {
@@ -676,7 +675,6 @@
             display: flex;
             align-items: center;
             gap: 5px;
-
         }
 
         .edit-amount-note {
@@ -746,6 +744,371 @@
             border-color: #8b4513;
         }
 
+        /* Edit Order Modal Styles */
+        .edit-modal {
+            background: white;
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: 15px;
+            box-shadow: 0 25px 50px rgba(139, 69, 19, 0.4);
+            overflow: hidden;
+            animation: modalSlideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-modal-header {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 20px 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .edit-modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .edit-modal-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .edit-modal-close {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .edit-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) rotate(90deg);
+        }
+
+        .edit-modal-content {
+            flex: 1;
+            padding: 25px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-order-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .edit-order-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2c1810;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #d4c4a8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .order-items-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .order-items-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .order-items-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .order-items-list::-webkit-scrollbar-thumb {
+            background: #8b4513;
+            border-radius: 3px;
+        }
+
+        .edit-order-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            border: 2px solid #d4c4a8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .edit-order-item:hover {
+            border-color: #8b4513;
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.2);
+        }
+
+        .edit-item-info {
+            flex: 1;
+            margin-right: 15px;
+        }
+
+        .edit-item-name {
+            font-weight: 600;
+            color: #2c1810;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .edit-item-price {
+            color: #8b4513;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .edit-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .edit-quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px 12px;
+            border: 1px solid #e9ecef;
+        }
+
+        .edit-quantity-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #8b4513;
+            color: white;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .edit-quantity-btn:hover {
+            background: #6d3410;
+            transform: scale(1.1);
+        }
+
+        .edit-quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .edit-quantity-display {
+            font-weight: 700;
+            color: #2c1810;
+            min-width: 30px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .edit-item-remove {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #dc3545;
+            color: white;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .edit-item-remove:hover {
+            background: #c82333;
+            transform: scale(1.05);
+        }
+
+        .menu-items-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .menu-search {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #d4c4a8;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .menu-search:focus {
+            outline: none;
+            border-color: #8b4513;
+        }
+
+        .edit-menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .edit-menu-item:hover {
+            border-color: #28a745;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+        }
+
+        .edit-menu-item-info {
+            flex: 1;
+        }
+
+        .edit-menu-item-name {
+            font-weight: 600;
+            color: #2c1810;
+            margin-bottom: 3px;
+            font-size: 1rem;
+        }
+
+        .edit-menu-item-price {
+            color: #28a745;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .edit-add-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .edit-add-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .edit-add-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .edit-modal-footer {
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .edit-total-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #8b4513;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 2px solid #d4c4a8;
+        }
+
+        .edit-modal-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .edit-modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .edit-modal-btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .edit-modal-btn-cancel:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .edit-modal-btn-save {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .edit-modal-btn-save:hover {
+            background: linear-gradient(135deg, #218838, #1fa970);
+            transform: translateY(-1px);
+        }
+
+        .empty-order-state {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .empty-order-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -779,6 +1142,11 @@
                 flex: none;
                 width: 100%;
             }
+
+            .edit-order-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
         }
 
         @media (max-width: 768px) {
@@ -799,6 +1167,15 @@
 
             .processing-actions {
                 flex-direction: column;
+            }
+
+            .edit-modal {
+                width: 98%;
+                height: 95vh;
+            }
+
+            .edit-modal-content {
+                padding: 15px;
             }
         }
     </style>
@@ -853,8 +1230,7 @@
 
                             @if((isset($order['cash_amount']) && $order['cash_amount'] > 0) || (isset($order['payment_method']) && $order['payment_method'] === 'cash'))
                                 <div class="customer-payment-info">
-                                    <div
-                                        style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                                    <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
                                         💰 Customer's Payment Plan
                                     </div>
                                     <div class="payment-info-row">
@@ -890,8 +1266,7 @@
                             </div>
 
                             <div class="order-actions">
-                                <button class="btn btn-accept"
-                                    onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
+                                <button class="btn btn-accept" onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
                                     ✅ Accept
                                 </button>
                                 <button class="btn btn-edit" onclick="editOrder('{{ $order['id'] }}')">
@@ -944,8 +1319,7 @@
                 <div class="payment-form">
                     <div class="form-group">
                         <label class="form-label">Cash Received (PHP):</label>
-                        <input type="number" id="cashAmount" class="form-input" step="0.01" min="0" placeholder="0.00"
-                            oninput="calculateChange()">
+                        <input type="number" id="cashAmount" class="form-input" step="0.01" min="0" placeholder="0.00" oninput="calculateChange()">
 
                         <!-- Quick cash amount buttons -->
                         <div class="quick-cash-buttons" id="quickCashButtons">
@@ -970,13 +1344,48 @@
                 </div>
 
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-cancel" onclick="hidePaymentModal()">
-                        Cancel
-                    </button>
-                    <button class="modal-btn modal-btn-confirm" id="confirmPaymentBtn" onclick="confirmPayment()"
-                        disabled>
-                        Process Payment
-                    </button>
+                    <button class="modal-btn modal-btn-cancel" onclick="hidePaymentModal()">Cancel</button>
+                    <button class="modal-btn modal-btn-confirm" id="confirmPaymentBtn" onclick="confirmPayment()" disabled>Process Payment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Order Modal -->
+    <div class="modal-overlay" id="editOrderModal">
+        <div class="edit-modal">
+            <div class="edit-modal-header">
+                <div class="edit-modal-title">📝 Edit Order Panel</div>
+                <div class="edit-modal-subtitle" id="editModalSubtitle">Modify items and quantities</div>
+                <button class="edit-modal-close" onclick="closeEditOrderModal()">✕</button>
+            </div>
+
+            <div class="edit-modal-content">
+                <div class="edit-order-container">
+                    <!-- Current Order Items -->
+                    <div class="edit-order-section">
+                        <div class="edit-section-title">🛒 Order Details</div>
+                        <div class="order-items-list" id="editOrderItemsList">
+                            <!-- Order items will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Available Menu Items -->
+                    <div class="edit-order-section">
+                        <div class="edit-section-title">📋 Menu Items</div>
+                        <input type="text" class="menu-search" placeholder="🔍 Search menu items..." id="editMenuSearch" oninput="filterEditMenuItems()">
+                        <div class="menu-items-list" id="editMenuItemsList">
+                            <!-- Menu items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-modal-footer">
+                <div class="edit-total-display" id="editTotalDisplay">Total: PHP 0.00</div>
+                <div class="edit-modal-actions">
+                    <button class="edit-modal-btn edit-modal-btn-cancel" onclick="closeEditOrderModal()">Cancel</button>
+                    <button class="edit-modal-btn edit-modal-btn-save" onclick="saveEditOrderChanges()">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -992,17 +1401,10 @@
             </div>
 
             <div class="modal-content">
-                <div class="modal-message" id="modalMessage">
-                    Are you sure you want to perform this action?
-                </div>
-
+                <div class="modal-message" id="modalMessage">Are you sure you want to perform this action?</div>
                 <div class="modal-actions">
-                    <button class="modal-btn modal-btn-cancel" onclick="hideModal()">
-                        Cancel
-                    </button>
-                    <button class="modal-btn modal-btn-confirm" id="confirmBtn" onclick="confirmAction()">
-                        Confirm
-                    </button>
+                    <button class="modal-btn modal-btn-cancel" onclick="hideModal()">Cancel</button>
+                    <button class="modal-btn modal-btn-confirm" id="confirmBtn" onclick="confirmAction()">Confirm</button>
                 </div>
             </div>
         </div>
@@ -1019,6 +1421,26 @@
         let processingOrders = new Map();
         let autoReloadInterval = null;
 
+        // Edit Order Modal Variables
+        let editOrderData = null;
+        let editMenuItems = [
+            { id: 1, name: 'Cappuccino', price: 120.00, category: 'Coffee' },
+            { id: 2, name: 'Espresso', price: 90.00, category: 'Coffee' },
+            { id: 3, name: 'Latte', price: 130.00, category: 'Coffee' },
+            { id: 4, name: 'Americano', price: 100.00, category: 'Coffee' },
+            { id: 5, name: 'Iced Coffee', price: 110.00, category: 'Coffee' },
+            { id: 6, name: 'Blueberry Muffin', price: 85.00, category: 'Pastry' },
+            { id: 7, name: 'Chocolate Croissant', price: 95.00, category: 'Pastry' },
+            { id: 8, name: 'Caesar Salad', price: 180.00, category: 'Salad' },
+            { id: 9, name: 'Greek Salad', price: 165.00, category: 'Salad' },
+            { id: 10, name: 'Grilled Sandwich', price: 150.00, category: 'Sandwich' },
+            { id: 11, name: 'Chicken Wrap', price: 175.00, category: 'Sandwich' },
+            { id: 12, name: 'Fruit Smoothie', price: 140.00, category: 'Beverage' },
+            { id: 13, name: 'Hot Chocolate', price: 115.00, category: 'Beverage' },
+            { id: 14, name: 'Green Tea', price: 80.00, category: 'Tea' },
+            { id: 15, name: 'Earl Grey Tea', price: 85.00, category: 'Tea' }
+        ];
+
         function debugLog(message, data = null) {
             console.log(`[Cashier Debug] ${message}`, data);
         }
@@ -1032,59 +1454,7 @@
             return token.getAttribute('content');
         }
 
-        // FIXED: Calculate total amount correctly from order items
-        function calculateOrderTotal(order) {
-            let total = 0;
-            
-            // Always calculate from items first (most reliable)
-            if (order.order_items && Array.isArray(order.order_items)) {
-                order.order_items.forEach(item => {
-                    // Get quantity (default to 1 if not specified)
-                    const quantity = parseInt(item.quantity) || 1;
-                    
-                    // Get unit price (prefer unit_price, then price, then total_price divided by quantity)
-                    let unitPrice = 0;
-                    if (item.unit_price) {
-                        unitPrice = parseFloat(item.unit_price);
-                    } else if (item.price && !item.total_price) {
-                        unitPrice = parseFloat(item.price);
-                    } else if (item.total_price) {
-                        unitPrice = parseFloat(item.total_price) / quantity;
-                    }
-                    
-                    // Calculate item total
-                    const itemTotal = unitPrice * quantity;
-                    
-                    if (!isNaN(itemTotal)) {
-                        total += itemTotal;
-                    }
-                    
-                    debugLog(`Item calculation:`, {
-                        name: item.name,
-                        quantity: quantity,
-                        unitPrice: unitPrice,
-                        itemTotal: itemTotal,
-                        runningTotal: total
-                    });
-                });
-            }
-            
-            // Only fall back to order.total_amount if no items or total is 0
-            if (total <= 0 && order.total_amount) {
-                total = parseFloat(order.total_amount);
-                debugLog('Using fallback total_amount:', total);
-            }
-
-            debugLog('Final calculated order total', {
-                originalTotal: order.total_amount,
-                calculatedFromItems: total,
-                orderItems: order.order_items
-            });
-
-            return total;
-        }
-
-        // Enhanced fetchWithErrorHandling with better timeout and retry
+        // Enhanced fetchWithErrorHandling
         async function fetchWithErrorHandling(url, options = {}) {
             const csrfToken = getCSRFToken();
             if (!csrfToken) {
@@ -1149,13 +1519,418 @@
             }
         }
 
+        // Edit Order Functions
+        function editOrder(orderId) {
+            currentAction = 'edit';
+            currentOrderId = orderId;
+
+            // Get the order data from the order card
+            const orderCard = document.getElementById(`order-${orderId}`);
+            if (!orderCard) {
+                showErrorMessage('Order not found');
+                return;
+            }
+
+            // Extract order data from the card
+            const orderData = extractOrderDataFromCard(orderCard);
+            if (!orderData) {
+                showErrorMessage('Could not extract order data');
+                return;
+            }
+
+            // Open the edit modal with the order data
+            openEditOrderModal(orderData);
+        }
+
+        function extractOrderDataFromCard(orderCard) {
+            try {
+                const orderNumber = orderCard.querySelector('.order-number').textContent.replace('#', '');
+                const orderItems = [];
+                
+                // Extract items from the order card
+                const itemElements = orderCard.querySelectorAll('.order-item');
+                itemElements.forEach((itemElement, index) => {
+                    const itemText = itemElement.querySelector('.item-name').textContent;
+                    const priceText = itemElement.querySelector('.item-price').textContent;
+                    
+                    // Parse item name and quantity
+                    const match = itemText.match(/^(.+?)\s+x(\d+)$/);
+                    let itemName, quantity;
+                    
+                    if (match) {
+                        itemName = match[1].trim();
+                        quantity = parseInt(match[2]);
+                    } else {
+                        itemName = itemText.trim();
+                        quantity = 1;
+                    }
+                    
+                    // Parse price
+                    const totalPrice = parseFloat(priceText.replace('PHP ', '').replace(',', ''));
+                    const unitPrice = totalPrice / quantity;
+                    
+                    orderItems.push({
+                        id: index + 1, // Use index as temporary ID
+                        name: itemName,
+                        price: unitPrice,
+                        quantity: quantity,
+                        originalName: itemText
+                    });
+                });
+
+                return {
+                    id: parseInt(orderCard.getAttribute('data-order-id')),
+                    orderNumber: orderNumber,
+                    items: orderItems
+                };
+            } catch (error) {
+                console.error('Error extracting order data:', error);
+                return null;
+            }
+        }
+
+        function openEditOrderModal(orderData) {
+            editOrderData = JSON.parse(JSON.stringify(orderData)); // Deep clone
+            
+            const modal = document.getElementById('editOrderModal');
+            const subtitle = document.getElementById('editModalSubtitle');
+            
+            if (subtitle) {
+                subtitle.textContent = `Order #${orderData.orderNumber} - Modify items and quantities`;
+            }
+            
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            populateEditOrderItems();
+            populateEditMenuItems();
+            updateEditTotal();
+        }
+
+        function closeEditOrderModal() {
+            const modal = document.getElementById('editOrderModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+            editOrderData = null;
+        }
+
+        function populateEditOrderItems() {
+            const container = document.getElementById('editOrderItemsList');
+            
+            if (!editOrderData || editOrderData.items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-order-state">
+                        <div class="empty-order-icon">🍽️</div>
+                        <p>No items in order</p>
+                        <small>Add items from the menu</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            editOrderData.items.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'edit-order-item';
+                itemElement.innerHTML = `
+                    <div class="edit-item-info">
+                        <div class="edit-item-name">${item.name}</div>
+                        <div class="edit-item-price">PHP ${item.price.toFixed(2)} each</div>
+                    </div>
+                    
+                    <div class="edit-item-controls">
+                        <div class="edit-quantity-controls">
+                            <button class="edit-quantity-btn" onclick="decreaseEditQuantity(${item.id})" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
+                            <span class="edit-quantity-display">${item.quantity}</span>
+                            <button class="edit-quantity-btn" onclick="increaseEditQuantity(${item.id})">+</button>
+                        </div>
+                        
+                        <button class="edit-item-remove" onclick="removeEditItem(${item.id})" title="Remove item">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(itemElement);
+            });
+        }
+
+        function populateEditMenuItems() {
+            const container = document.getElementById('editMenuItemsList');
+            container.innerHTML = '';
+            
+            editMenuItems.forEach(item => {
+                const isInOrder = editOrderData.items.some(orderItem => orderItem.name.toLowerCase() === item.name.toLowerCase());
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = 'edit-menu-item';
+                itemElement.innerHTML = `
+                    <div class="edit-menu-item-info">
+                        <div class="edit-menu-item-name">${item.name}</div>
+                        <div class="edit-menu-item-price">PHP ${item.price.toFixed(2)}</div>
+                    </div>
+                    
+                    <button class="edit-add-btn" onclick="addEditItemToOrder(${item.id})" ${isInOrder ? 'disabled' : ''}>
+                        ${isInOrder ? 'Added' : 'Add'}
+                    </button>
+                `;
+                
+                container.appendChild(itemElement);
+            });
+        }
+
+        function filterEditMenuItems() {
+            const searchTerm = document.getElementById('editMenuSearch').value.toLowerCase();
+            const menuItemsContainer = document.getElementById('editMenuItemsList');
+            const menuItemElements = menuItemsContainer.querySelectorAll('.edit-menu-item');
+            
+            menuItemElements.forEach(element => {
+                const itemName = element.querySelector('.edit-menu-item-name').textContent.toLowerCase();
+                if (itemName.includes(searchTerm)) {
+                    element.style.display = 'flex';
+                } else {
+                    element.style.display = 'none';
+                }
+            });
+        }
+
+        function addEditItemToOrder(itemId) {
+            const menuItem = editMenuItems.find(item => item.id === itemId);
+            if (!menuItem) return;
+            
+            const existingItem = editOrderData.items.find(item => item.name.toLowerCase() === menuItem.name.toLowerCase());
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                const newId = Math.max(...editOrderData.items.map(item => item.id), 0) + 1;
+                editOrderData.items.push({
+                    id: newId,
+                    name: menuItem.name,
+                    price: menuItem.price,
+                    quantity: 1
+                });
+            }
+            
+            populateEditOrderItems();
+            populateEditMenuItems();
+            updateEditTotal();
+            showEditNotification(`${menuItem.name} added to order`, 'success');
+        }
+
+        function removeEditItem(itemId) {
+            const itemIndex = editOrderData.items.findIndex(item => item.id === itemId);
+            if (itemIndex > -1) {
+                const removedItem = editOrderData.items[itemIndex];
+                editOrderData.items.splice(itemIndex, 1);
+                
+                populateEditOrderItems();
+                populateEditMenuItems();
+                updateEditTotal();
+                showEditNotification(`${removedItem.name} removed from order`, 'success');
+            }
+        }
+
+        function increaseEditQuantity(itemId) {
+            const item = editOrderData.items.find(item => item.id === itemId);
+            if (item) {
+                item.quantity++;
+                populateEditOrderItems();
+                updateEditTotal();
+                showEditNotification(`${item.name} quantity increased`, 'success');
+            }
+        }
+
+        function decreaseEditQuantity(itemId) {
+            const item = editOrderData.items.find(item => item.id === itemId);
+            if (item && item.quantity > 1) {
+                item.quantity--;
+                populateEditOrderItems();
+                updateEditTotal();
+                showEditNotification(`${item.name} quantity decreased`, 'success');
+            }
+        }
+
+        function updateEditTotal() {
+            const total = editOrderData.items.reduce((sum, item) => {
+                return sum + (item.price * item.quantity);
+            }, 0);
+            
+            document.getElementById('editTotalDisplay').textContent = `Total: PHP ${total.toFixed(2)}`;
+        }
+
+        async function saveEditOrderChanges() {
+            if (!editOrderData) {
+                showErrorMessage('No order data to save');
+                return;
+            }
+
+            try {
+                const requestData = {
+                    order_id: editOrderData.id,
+                    items: editOrderData.items.map(item => ({
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        total_price: item.price * item.quantity
+                    }))
+                };
+
+                debugLog('Saving order changes:', requestData);
+
+                const data = await fetchWithErrorHandling('/cashier/update-order', {
+                    method: 'POST',
+                    body: JSON.stringify(requestData)
+                });
+
+                if (data.success) {
+                    showEditNotification('Order updated successfully!', 'success');
+                    
+                    // Update the order card in the pending panel
+                    updateOrderCardAfterEdit(editOrderData);
+                    
+                    setTimeout(() => {
+                        closeEditOrderModal();
+                    }, 1500);
+                } else {
+                    throw new Error(data.message || 'Failed to update order');
+                }
+            } catch (error) {
+                console.error('Error saving order changes:', error);
+                showErrorMessage('Failed to save changes: ' + error.message);
+            }
+        }
+
+        function updateOrderCardAfterEdit(orderData) {
+            const orderCard = document.getElementById(`order-${orderData.id}`);
+            if (!orderCard) return;
+
+            // Recalculate total
+            const newTotal = orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            // Update items section
+            const itemsContainer = orderCard.querySelector('.order-items');
+            if (itemsContainer) {
+                itemsContainer.innerHTML = '';
+                orderData.items.forEach(item => {
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'order-item';
+                    itemElement.innerHTML = `
+                        <span class="item-name">${item.name} x${item.quantity}</span>
+                        <span class="item-price">PHP ${(item.price * item.quantity).toFixed(2)}</span>
+                    `;
+                    itemsContainer.appendChild(itemElement);
+                });
+            }
+
+            // Update total
+            const totalElement = orderCard.querySelector('.total-amount');
+            if (totalElement) {
+                totalElement.textContent = `PHP ${newTotal.toFixed(2)}`;
+            }
+
+            // Update the onclick handlers with new total
+            const acceptBtn = orderCard.querySelector('.btn-accept');
+            if (acceptBtn) {
+                acceptBtn.setAttribute('onclick', `acceptOrder(${orderData.id}, ${newTotal}, '${orderData.orderNumber}', 0)`);
+            }
+
+            // Add visual feedback
+            orderCard.style.border = '3px solid #28a745';
+            setTimeout(() => {
+                orderCard.style.border = '3px solid #d4c4a8';
+            }, 2000);
+        }
+
+        function showEditNotification(message, type = 'success') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.edit-notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `edit-notification notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 2000;
+                animation: slideInNotification 0.3s ease-out;
+                background: ${type === 'success' ? '#28a745' : '#dc3545'};
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Calculate total amount correctly from order items
+        function calculateOrderTotal(order) {
+            let total = 0;
+
+            // Always calculate from items first (most reliable)
+            if (order.order_items && Array.isArray(order.order_items)) {
+                order.order_items.forEach(item => {
+                    // Get quantity (default to 1 if not specified)
+                    const quantity = parseInt(item.quantity) || 1;
+
+                    // Get unit price (prefer unit_price, then price, then total_price divided by quantity)
+                    let unitPrice = 0;
+                    if (item.unit_price) {
+                        unitPrice = parseFloat(item.unit_price);
+                    } else if (item.price && !item.total_price) {
+                        unitPrice = parseFloat(item.price);
+                    } else if (item.total_price) {
+                        unitPrice = parseFloat(item.total_price) / quantity;
+                    }
+
+                    // Calculate item total
+                    const itemTotal = unitPrice * quantity;
+
+                    if (!isNaN(itemTotal)) {
+                        total += itemTotal;
+                    }
+
+                    debugLog(`Item calculation:`, {
+                        name: item.name,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        itemTotal: itemTotal,
+                        runningTotal: total
+                    });
+                });
+            }
+
+            // Only fall back to order.total_amount if no items or total is 0
+            if (total <= 0 && order.total_amount) {
+                total = parseFloat(order.total_amount);
+                debugLog('Using fallback total_amount:', total);
+            }
+
+            debugLog('Final calculated order total', {
+                originalTotal: order.total_amount,
+                calculatedFromItems: total,
+                orderItems: order.order_items
+            });
+
+            return total;
+        }
+
         // Auto-refresh function with better error handling
         function autoRefreshOrders() {
             const paymentModal = document.getElementById('paymentModal');
             const confirmModal = document.getElementById('confirmModal');
+            const editModal = document.getElementById('editOrderModal');
 
             if ((paymentModal && paymentModal.classList.contains('show')) ||
-                (confirmModal && confirmModal.classList.contains('show'))) {
+                (confirmModal && confirmModal.classList.contains('show')) ||
+                (editModal && editModal.classList.contains('show'))) {
                 debugLog('Skipping auto-refresh: Modal is open');
                 return;
             }
@@ -1199,19 +1974,19 @@
         function showAutoRefreshError(message) {
             const indicator = document.createElement('div');
             indicator.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background: rgba(220, 53, 69, 0.9);
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-    `;
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(220, 53, 69, 0.9);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            `;
 
             indicator.innerHTML = `⚠️ Refresh Failed`;
             document.body.appendChild(indicator);
@@ -1234,19 +2009,19 @@
         function showAutoRefreshIndicator() {
             const indicator = document.createElement('div');
             indicator.style.cssText = `
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background: rgba(40, 167, 69, 0.9);
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-    `;
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(40, 167, 69, 0.9);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            `;
 
             indicator.innerHTML = '🔄 Updated';
             document.body.appendChild(indicator);
@@ -1301,16 +2076,16 @@
                 const existingOrders = container.querySelectorAll('.order-card');
                 if (existingOrders.length === 0) {
                     container.innerHTML = emptyState ? emptyState.outerHTML : `
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No pending cash orders</p>
-                    <small>Orders will appear here when customers place cash orders</small>
-                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                        <span>🔄</span>
-                        <span>Auto-updating every 25 seconds</span>
-                    </div>
-                </div>
-            `;
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-state-icon">📭</div>
+                            <p>No pending cash orders</p>
+                            <small>Orders will appear here when customers place cash orders</small>
+                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                                <span>🔄</span>
+                                <span>Auto-updating every 25 seconds</span>
+                            </div>
+                        </div>
+                    `;
                 }
                 return;
             }
@@ -1325,7 +2100,6 @@
                 processingOrderIds,
                 ordersReceived: orders.length
             });
-
 
             currentOrderIds.forEach(orderId => {
                 if (!newPendingOrderIds.includes(orderId) && !processingOrderIds.includes(orderId)) {
@@ -1367,42 +2141,18 @@
                 const remainingCards = container.querySelectorAll('.order-card');
                 if (remainingCards.length === 0) {
                     container.innerHTML = emptyState ? emptyState.outerHTML : `
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No pending cash orders</p>
-                    <small>Orders will appear here when customers place cash orders</small>
-                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                        <span>🔄</span>
-                        <span>Auto-updating every 25 seconds</span>
-                    </div>
-                </div>
-            `;
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-state-icon">📭</div>
+                            <p>No pending cash orders</p>
+                            <small>Orders will appear here when customers place cash orders</small>
+                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                                <span>🔄</span>
+                                <span>Auto-updating every 25 seconds</span>
+                            </div>
+                        </div>
+                    `;
                 }
             }, 100);
-        }
-
-        // Alternative: If you want immediate removal without animation
-        function removeOrderImmediately(orderId) {
-            const orderCard = document.getElementById(`order-${orderId}`);
-
-            if (orderCard) {
-                orderCard.remove();
-
-                // Check for empty state
-                const ordersContainer = document.getElementById('ordersContainer');
-                const remainingOrders = ordersContainer.querySelectorAll('.order-card');
-
-                if (remainingOrders.length === 0) {
-                    const emptyStateHtml = `
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No pending cash orders</p>
-                    <small>Orders will appear here when customers place cash orders</small>
-                </div>
-            `;
-                    ordersContainer.innerHTML = emptyStateHtml;
-                }
-            }
         }
 
         // FIXED: Create order card with correct total calculation
@@ -1417,7 +2167,7 @@
 
             // Handle both 'order_items' and 'items' for compatibility
             const orderItems = order.order_items || order.items || [];
-            
+
             if (orderItems && Array.isArray(orderItems)) {
                 orderItems.forEach(item => {
                     let itemName = item.name || 'Custom Item';
@@ -1425,7 +2175,7 @@
 
                     // Get quantity (default to 1 if not specified)
                     const quantity = parseInt(item.quantity) || 1;
-                    
+
                     // Get unit price properly
                     let unitPrice = 0;
                     if (item.unit_price) {
@@ -1436,10 +2186,10 @@
                         // If we only have total_price, divide by quantity to get unit price
                         unitPrice = parseFloat(item.total_price) / quantity;
                     }
-                    
+
                     // Calculate total for this item
                     const itemTotal = unitPrice * quantity;
-                    
+
                     // Add to the calculated total
                     calculatedTotal += itemTotal;
 
@@ -1462,7 +2212,7 @@
 
             // Use the calculated total, but fallback to order.total or order.total_amount
             const totalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
-            
+
             // Log for debugging
             debugLog('Order total calculation in createOrderCard:', {
                 orderId: order.id,
@@ -1577,13 +2327,6 @@
             }
 
             showPaymentModal();
-        }
-
-        function onPaymentSuccess(orderId) {
-            // Your existing payment success logic here...
-
-            // After successfully processing/moving the order, remove it from left panel
-            removeOrderFromPending(orderId);
         }
 
         function showPaymentModal() {
@@ -1726,6 +2469,59 @@
             changeAmount = 0;
         }
 
+        // Function to remove order from left panel
+        function removeOrderFromPending(orderId) {
+            debugLog(`Attempting to remove order ${orderId} from pending panel`);
+
+            // Try both formats: with and without leading zeros
+            let orderCard = document.getElementById(`order-${orderId}`);
+
+            // If not found, try with leading zeros (padded to 4 digits)
+            if (!orderCard) {
+                const paddedId = orderId.toString().padStart(4, '0');
+                orderCard = document.getElementById(`order-${paddedId}`);
+                debugLog(`Trying padded ID: order-${paddedId}`);
+            }
+
+            if (orderCard) {
+                debugLog(`Found order card ${orderCard.id}, removing it now`);
+
+                // Add fade out animation
+                orderCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                orderCard.style.opacity = '0';
+                orderCard.style.transform = 'translateX(-20px)';
+
+                // Remove the element after animation
+                setTimeout(() => {
+                    orderCard.remove();
+                    debugLog(`Order ${orderId} successfully removed from DOM`);
+
+                    // Check if there are any remaining orders
+                    const ordersContainer = document.getElementById('ordersContainer');
+                    const remainingOrders = ordersContainer.querySelectorAll('.order-card');
+
+                    // If no orders remain, show empty state
+                    if (remainingOrders.length === 0) {
+                        const emptyStateHtml = `
+                            <div class="empty-state" id="emptyState">
+                                <div class="empty-state-icon">📭</div>
+                                <p>No pending cash orders</p>
+                                <small>Orders will appear here when customers place cash orders</small>
+                            </div>
+                        `;
+                        ordersContainer.innerHTML = emptyStateHtml;
+                        debugLog('Added empty state after removing last order');
+                    }
+                }, 300);
+            } else {
+                debugLog(`ERROR: Order card not found for ID ${orderId}`);
+                // Debug what cards actually exist
+                const allCards = document.querySelectorAll('.order-card');
+                const cardIds = Array.from(allCards).map(card => card.id);
+                debugLog('Available order cards:', cardIds);
+            }
+        }
+
         // FIXED: Properly move orders from pending to processing and remove from pending
         async function confirmPayment() {
             debugLog('Confirm payment called', {
@@ -1840,75 +2636,6 @@
             debugLog(`Order ${orderData.id} restored to pending after payment failure`);
         }
 
-        // Function to remove order from left panel
-        function removeOrderFromPending(orderId) {
-            debugLog(`Attempting to remove order ${orderId} from pending panel`);
-
-            // Try both formats: with and without leading zeros
-            let orderCard = document.getElementById(`order-${orderId}`);
-
-            // If not found, try with leading zeros (padded to 4 digits)
-            if (!orderCard) {
-                const paddedId = orderId.toString().padStart(4, '0');
-                orderCard = document.getElementById(`order-${paddedId}`);
-                debugLog(`Trying padded ID: order-${paddedId}`);
-            }
-
-            if (orderCard) {
-                debugLog(`Found order card ${orderCard.id}, removing it now`);
-
-                // Add fade out animation
-                orderCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                orderCard.style.opacity = '0';
-                orderCard.style.transform = 'translateX(-20px)';
-
-                // Remove the element after animation
-                setTimeout(() => {
-                    orderCard.remove();
-                    debugLog(`Order ${orderId} successfully removed from DOM`);
-
-                    // Check if there are any remaining orders
-                    const ordersContainer = document.getElementById('ordersContainer');
-                    const remainingOrders = ordersContainer.querySelectorAll('.order-card');
-
-                    // If no orders remain, show empty state
-                    if (remainingOrders.length === 0) {
-                        const emptyStateHtml = `
-                    <div class="empty-state" id="emptyState">
-                        <div class="empty-state-icon">📭</div>
-                        <p>No pending cash orders</p>
-                        <small>Orders will appear here when customers place cash orders</small>
-                    </div>
-                `;
-                        ordersContainer.innerHTML = emptyStateHtml;
-                        debugLog('Added empty state after removing last order');
-                    }
-                }, 300);
-            } else {
-                debugLog(`ERROR: Order card not found for ID ${orderId}`);
-                // Debug what cards actually exist
-                const allCards = document.querySelectorAll('.order-card');
-                const cardIds = Array.from(allCards).map(card => card.id);
-                debugLog('Available order cards:', cardIds);
-            }
-        }
-
-        function restoreOrderToPending(orderData) {
-            const ordersContainer = document.getElementById('ordersContainer');
-            const emptyState = document.getElementById('emptyState');
-
-            // Remove empty state if it exists
-            if (emptyState) {
-                emptyState.remove();
-            }
-
-            // Add the order back to the container
-            if (orderData && orderData.orderCard) {
-                ordersContainer.appendChild(orderData.orderCard);
-                debugLog('Order restored to pending list', { orderId: orderData.id });
-            }
-        }
-
         // Move order to processing with better tracking
         function moveOrderToProcessing(orderId, orderNumber, change, receiptPrinted, orderData = null, actualOrderTotal = 0) {
             debugLog('Moving order to processing', {
@@ -1954,12 +2681,12 @@
                     displayTotal = parseFloat(totalText) || 0;
                 }
             }
-            
+
             // If still 0, try to get from orderData.totalAmount
             if (displayTotal <= 0 && orderData && orderData.totalAmount) {
                 displayTotal = orderData.totalAmount;
             }
-            
+
             // Final fallback - calculate from order items if available
             if (displayTotal <= 0 && orderData && orderData.orderCard) {
                 const itemElements = orderData.orderCard.querySelectorAll('.order-item .item-price');
@@ -2003,11 +2730,11 @@
                 const originalItems = orderData.orderCard.querySelector('.order-items');
                 if (originalItems) {
                     orderItemsHtml = `
-            <div class="processing-order-items" style = "background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;" >
-                <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
-                    ${originalItems.innerHTML}
-                </div>
-            `;
+                        <div class="processing-order-items" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                            <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
+                            ${originalItems.innerHTML}
+                        </div>
+                    `;
                 }
             }
 
@@ -2016,80 +2743,80 @@
             orderProcessingCard.className = 'processing-order-card';
             orderProcessingCard.id = `processing-order-${orderId}`;
             orderProcessingCard.style.cssText = `
-        background: white;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        border: 2px solid #e9ecef;
-        animation: slideInFromLeft 0.5s ease-out;
-        `;
+                background: white;
+                border-radius: 15px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                border: 2px solid #e9ecef;
+                animation: slideInFromLeft 0.5s ease-out;
+            `;
 
             orderProcessingCard.innerHTML = `
-            <div class="processing-order-header" style = "margin-bottom: 20px;" >
-            <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
-            <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
-        </div>
+                <div class="processing-order-header" style="margin-bottom: 20px;">
+                    <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
+                    <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
+                </div>
 
-            ${orderItemsHtml}
-        
-        <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
-            <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
-                💰 Payment Completed Successfully!
-            </div>
-            <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
-                <span style="color: #155724;">🏷️ Order Total:</span>
-                <span style="font-weight: 700; color: #155724;">PHP ${displayTotal.toFixed(2)}</span>
-            </div>
-            <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
-                <span style="color: #155724;">💸 Change Given:</span>
-                <span style="font-weight: 700; color: #155724; font-size: 1.2rem;">PHP ${actualChangeGiven.toFixed(2)}</span>
-            </div>
-            <div style="margin-top: 15px; padding: 12px; background: rgba(21, 87, 36, 0.1); border-radius: 8px; text-align: center; color: #155724; font-weight: 600;">
-                ${receiptStatus}
-            </div>
-        </div>
+                ${orderItemsHtml}
+            
+                <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                    <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
+                        💰 Payment Completed Successfully!
+                    </div>
+                    <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
+                        <span style="color: #155724;">🏷️ Order Total:</span>
+                        <span style="font-weight: 700; color: #155724;">PHP ${displayTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
+                        <span style="color: #155724;">💸 Change Given:</span>
+                        <span style="font-weight: 700; color: #155724; font-size: 1.2rem;">PHP ${actualChangeGiven.toFixed(2)}</span>
+                    </div>
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(21, 87, 36, 0.1); border-radius: 8px; text-align: center; color: #155724; font-weight: 600;">
+                        ${receiptStatus}
+                    </div>
+                </div>
 
-        <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 20px 0;">
-            <div style="font-weight: 600; margin-bottom: 15px; color: #856404; text-align: center; font-size: 1.1rem;">⏱️ Order Status</div>
-            <div style="color: #856404; line-height: 1.8; text-align: center;">
-                <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🍳 Currently Preparing</div>
-                <div style="font-size: 1rem;">📅 Estimated completion: ${estimatedTime.toLocaleTimeString()}</div>
-                <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">⏰ Average wait time: 15 minutes</div>
-            </div>
-        </div>
-        
-        <div class="processing-actions" style="display: flex; gap: 15px; margin-top: 25px;">
-            <button class="btn-large" style="
-                background: #28a745; 
-                color: white; 
-                border: none; 
-                border-radius: 8px; 
-                cursor: pointer; 
-                padding: 15px 25px; 
-                font-size: 1.1rem; 
-                flex: 1;
-                font-weight: 600;
-                transition: background-color 0.3s ease;
-            " onclick="completeOrder(${orderId})" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-                ✅ Mark as Complete
-            </button>
-            <button class="btn-large" style="
-                background: #6c757d; 
-                color: white; 
-                border: none; 
-                border-radius: 8px; 
-                cursor: pointer; 
-                padding: 15px 25px; 
-                font-size: 1.1rem; 
-                flex: 1;
-                font-weight: 600;
-                transition: background-color 0.3s ease;
-            " onclick="moveBackToPending(${orderId})" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
-                ↩️ Move Back to Pending
-            </button>
-        </div>
-        `;
+                <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                    <div style="font-weight: 600; margin-bottom: 15px; color: #856404; text-align: center; font-size: 1.1rem;">⏱️ Order Status</div>
+                    <div style="color: #856404; line-height: 1.8; text-align: center;">
+                        <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🍳 Currently Preparing</div>
+                        <div style="font-size: 1rem;">📅 Estimated completion: ${estimatedTime.toLocaleTimeString()}</div>
+                        <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">⏰ Average wait time: 15 minutes</div>
+                    </div>
+                </div>
+                
+                <div class="processing-actions" style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button class="btn-large" style="
+                        background: #28a745; 
+                        color: white; 
+                        border: none; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        padding: 15px 25px; 
+                        font-size: 1.1rem; 
+                        flex: 1;
+                        font-weight: 600;
+                        transition: background-color 0.3s ease;
+                    " onclick="completeOrder(${orderId})" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                        ✅ Mark as Complete
+                    </button>
+                    <button class="btn-large" style="
+                        background: #6c757d; 
+                        color: white; 
+                        border: none; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        padding: 15px 25px; 
+                        font-size: 1.1rem; 
+                        flex: 1;
+                        font-weight: 600;
+                        transition: background-color 0.3s ease;
+                    " onclick="moveBackToPending(${orderId})" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
+                        ↩️ Move Back to Pending
+                    </button>
+                </div>
+            `;
 
             // Add to the container
             const container = processingSection.querySelector('.processing-orders-container');
@@ -2180,15 +2907,15 @@
                 header = document.createElement('div');
                 header.className = 'processing-section-header';
                 header.style.cssText = `
-        background: #8B4513;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 10px 10px 0 0;
-        margin-bottom: 20px;
-        text-align: center;
-        font-weight: 700;
-        font-size: 1.2rem;
-        `;
+                    background: #8B4513;
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px 10px 0 0;
+                    margin-bottom: 20px;
+                    text-align: center;
+                    font-weight: 700;
+                    font-size: 1.2rem;
+                `;
                 processingSection.insertBefore(header, processingSection.firstChild);
             }
 
@@ -2259,28 +2986,28 @@
 
             const toast = document.createElement('div');
             toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #d4edda;
-        color: #155724;
-        border: 2px solid #c3e6cb;
-        border-radius: 8px;
-        padding: 15px 20px;
-        box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
-        z-index: 3000;
-        max-width: 350px;
-        animation: slideIn 0.3s ease-out;
-        `;
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #d4edda;
+                color: #155724;
+                border: 2px solid #c3e6cb;
+                border-radius: 8px;
+                padding: 15px 20px;
+                box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+                z-index: 3000;
+                max-width: 350px;
+                animation: slideIn 0.3s ease-out;
+            `;
 
             toast.innerHTML = `
-            <div style = "display: flex; align-items: center; gap: 10px;" >
-            <span style="font-size: 1.5em;">✅</span>
-            <div>
-                <strong>Order #${displayOrderNumber} Complete!</strong><br>
-                <small>Saved to sales database</small>
-            </div>
-        </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">✅</span>
+                    <div>
+                        <strong>Order #${displayOrderNumber} Complete!</strong><br>
+                        <small>Saved to sales database</small>
+                    </div>
+                </div>
             `;
 
             document.body.appendChild(toast);
@@ -2298,33 +3025,19 @@
 
             processingSection.className = 'processing-section';
             processingSection.innerHTML = `
-            <div class="processing-icon" >💳</div>
-        <p><strong>SELECT AN ORDER</strong></p>
-        <p>FROM THE LEFT PANEL TO</p>
-        <p>BEGIN PROCESSING PAYMENT</p>
-        <br>
-        <p>Use the <strong>Accept</strong> button to process payment</p>
-        <p>Use the <strong>Edit</strong> button to modify orders</p>
-        <p>Use the <strong>Cancel</strong> button to cancel orders</p>
-        <div style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-            <span>🔄</span>
-            <span>Auto-updating every 25 seconds</span>
-        </div>
-    `;
-        }
-
-        function editOrder(orderId) {
-            currentAction = 'edit';
-            currentOrderId = orderId;
-
-            showModal(
-                'warning',
-                '✏️',
-                'Edit Order',
-                'Modify order items or details',
-                `Edit Order #${orderId}?<br><br>This will redirect you to the order editing interface.`,
-                'Edit Order'
-            );
+                <div class="processing-icon">💳</div>
+                <p><strong>SELECT AN ORDER</strong></p>
+                <p>FROM THE LEFT PANEL TO</p>
+                <p>BEGIN PROCESSING PAYMENT</p>
+                <br>
+                <p>Use the <strong>Accept</strong> button to process payment</p>
+                <p>Use the <strong>Edit</strong> button to modify orders</p>
+                <p>Use the <strong>Cancel</strong> button to cancel orders</p>
+                <div style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <span>🔄</span>
+                    <span>Auto-updating every 25 seconds</span>
+                </div>
+            `;
         }
 
         function cancelOrder(orderId) {
@@ -2388,19 +3101,12 @@
             if (!currentAction || !currentOrderId) return;
 
             switch (currentAction) {
-                case 'edit':
-                    processEditOrder();
-                    break;
                 case 'cancel':
                     processCancelOrder();
                     break;
             }
 
             hideModal();
-        }
-
-        function processEditOrder() {
-            window.location.href = `/cashier/edit-order/${currentOrderId}`;
         }
 
         async function processCancelOrder() {
@@ -2451,16 +3157,16 @@
             if (orderCards.length === 0 && ordersContainer) {
                 if (!ordersContainer.contains(emptyState)) {
                     ordersContainer.innerHTML = `
-                <div class="empty-state" id="emptyState">
-                    <div class="empty-state-icon">📭</div>
-                    <p>No pending cash orders</p>
-                    <small>Orders will appear here when customers place cash orders</small>
-                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                        <span>🔄</span>
-                        <span>Auto-updating every 25 seconds</span>
-                    </div>
-                </div>
-            `;
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-state-icon">📭</div>
+                            <p>No pending cash orders</p>
+                            <small>Orders will appear here when customers place cash orders</small>
+                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                                <span>🔄</span>
+                                <span>Auto-updating every 25 seconds</span>
+                            </div>
+                        </div>
+                    `;
                     debugLog('Empty state added to container');
                 }
             } else if (orderCards.length > 0 && emptyState) {
@@ -2475,39 +3181,39 @@
                 errorAlert = document.createElement('div');
                 errorAlert.id = 'errorAlert';
                 errorAlert.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-            border-radius: 8px;
-            padding: 15px 20px;
-            box-shadow: 0 4px 15px rgba(114, 28, 36, 0.2);
-            z-index: 2000;
-            max-width: 400px;
-            animation: slideIn 0.3s ease-out;
-        `;
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #f8d7da;
+                    color: #721c24;
+                    border: 2px solid #f5c6cb;
+                    border-radius: 8px;
+                    padding: 15px 20px;
+                    box-shadow: 0 4px 15px rgba(114, 28, 36, 0.2);
+                    z-index: 2000;
+                    max-width: 400px;
+                    animation: slideIn 0.3s ease-out;
+                `;
                 document.body.appendChild(errorAlert);
             }
 
             errorAlert.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.2em;">⚠️</span>
-            <div>
-                <strong>Error</strong><br>
-                ${message}
-            </div>
-            <button onclick="this.parentElement.parentElement.remove()" style="
-                background: none; 
-                border: none; 
-                color: #721c24; 
-                font-size: 1.2em; 
-                cursor: pointer;
-                margin-left: auto;
-            ">×</button>
-        </div>
-    `;
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.2em;">⚠️</span>
+                    <div>
+                        <strong>Error</strong><br>
+                        ${message}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        background: none; 
+                        border: none; 
+                        color: #721c24; 
+                        font-size: 1.2em; 
+                        cursor: pointer;
+                        margin-left: auto;
+                    ">×</button>
+                </div>
+            `;
 
             setTimeout(() => {
                 if (errorAlert && errorAlert.parentElement) {
@@ -2519,29 +3225,29 @@
         function showSuccessMessage(message) {
             const toast = document.createElement('div');
             toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #d4edda;
-        color: #155724;
-        border: 2px solid #c3e6cb;
-        border-radius: 8px;
-        padding: 15px 20px;
-        box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
-        z-index: 3000;
-        max-width: 350px;
-        animation: slideIn 0.3s ease-out;
-    `;
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #d4edda;
+                color: #155724;
+                border: 2px solid #c3e6cb;
+                border-radius: 8px;
+                padding: 15px 20px;
+                box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+                z-index: 3000;
+                max-width: 350px;
+                animation: slideIn 0.3s ease-out;
+            `;
 
             toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.5em;">✅</span>
-            <div>
-                <strong>Success!</strong><br>
-                <small>${message}</small>
-            </div>
-        </div>
-    `;
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">✅</span>
+                    <div>
+                        <strong>Success!</strong><br>
+                        <small>${message}</small>
+                    </div>
+                </div>
+            `;
 
             document.body.appendChild(toast);
 
@@ -2557,6 +3263,8 @@
             if (e.target.classList.contains('modal-overlay')) {
                 if (e.target.id === 'paymentModal') {
                     hidePaymentModal();
+                } else if (e.target.id === 'editOrderModal') {
+                    closeEditOrderModal();
                 } else {
                     hideModal();
                 }
@@ -2567,9 +3275,12 @@
             if (e.key === 'Escape') {
                 const paymentModal = document.getElementById('paymentModal');
                 const confirmModal = document.getElementById('confirmModal');
+                const editModal = document.getElementById('editOrderModal');
 
                 if (paymentModal && paymentModal.classList.contains('show')) {
                     hidePaymentModal();
+                } else if (editModal && editModal.classList.contains('show')) {
+                    closeEditOrderModal();
                 } else if (confirmModal && confirmModal.classList.contains('show')) {
                     hideModal();
                 }
@@ -2618,28 +3329,39 @@
         // Add CSS for animations
         const style = document.createElement('style');
         style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateY(-20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideInFromLeft {
-        from {
-            transform: translateX(-100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-`;
+            @keyframes slideIn {
+                from {
+                    transform: translateY(-20px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideInFromLeft {
+                from {
+                    transform: translateX(-100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideInNotification {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
         document.head.appendChild(style);
 
         // Global function exports
@@ -2655,6 +3377,13 @@
         window.resetProcessingPanel = resetProcessingPanel;
         window.completeOrder = completeOrder;
         window.moveBackToPending = moveBackToPending;
+        window.closeEditOrderModal = closeEditOrderModal;
+        window.addEditItemToOrder = addEditItemToOrder;
+        window.removeEditItem = removeEditItem;
+        window.increaseEditQuantity = increaseEditQuantity;
+        window.decreaseEditQuantity = decreaseEditQuantity;
+        window.saveEditOrderChanges = saveEditOrderChanges;
+        window.filterEditMenuItems = filterEditMenuItems;
     </script>
 </body>
 
