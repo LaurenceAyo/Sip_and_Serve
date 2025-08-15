@@ -834,15 +834,24 @@
                             <div class="status-badge status-pending">Pending Payment</div>
 
                             <div class="order-items">
-                                @foreach($order['items'] as $item)
-                                    <div class="order-item">
-                                        <span class="item-name">{{ $item['name'] }}</span>
-                                        <span class="item-price">PHP {{ number_format($item['price'], 2) }}</span>
-                                    </div>
-                                @endforeach
+                                @if(isset($order['order_items']) && is_array($order['order_items']))
+                                    @foreach($order['order_items'] as $item)
+                                        <div class="order-item">
+                                            <span class="item-name">{{ $item['name'] }} x{{ $item['quantity'] }}</span>
+                                            <span class="item-price">PHP {{ number_format($item['total_price'], 2) }}</span>
+                                        </div>
+                                    @endforeach
+                                @elseif(isset($order['items']) && is_array($order['items']))
+                                    @foreach($order['items'] as $item)
+                                        <div class="order-item">
+                                            <span class="item-name">{{ $item['name'] }}</span>
+                                            <span class="item-price">PHP {{ number_format($item['price'], 2) }}</span>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
 
-                            @if(isset($order['cash_amount']) && $order['cash_amount'] > 0)
+                            @if((isset($order['cash_amount']) && $order['cash_amount'] > 0) || (isset($order['payment_method']) && $order['payment_method'] === 'cash'))
                                 <div class="customer-payment-info">
                                     <div
                                         style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
@@ -850,16 +859,23 @@
                                     </div>
                                     <div class="payment-info-row">
                                         <span class="payment-info-label">🏷️ Order Total:</span>
-                                        <span>PHP {{ number_format($order['total'], 2) }}</span>
+                                        <span>PHP {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
                                     </div>
-                                    <div class="payment-info-row">
-                                        <span class="payment-info-label">💵 Will Bring:</span>
-                                        <span>PHP {{ number_format($order['cash_amount'], 2) }}</span>
-                                    </div>
-                                    @if($order['expected_change'] > 0)
-                                        <div class="payment-info-row expected-change">
-                                            <span class="payment-info-label">💸 Expected Change:</span>
-                                            <span>PHP {{ number_format($order['expected_change'], 2) }}</span>
+                                    @if(isset($order['cash_amount']) && $order['cash_amount'] > 0)
+                                        <div class="payment-info-row">
+                                            <span class="payment-info-label">💵 Will Bring:</span>
+                                            <span>PHP {{ number_format($order['cash_amount'], 2) }}</span>
+                                        </div>
+                                        @if(isset($order['expected_change']) && $order['expected_change'] > 0)
+                                            <div class="payment-info-row expected-change">
+                                                <span class="payment-info-label">💸 Expected Change:</span>
+                                                <span>PHP {{ number_format($order['expected_change'], 2) }}</span>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="payment-info-row">
+                                            <span class="payment-info-label">💵 Will Bring:</span>
+                                            <span style="color: #666; font-style: italic;">Amount to be determined</span>
                                         </div>
                                     @endif
                                     <div class="edit-amount-note">
@@ -870,12 +886,12 @@
 
                             <div class="order-total">
                                 <span>Total Amount:</span>
-                                <span class="total-amount">PHP {{ number_format($order['total'], 2) }}</span>
+                                <span class="total-amount">PHP {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
                             </div>
 
                             <div class="order-actions">
                                 <button class="btn btn-accept"
-                                    onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] }}, '{{ $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
+                                    onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
                                     ✅ Accept
                                 </button>
                                 <button class="btn btn-edit" onclick="editOrder('{{ $order['id'] }}')">
@@ -993,9 +1009,6 @@
     </div>
 
     <script>
-        // Cashier System with Auto-Reload Every 25 Seconds
-        // Fixed Cashier System - Orders properly move from pending to processing
-        // Fixed Cashier System - Orders properly move from pending to processing
         let currentAction = null;
         let currentOrderId = null;
         let currentAmount = 0;
@@ -1019,25 +1032,52 @@
             return token.getAttribute('content');
         }
 
-        // Calculate total amount from order items if not provided
+        // FIXED: Calculate total amount correctly from order items
         function calculateOrderTotal(order) {
-            let total = parseFloat(order.total_amount);
-
-            if (!total || isNaN(total) || total <= 0) {
-                total = 0;
-                if (order.order_items && Array.isArray(order.order_items)) {
-                    order.order_items.forEach(item => {
-                        const itemTotal = parseFloat(item.total_price || item.price || 0);
-                        if (!isNaN(itemTotal)) {
-                            total += itemTotal;
-                        }
+            let total = 0;
+            
+            // Always calculate from items first (most reliable)
+            if (order.order_items && Array.isArray(order.order_items)) {
+                order.order_items.forEach(item => {
+                    // Get quantity (default to 1 if not specified)
+                    const quantity = parseInt(item.quantity) || 1;
+                    
+                    // Get unit price (prefer unit_price, then price, then total_price divided by quantity)
+                    let unitPrice = 0;
+                    if (item.unit_price) {
+                        unitPrice = parseFloat(item.unit_price);
+                    } else if (item.price && !item.total_price) {
+                        unitPrice = parseFloat(item.price);
+                    } else if (item.total_price) {
+                        unitPrice = parseFloat(item.total_price) / quantity;
+                    }
+                    
+                    // Calculate item total
+                    const itemTotal = unitPrice * quantity;
+                    
+                    if (!isNaN(itemTotal)) {
+                        total += itemTotal;
+                    }
+                    
+                    debugLog(`Item calculation:`, {
+                        name: item.name,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        itemTotal: itemTotal,
+                        runningTotal: total
                     });
-                }
+                });
+            }
+            
+            // Only fall back to order.total_amount if no items or total is 0
+            if (total <= 0 && order.total_amount) {
+                total = parseFloat(order.total_amount);
+                debugLog('Using fallback total_amount:', total);
             }
 
-            debugLog('Calculated order total', {
+            debugLog('Final calculated order total', {
                 originalTotal: order.total_amount,
-                calculatedTotal: total,
+                calculatedFromItems: total,
                 orderItems: order.order_items
             });
 
@@ -1286,7 +1326,7 @@
                 ordersReceived: orders.length
             });
 
-            // CRITICAL FIX: Don't remove orders that are being processed AND don't re-add them
+
             currentOrderIds.forEach(orderId => {
                 if (!newPendingOrderIds.includes(orderId) && !processingOrderIds.includes(orderId)) {
                     const card = document.getElementById(`order-${orderId}`);
@@ -1341,6 +1381,31 @@
             }, 100);
         }
 
+        // Alternative: If you want immediate removal without animation
+        function removeOrderImmediately(orderId) {
+            const orderCard = document.getElementById(`order-${orderId}`);
+
+            if (orderCard) {
+                orderCard.remove();
+
+                // Check for empty state
+                const ordersContainer = document.getElementById('ordersContainer');
+                const remainingOrders = ordersContainer.querySelectorAll('.order-card');
+
+                if (remainingOrders.length === 0) {
+                    const emptyStateHtml = `
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No pending cash orders</p>
+                    <small>Orders will appear here when customers place cash orders</small>
+                </div>
+            `;
+                    ordersContainer.innerHTML = emptyStateHtml;
+                }
+            }
+        }
+
+        // FIXED: Create order card with correct total calculation
         function createOrderCard(order) {
             const orderCard = document.createElement('div');
             orderCard.className = 'order-card';
@@ -1348,58 +1413,104 @@
             orderCard.setAttribute('data-order-id', order.id);
 
             let itemsHtml = '';
-            let itemsTotal = 0;
+            let calculatedTotal = 0; // This will be the sum of all item prices
 
-            if (order.order_items && Array.isArray(order.order_items)) {
-                order.order_items.forEach(item => {
+            // Handle both 'order_items' and 'items' for compatibility
+            const orderItems = order.order_items || order.items || [];
+            
+            if (orderItems && Array.isArray(orderItems)) {
+                orderItems.forEach(item => {
                     let itemName = item.name || 'Custom Item';
                     itemName = itemName.replace(/\s*x\d+\s*$/, '').trim();
 
+                    // Get quantity (default to 1 if not specified)
                     const quantity = parseInt(item.quantity) || 1;
-                    const totalPrice = parseFloat(item.total_price || item.price || 0);
+                    
+                    // Get unit price properly
+                    let unitPrice = 0;
+                    if (item.unit_price) {
+                        unitPrice = parseFloat(item.unit_price);
+                    } else if (item.price && !item.total_price) {
+                        unitPrice = parseFloat(item.price);
+                    } else if (item.total_price) {
+                        // If we only have total_price, divide by quantity to get unit price
+                        unitPrice = parseFloat(item.total_price) / quantity;
+                    }
+                    
+                    // Calculate total for this item
+                    const itemTotal = unitPrice * quantity;
+                    
+                    // Add to the calculated total
+                    calculatedTotal += itemTotal;
 
-                    itemsTotal += totalPrice;
+                    debugLog(`Item in createOrderCard:`, {
+                        name: itemName,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        itemTotal: itemTotal,
+                        calculatedTotal: calculatedTotal
+                    });
 
                     itemsHtml += `
-                <div class="order-item">
-                    <span class="item-name">${itemName} x${quantity}</span>
-                    <span class="item-price">PHP ${totalPrice.toFixed(2)}</span>
-                </div>
-            `;
+                        <div class="order-item">
+                            <span class="item-name">${itemName} x${quantity}</span>
+                            <span class="item-price">PHP ${itemTotal.toFixed(2)}</span>
+                        </div>
+                    `;
                 });
             }
 
-            const totalAmount = calculateOrderTotal(order);
+            // Use the calculated total, but fallback to order.total or order.total_amount
+            const totalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
+            
+            // Log for debugging
+            debugLog('Order total calculation in createOrderCard:', {
+                orderId: order.id,
+                orderTotal: order.total,
+                orderTotalAmount: order.total_amount,
+                calculatedFromItems: calculatedTotal,
+                finalTotalUsed: totalAmount,
+                items: orderItems
+            });
+
             const cashAmount = parseFloat(order.cash_amount || 0);
 
             let customerPaymentHtml = '';
-            if (order.payment_method === 'cash' && cashAmount > 0) {
-                const expectedChange = cashAmount - totalAmount;
+            // Show payment info for all cash orders, not just ones with pre-set cash amounts
+            if (order.payment_method === 'cash') {
+                const expectedChange = cashAmount > 0 ? (cashAmount - totalAmount) : 0;
 
                 customerPaymentHtml = `
-            <div class="customer-payment-info">
-                <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
-                    💰 Customer's Payment Plan
-                </div>
-                <div class="payment-info-row">
-                    <span class="payment-info-label">🏷️ Order Total:</span>
-                    <span>PHP ${totalAmount.toFixed(2)}</span>
-                </div>
-                <div class="payment-info-row">
-                    <span class="payment-info-label">💵 Will Bring:</span>
-                    <span>PHP ${cashAmount.toFixed(2)}</span>
-                </div>
-                ${expectedChange > 0 ? `
-                    <div class="payment-info-row expected-change">
-                        <span class="payment-info-label">💸 Expected Change:</span>
-                        <span>PHP ${expectedChange.toFixed(2)}</span>
+                    <div class="customer-payment-info">
+                        <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                            💰 Customer's Payment Plan
+                        </div>
+                        <div class="payment-info-row">
+                            <span class="payment-info-label">🏷️ Order Total:</span>
+                            <span>PHP ${totalAmount.toFixed(2)}</span>
+                        </div>
+                        ${cashAmount > 0 ? `
+                            <div class="payment-info-row">
+                                <span class="payment-info-label">💵 Will Bring:</span>
+                                <span>PHP ${cashAmount.toFixed(2)}</span>
+                            </div>
+                            ${expectedChange > 0 ? `
+                                <div class="payment-info-row expected-change">
+                                    <span class="payment-info-label">💸 Expected Change:</span>
+                                    <span>PHP ${expectedChange.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                        ` : `
+                            <div class="payment-info-row">
+                                <span class="payment-info-label">💵 Will Bring:</span>
+                                <span style="color: #666; font-style: italic;">Amount to be determined</span>
+                            </div>
+                        `}
+                        <div class="edit-amount-note">
+                            💡 You can edit the cash amount during payment processing
+                        </div>
                     </div>
-                ` : ''}
-                <div class="edit-amount-note">
-                    💡 You can edit the cash amount during payment processing
-                </div>
-            </div>
-        `;
+                `;
             }
 
             const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
@@ -1413,43 +1524,44 @@
             const orderType = order.order_type || 'dine-in';
 
             orderCard.innerHTML = `
-        <div class="order-header">
-            <span>Order</span>
-            <span class="order-number">#${orderNumber}</span>
-        </div>
-        <div class="order-time">
-            Placed at ${timeString}
-            <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
-        </div>
-        <div class="status-badge status-pending">Pending Payment</div>
-        
-        <div class="order-items">
-            ${itemsHtml}
-        </div>
+                <div class="order-header">
+                    <span>Order</span>
+                    <span class="order-number">#${orderNumber}</span>
+                </div>
+                <div class="order-time">
+                    Placed at ${timeString}
+                    <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
+                </div>
+                <div class="status-badge status-pending">Pending Payment</div>
+                
+                <div class="order-items">
+                    ${itemsHtml}
+                </div>
 
-        ${customerPaymentHtml}
-        
-        <div class="order-total">
-            <span>Total Amount:</span>
-            <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
-        </div>
-        
-        <div class="order-actions">
-            <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
-                ✅ Accept
-            </button>
-            <button class="btn btn-edit" onclick="editOrder(${order.id})">
-                ✏️ Edit
-            </button>
-            <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
-                ❌ Cancel
-            </button>
-        </div>
-    `;
+                ${customerPaymentHtml}
+                
+                <div class="order-total">
+                    <span>Total Amount:</span>
+                    <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
+                </div>
+                
+                <div class="order-actions">
+                    <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
+                        ✅ Accept
+                    </button>
+                    <button class="btn btn-edit" onclick="editOrder(${order.id})">
+                        ✏️ Edit
+                    </button>
+                    <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
+                        ❌ Cancel
+                    </button>
+                </div>
+            `;
 
             return orderCard;
         }
 
+        // Your existing acceptOrder function stays the same
         function acceptOrder(orderId, amount, orderNumber, cashAmount = null) {
             debugLog('Accept order called', { orderId, amount, orderNumber, cashAmount });
 
@@ -1465,6 +1577,13 @@
             }
 
             showPaymentModal();
+        }
+
+        function onPaymentSuccess(orderId) {
+            // Your existing payment success logic here...
+
+            // After successfully processing/moving the order, remove it from left panel
+            removeOrderFromPending(orderId);
         }
 
         function showPaymentModal() {
@@ -1677,8 +1796,8 @@
                 if (data.success) {
                     debugLog('Payment processed successfully, moving order');
 
-                    // Move order to processing panel
-                    moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData);
+                    // Move order to processing panel with correct total
+                    moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData, orderTotal);
 
                 } else {
                     // If payment failed, restore the order to pending
@@ -1721,41 +1840,84 @@
             debugLog(`Order ${orderData.id} restored to pending after payment failure`);
         }
 
-        // FIXED: Dedicated function to remove order from pending panel
+        // Function to remove order from left panel
         function removeOrderFromPending(orderId) {
-            const orderCard = document.getElementById(`order-${orderId}`);
+            debugLog(`Attempting to remove order ${orderId} from pending panel`);
+
+            // Try both formats: with and without leading zeros
+            let orderCard = document.getElementById(`order-${orderId}`);
+
+            // If not found, try with leading zeros (padded to 4 digits)
+            if (!orderCard) {
+                const paddedId = orderId.toString().padStart(4, '0');
+                orderCard = document.getElementById(`order-${paddedId}`);
+                debugLog(`Trying padded ID: order-${paddedId}`);
+            }
 
             if (orderCard) {
-                debugLog(`Removing order ${orderId} from pending panel`);
+                debugLog(`Found order card ${orderCard.id}, removing it now`);
 
-                // Add removal animation
-                orderCard.style.transition = 'all 0.5s ease';
-                orderCard.style.transform = 'translateX(100%)';
+                // Add fade out animation
+                orderCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                 orderCard.style.opacity = '0';
-                orderCard.style.pointerEvents = 'none';
+                orderCard.style.transform = 'translateX(-20px)';
 
-                // Remove after animation completes
+                // Remove the element after animation
                 setTimeout(() => {
-                    if (orderCard && orderCard.parentNode) {
-                        orderCard.remove();
-                        debugLog(`Order ${orderId} removed from DOM`);
-                        checkEmptyState();
+                    orderCard.remove();
+                    debugLog(`Order ${orderId} successfully removed from DOM`);
+
+                    // Check if there are any remaining orders
+                    const ordersContainer = document.getElementById('ordersContainer');
+                    const remainingOrders = ordersContainer.querySelectorAll('.order-card');
+
+                    // If no orders remain, show empty state
+                    if (remainingOrders.length === 0) {
+                        const emptyStateHtml = `
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No pending cash orders</p>
+                        <small>Orders will appear here when customers place cash orders</small>
+                    </div>
+                `;
+                        ordersContainer.innerHTML = emptyStateHtml;
+                        debugLog('Added empty state after removing last order');
                     }
-                }, 500);
+                }, 300);
             } else {
-                debugLog(`Order card ${orderId} not found for removal`);
-                checkEmptyState();
+                debugLog(`ERROR: Order card not found for ID ${orderId}`);
+                // Debug what cards actually exist
+                const allCards = document.querySelectorAll('.order-card');
+                const cardIds = Array.from(allCards).map(card => card.id);
+                debugLog('Available order cards:', cardIds);
+            }
+        }
+
+        function restoreOrderToPending(orderData) {
+            const ordersContainer = document.getElementById('ordersContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            // Remove empty state if it exists
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Add the order back to the container
+            if (orderData && orderData.orderCard) {
+                ordersContainer.appendChild(orderData.orderCard);
+                debugLog('Order restored to pending list', { orderId: orderData.id });
             }
         }
 
         // Move order to processing with better tracking
-        function moveOrderToProcessing(orderId, orderNumber, change, receiptPrinted, orderData = null) {
+        function moveOrderToProcessing(orderId, orderNumber, change, receiptPrinted, orderData = null, actualOrderTotal = 0) {
             debugLog('Moving order to processing', {
                 orderId,
                 orderNumber,
                 change,
                 receiptPrinted,
-                hasOrderData: !!orderData
+                hasOrderData: !!orderData,
+                actualOrderTotal
             });
 
             // Store in processing orders map
@@ -1769,11 +1931,11 @@
             });
 
             // Show in processing panel
-            showProcessingOrder(orderId, orderNumber, change, receiptPrinted, orderData);
+            showProcessingOrder(orderId, orderNumber, change, receiptPrinted, orderData, actualOrderTotal);
         }
 
         // Enhanced: Show processing order with "Move Back to Pending" option
-        function showProcessingOrder(orderId, orderNumber, actualChangeGiven, receiptPrinted, orderData = null) {
+        function showProcessingOrder(orderId, orderNumber, actualChangeGiven, receiptPrinted, orderData = null, actualOrderTotal = 0) {
             const processingSection = document.getElementById('processingSection');
             if (!processingSection) {
                 console.error('Processing section not found');
@@ -1782,12 +1944,39 @@
 
             const displayOrderNumber = orderNumber || orderId.toString().padStart(4, '0');
 
-            debugLog('Showing processing order', {
+            // FIX: Calculate the correct total if not provided or if it's 0
+            let displayTotal = actualOrderTotal;
+            if (displayTotal <= 0 && orderData && orderData.orderCard) {
+                // Extract total from the order card's total display
+                const totalElement = orderData.orderCard.querySelector('.total-amount');
+                if (totalElement) {
+                    const totalText = totalElement.textContent.replace('PHP ', '').replace(',', '');
+                    displayTotal = parseFloat(totalText) || 0;
+                }
+            }
+            
+            // If still 0, try to get from orderData.totalAmount
+            if (displayTotal <= 0 && orderData && orderData.totalAmount) {
+                displayTotal = orderData.totalAmount;
+            }
+            
+            // Final fallback - calculate from order items if available
+            if (displayTotal <= 0 && orderData && orderData.orderCard) {
+                const itemElements = orderData.orderCard.querySelectorAll('.order-item .item-price');
+                itemElements.forEach(element => {
+                    const priceText = element.textContent.replace('PHP ', '').replace(',', '');
+                    displayTotal += parseFloat(priceText) || 0;
+                });
+            }
+
+            debugLog('Showing processing order with corrected total', {
                 orderId,
                 orderNumber: displayOrderNumber,
                 actualChangeGiven,
                 receiptPrinted,
-                hasOrderData: !!orderData
+                hasOrderData: !!orderData,
+                originalTotal: actualOrderTotal,
+                correctedTotal: displayTotal
             });
 
             // Check if this is the first processing order
@@ -1814,8 +2003,8 @@
                 const originalItems = orderData.orderCard.querySelector('.order-items');
                 if (originalItems) {
                     orderItemsHtml = `
-                <div class="processing-order-items" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
+            <div class="processing-order-items" style = "background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;" >
+                <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
                     ${originalItems.innerHTML}
                 </div>
             `;
@@ -1831,18 +2020,18 @@
         border-radius: 15px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         border: 2px solid #e9ecef;
         animation: slideInFromLeft 0.5s ease-out;
-    `;
+        `;
 
             orderProcessingCard.innerHTML = `
-        <div class="processing-order-header" style="margin-bottom: 20px;">
+            <div class="processing-order-header" style = "margin-bottom: 20px;" >
             <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
             <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
         </div>
-        
-        ${orderItemsHtml}
+
+            ${orderItemsHtml}
         
         <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
             <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
@@ -1850,7 +2039,7 @@
             </div>
             <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
                 <span style="color: #155724;">🏷️ Order Total:</span>
-                <span style="font-weight: 700; color: #155724;">PHP ${orderData ? orderData.totalAmount.toFixed(2) : actualChangeGiven.toFixed(2)}</span>
+                <span style="font-weight: 700; color: #155724;">PHP ${displayTotal.toFixed(2)}</span>
             </div>
             <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
                 <span style="color: #155724;">💸 Change Given:</span>
@@ -1900,7 +2089,7 @@
                 ↩️ Move Back to Pending
             </button>
         </div>
-    `;
+        `;
 
             // Add to the container
             const container = processingSection.querySelector('.processing-orders-container');
@@ -1991,14 +2180,14 @@
                 header = document.createElement('div');
                 header.className = 'processing-section-header';
                 header.style.cssText = `
-            background: #8B4513;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 10px 10px 0 0;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 1.2rem;
+        background: #8B4513;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px 10px 0 0;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.2rem;
         `;
                 processingSection.insertBefore(header, processingSection.firstChild);
             }
@@ -2082,17 +2271,17 @@
         z-index: 3000;
         max-width: 350px;
         animation: slideIn 0.3s ease-out;
-    `;
+        `;
 
             toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style = "display: flex; align-items: center; gap: 10px;" >
             <span style="font-size: 1.5em;">✅</span>
             <div>
                 <strong>Order #${displayOrderNumber} Complete!</strong><br>
                 <small>Saved to sales database</small>
             </div>
         </div>
-    `;
+            `;
 
             document.body.appendChild(toast);
 
@@ -2109,7 +2298,7 @@
 
             processingSection.className = 'processing-section';
             processingSection.innerHTML = `
-        <div class="processing-icon">💳</div>
+            <div class="processing-icon" >💳</div>
         <p><strong>SELECT AN ORDER</strong></p>
         <p>FROM THE LEFT PANEL TO</p>
         <p>BEGIN PROCESSING PAYMENT</p>

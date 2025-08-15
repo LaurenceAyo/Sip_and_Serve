@@ -33,7 +33,7 @@ class KioskController extends Controller
     {
         try {
             $paymentMethod = $request->input('payment_method');
-            
+
             if ($paymentMethod === 'gcash') {
                 // Handle GCash payment via PayMongo
                 return $this->processGCashPayment($request);
@@ -41,12 +41,11 @@ class KioskController extends Controller
                 // Handle cash payment
                 return $this->processCashPayment($request);
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid payment method'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -54,7 +53,7 @@ class KioskController extends Controller
             ]);
         }
     }
-    
+
     /**
      * Process GCash payment via PayMongo
      */
@@ -63,7 +62,7 @@ class KioskController extends Controller
         try {
             $cart = Session::get('cart', []);
             $orderType = Session::get('orderType', 'dine-in');
-            
+
             if (empty($cart)) {
                 return response()->json([
                     'success' => false,
@@ -83,7 +82,7 @@ class KioskController extends Controller
 
             // TODO: Implement actual PayMongo integration here
             // For now, return a placeholder response
-            
+
             // Save order to database first
             DB::beginTransaction();
 
@@ -102,7 +101,7 @@ class KioskController extends Controller
             // Create order items
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
-                
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
@@ -129,7 +128,6 @@ class KioskController extends Controller
                 'order_id' => $order->id,
                 'message' => 'GCash payment initiated'
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -138,12 +136,15 @@ class KioskController extends Controller
             ]);
         }
     }
-    
+
     /**
      * Process cash payment
      */
     /**
      * Process cash payment
+     */
+    /**
+     * Process cash payment - FIXED VERSION
      */
     private function processCashPayment(Request $request)
     {
@@ -152,7 +153,13 @@ class KioskController extends Controller
             $orderType = Session::get('orderType', 'dine-in');
             $cashAmount = floatval($request->input('cash_amount', 0));
             $changeAmount = floatval($request->input('change_amount', 0));
-            
+
+            Log::info('Processing cash payment', [
+                'cash_amount' => $cashAmount,
+                'change_amount' => $changeAmount,
+                'cart_items' => count($cart)
+            ]);
+
             if (empty($cart)) {
                 return response()->json([
                     'success' => false,
@@ -175,7 +182,15 @@ class KioskController extends Controller
             // Recalculate change to ensure accuracy
             $actualChange = $cashAmount - $total;
 
-            // Create the order with shortened notes
+            Log::info('Cash payment calculations', [
+                'subtotal' => $subtotal,
+                'tax' => $tax,
+                'total' => $total,
+                'cash_amount' => $cashAmount,
+                'calculated_change' => $actualChange
+            ]);
+
+            // FIXED: Create the order WITH cash_amount and change_amount
             $order = Order::create([
                 'subtotal' => $subtotal,
                 'tax_amount' => $tax,
@@ -184,17 +199,28 @@ class KioskController extends Controller
                 'payment_method' => 'cash',
                 'payment_status' => 'pending',
                 'status' => 'pending',
-                'notes' => "Type: {$orderType}",
+                'cash_amount' => $cashAmount,        // FIXED: Save cash amount
+                'change_amount' => $actualChange,    // FIXED: Save change amount
+                'order_type' => $orderType,          // FIXED: Save order type in proper field
+                'notes' => "Kiosk order - Type: {$orderType}",
                 'created_at' => now()
+            ]);
+
+            Log::info('Order created with cash details', [
+                'order_id' => $order->id,
+                'cash_amount' => $order->cash_amount,
+                'change_amount' => $order->change_amount,
+                'total_amount' => $order->total_amount
             ]);
 
             // Create order items
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
-                
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'name' => $item['name'] ?? 'Custom Item',  // FIXED: Save item name
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
@@ -212,6 +238,11 @@ class KioskController extends Controller
             Session::forget('cart');
             Session::put('last_order_id', $order->id);
 
+            Log::info('Cash payment processed successfully', [
+                'order_id' => $order->id,
+                'order_number' => $orderNumber
+            ]);
+
             return response()->json([
                 'success' => true,
                 'order_id' => $order->id,
@@ -221,7 +252,6 @@ class KioskController extends Controller
                 'total_amount' => $total,
                 'message' => 'Cash order processed successfully'
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Cash payment failed: ' . $e->getMessage());
@@ -249,7 +279,7 @@ class KioskController extends Controller
         try {
             Log::info('=== storeMenuItem called ===');
             Log::info('Request data:', $request->all());
-            
+
             $request->validate([
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric|min:0'
@@ -283,15 +313,14 @@ class KioskController extends Controller
                 'is_available' => 1,
                 'preparation_time' => 10
             ]);
-            
+
             Log::info('MenuItem created successfully:', ['item' => $item]);
-            
+
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'item' => $item,
                 'message' => 'Menu item added successfully!'
             ]);
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation failed:', ['errors' => $e->errors()]);
             return response()->json([
@@ -299,7 +328,6 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-            
         } catch (\Exception $e) {
             Log::error('storeMenuItem error:', [
                 'message' => $e->getMessage(),
@@ -307,7 +335,7 @@ class KioskController extends Controller
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage()
@@ -324,7 +352,7 @@ class KioskController extends Controller
             // Store cart data in session
             $cartData = $request->input('items', []);
             $orderType = $request->input('order_type', 'dine-in');
-            
+
             // Store in session for review page
             Session::put('cart', $cartData);
             Session::put('orderType', $orderType);
@@ -339,7 +367,6 @@ class KioskController extends Controller
                 'success' => true,
                 'message' => 'Cart saved successfully'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -356,7 +383,7 @@ class KioskController extends Controller
         // Get cart from session
         $cart = Session::get('cart', []);
         $orderType = Session::get('orderType', 'dine-in');
-        
+
         return view('kioskOrderConfirmation', compact('cart', 'orderType'));
     }
 
@@ -372,20 +399,20 @@ class KioskController extends Controller
 
             if (isset($cart[$index])) {
                 $cart[$index]['quantity'] += $change;
-                
+
                 // Remove item if quantity becomes 0 or less
                 if ($cart[$index]['quantity'] <= 0) {
                     unset($cart[$index]);
                     $cart = array_values($cart); // Re-index array
                 }
-                
+
                 Session::put('cart', $cart);
             }
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ]);
         }
@@ -409,7 +436,7 @@ class KioskController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ]);
         }
@@ -425,7 +452,7 @@ class KioskController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ]);
         }
@@ -439,7 +466,7 @@ class KioskController extends Controller
         try {
             $cart = Session::get('cart', []);
             $orderType = Session::get('orderType', 'dine-in');
-            
+
             if (empty($cart)) {
                 return response()->json([
                     'success' => false,
@@ -475,7 +502,7 @@ class KioskController extends Controller
             // Create order items
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
-                
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
@@ -497,7 +524,6 @@ class KioskController extends Controller
                 'success' => true,
                 'redirect_url' => route('kiosk.orderConfirmation', $order->id)
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
@@ -515,7 +541,7 @@ class KioskController extends Controller
         try {
             Log::info('=== updateMenuItem called ===');
             Log::info('Request data:', $request->all());
-            
+
             $request->validate([
                 'id' => 'required|exists:menu_items,id',
                 'price' => 'required|numeric|min:0'
@@ -523,14 +549,13 @@ class KioskController extends Controller
 
             $item = MenuItem::find($request->id);
             $item->update(['price' => $request->price]);
-            
+
             Log::info('MenuItem updated successfully');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Menu item price updated successfully!'
             ]);
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation failed:', ['errors' => $e->errors()]);
             return response()->json([
@@ -538,10 +563,9 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-            
         } catch (\Exception $e) {
             Log::error('updateMenuItem error:', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage()
@@ -557,7 +581,7 @@ class KioskController extends Controller
         try {
             Log::info('=== deleteMenuItem called ===');
             Log::info('Request data:', $request->all());
-            
+
             $request->validate([
                 'id' => 'required|exists:menu_items,id'
             ]);
@@ -565,14 +589,13 @@ class KioskController extends Controller
             $item = MenuItem::find($request->id);
             $itemName = $item->name;
             $item->delete();
-            
+
             Log::info('MenuItem deleted successfully');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Menu item '{$itemName}' deleted successfully!"
             ]);
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation failed:', ['errors' => $e->errors()]);
             return response()->json([
@@ -580,17 +603,16 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-            
         } catch (\Exception $e) {
             Log::error('deleteMenuItem error:', ['error' => $e->getMessage()]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage()
             ], 500);
         }
     }
-    
+
     /**
      * Handle dine-in selection
      */
@@ -616,46 +638,46 @@ class KioskController extends Controller
     {
         // Get order type from session or default to 'dine-in'
         $orderType = Session::get('order_type', 'dine-in');
-        
+
         // Get all categories with their menu items
         $categories = Category::where('is_active', 1)
             ->orderBy('sort_order')
             ->get();
-        
+
         // Get all menu items with their categories, ordered by category
         // Filter out items without categories to prevent null reference errors
         $menuItems = MenuItem::with(['category', 'variants'])
             ->where('is_available', 1)
             ->whereHas('category') // This ensures only items with categories are included
             ->get()
-            ->filter(function($item) {
+            ->filter(function ($item) {
                 return $item->category !== null; // Additional safety check
             })
-            ->sortBy(function($item) {
+            ->sortBy(function ($item) {
                 return [$item->category->sort_order ?? 999, $item->name];
             });
-        
+
         // Group menu items by category for easier frontend handling
         $itemsByCategory = $menuItems->groupBy('category.name');
-        
+
         return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
     }
 
     public function getCategoryItems($categoryId)
     {
         $menuItems = MenuItem::where('category_id', $categoryId)
-                    ->where('is_available', true)
-                    ->get();
-    
+            ->where('is_available', true)
+            ->get();
+
         return response()->json(['menuItems' => $menuItems]);
     }
-    
+
     //Update order type
     public function updateOrderType(Request $request)
     {
         $orderType = $request->input('order_type', 'dine-in');
         Session::put('order_type', $orderType);
-        
+
         return response()->json(['status' => 'success', 'order_type' => $orderType]);
     }
 
@@ -665,7 +687,7 @@ class KioskController extends Controller
     public function placeOrder(Request $request)
     {
         // Redirect to the review order page since you already have that implemented
-    return redirect()->route('kiosk.reviewOrder');
+        return redirect()->route('kiosk.reviewOrder');
     }
 
     /**
@@ -789,7 +811,6 @@ class KioskController extends Controller
 
             return redirect()->route('kiosk.orderConfirmation', $order->id)
                 ->with('success', 'Order placed successfully!');
-
         } catch (\Exception $e) {
             DB::rollback();
             return redirect()->back()->with('error', 'Failed to place order. Please try again.');
@@ -815,7 +836,7 @@ class KioskController extends Controller
                 return view('orderConfirmationSuccess', compact('order'));
             }
         }
-        
+
         return redirect()->route('kiosk.index')->with('error', 'Order not found');
     }
 
@@ -863,7 +884,7 @@ class KioskController extends Controller
     public function startOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
-        
+
         $order->update([
             'status' => 'processing',
             'started_at' => now()
@@ -878,7 +899,7 @@ class KioskController extends Controller
     public function completeOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
-        
+
         $order->update([
             'status' => 'completed',
             'completed_at' => now()
@@ -960,7 +981,7 @@ class KioskController extends Controller
     {
         $cart = session('cart', []);
         $cartWithDetails = [];
-        
+
         foreach ($cart as $key => $item) {
             $menuItem = MenuItem::find($item['menu_item_id']);
             if ($menuItem) {

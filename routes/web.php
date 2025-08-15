@@ -1,5 +1,5 @@
 <?php
-
+//to generate QR on webpage: http://127.0.0.1:8000/generate-qr
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\KioskController;
@@ -14,6 +14,13 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
+//Remove me If you don't need QR code generation or will be Deployed on Hostinger
+Route::get('generate-qr', function () {
+    $url = url('http://192.168.0.124:8000'); // Replace with your actual local IP and port
+    return QrCode::size(300)->generate($url);
+});
 
 // Home route
 Route::get('/', function () {

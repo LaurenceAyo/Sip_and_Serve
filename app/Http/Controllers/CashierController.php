@@ -21,21 +21,29 @@ class CashierController extends Controller
         try {
             Log::info('Cashier index method called');
 
-            // Get pending AND preparing cash orders with all necessary relationships
+            // Get pending cash orders only (not preparing ones for the pending panel)
             $cashOrders = Order::with([
                 'orderItems',
                 'orderItems.menuItem',
                 'orderItems.menuItem.category'
             ])
                 ->where('payment_method', 'cash')
-                ->whereIn('payment_status', ['pending', 'paid']) // Include paid orders
-                ->whereIn('status', ['pending', 'preparing']) // Include preparing orders
+                ->where('payment_status', 'pending') // Only pending orders for cashier
+                ->where('status', 'pending') // Only pending status
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             Log::info('Cashier Debug - Orders Found', [
                 'count' => $cashOrders->count(),
-                'order_ids' => $cashOrders->pluck('id')->toArray()
+                'order_ids' => $cashOrders->pluck('id')->toArray(),
+                'orders_with_cash_amounts' => $cashOrders->map(function($order) {
+                    return [
+                        'id' => $order->id,
+                        'cash_amount' => $order->cash_amount,
+                        'total_amount' => $order->total_amount,
+                        'payment_method' => $order->payment_method
+                    ];
+                })->toArray()
             ]);
 
             // Get categories for manual order creation
@@ -43,26 +51,40 @@ class CashierController extends Controller
                 $query->where('is_available', true);
             }])->where('is_active', true)->get();
 
-            // Format orders for display
+            // Format orders for display with FIXED total calculation
             $pendingOrders = $cashOrders->map(function ($order) {
+                // Calculate the correct total from order items
+                $calculatedTotal = $this->calculateCorrectTotal($order);
+                
+                // Get cash amount and calculate expected change
+                $cashAmount = (float) ($order->cash_amount ?? 0);
+                $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
+                
                 return [
-                    'id' => str_pad($order->id, 4, '0', STR_PAD_LEFT),
+                    'id' => $order->id, // Use actual ID, not padded
                     'actual_id' => $order->id,
                     'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
                     'time' => $order->created_at->format('H:i'),
-                    'items' => $this->formatOrderItems($order->orderItems),
-                    'total' => (float) $order->total_amount,
-                    'cash_amount' => (float) ($order->cash_amount ?? 0),
-                    'expected_change' => $order->cash_amount ?
-                        (float) $order->cash_amount - (float) $order->total_amount : 0,
+                    'items' => $this->formatOrderItemsFixed($order->orderItems), // Keep 'items' for view compatibility
+                    'order_items' => $this->formatOrderItemsFixed($order->orderItems), // Also provide 'order_items' for JS
+                    'total' => $calculatedTotal, // Use calculated total
+                    'total_amount' => $calculatedTotal, // Ensure consistency
+                    'cash_amount' => $cashAmount,
+                    'expected_change' => $expectedChange,
                     'order_type' => $order->order_type ?? 'dine-in',
                     'customer_name' => $order->customer_name,
                     'special_instructions' => $order->special_instructions,
                     'payment_status' => $order->payment_status,
+                    'payment_method' => $order->payment_method,
                     'status' => $order->status,
                     'created_at' => $order->created_at->toISOString()
                 ];
             })->toArray();
+
+            Log::info('Pending orders formatted with cash amounts', [
+                'count' => count($pendingOrders),
+                'sample_order' => count($pendingOrders) > 0 ? $pendingOrders[0] : null
+            ]);
 
             return view('cashier', compact('pendingOrders', 'categories'));
         } catch (Exception $e) {
@@ -78,32 +100,72 @@ class CashierController extends Controller
         }
     }
 
-    
+    /**
+     * FIXED: Calculate the correct total from order items
+     */
+    private function calculateCorrectTotal($order)
+    {
+        $total = 0;
+        
+        foreach ($order->orderItems as $item) {
+            $quantity = (int) $item->quantity;
+            $unitPrice = 0;
+            
+            // Determine unit price with proper fallback logic
+            if ($item->unit_price && $item->unit_price > 0) {
+                $unitPrice = (float) $item->unit_price;
+            } elseif ($item->total_price && $quantity > 0) {
+                // Calculate unit price from total price
+                $unitPrice = (float) $item->total_price / $quantity;
+            } elseif ($item->menuItem && $item->menuItem->price) {
+                // Use menu item price as fallback
+                $unitPrice = (float) $item->menuItem->price;
+            }
+            
+            $itemTotal = $unitPrice * $quantity;
+            $total += $itemTotal;
+            
+            Log::debug('Item total calculation', [
+                'item_id' => $item->id,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'item_total' => $itemTotal,
+                'running_total' => $total
+            ]);
+        }
+        
+        // Only use database total if calculated total is 0 (fallback)
+        if ($total <= 0 && $order->total_amount > 0) {
+            $total = (float) $order->total_amount;
+            Log::warning('Using database total as fallback', [
+                'order_id' => $order->id,
+                'calculated_total' => 0,
+                'database_total' => $total
+            ]);
+        }
+        
+        Log::info('Final total calculation', [
+            'order_id' => $order->id,
+            'calculated_total' => $total,
+            'database_total' => $order->total_amount
+        ]);
+        
+        return $total;
+    }
 
     /**
-     * Format order items with proper name handling
+     * FIXED: Format order items with proper structure for JavaScript
      */
-    private function formatOrderItems($orderItems)
+    private function formatOrderItemsFixed($orderItems)
     {
         return $orderItems->map(function ($item) {
-            // Priority order for getting item name:
-            // 1. OrderItem name field
-            // 2. Related MenuItem name
-            // 3. Fallback to menu_item_id lookup
-            // 4. Default name
-
+            // Get item name
             $itemName = null;
-
-            // Try order item name first
             if (!empty($item->name)) {
                 $itemName = $item->name;
-            }
-            // Try related menu item
-            elseif ($item->menuItem && !empty($item->menuItem->name)) {
+            } elseif ($item->menuItem && !empty($item->menuItem->name)) {
                 $itemName = $item->menuItem->name;
-            }
-            // Try direct menu item lookup if we have menu_item_id
-            elseif ($item->menu_item_id) {
+            } elseif ($item->menu_item_id) {
                 try {
                     $menuItem = MenuItem::find($item->menu_item_id);
                     if ($menuItem) {
@@ -117,20 +179,55 @@ class CashierController extends Controller
                 }
             }
 
-            // Final fallback
+            // Final fallback for name
             if (empty($itemName)) {
                 $itemName = 'Menu Item #' . ($item->menu_item_id ?? $item->id);
             }
 
+            // Get quantity
+            $quantity = (int) $item->quantity;
+            
+            // Calculate unit price and total price correctly
+            $unitPrice = 0;
+            $totalPrice = 0;
+            
+            if ($item->unit_price && $item->unit_price > 0) {
+                $unitPrice = (float) $item->unit_price;
+                $totalPrice = $unitPrice * $quantity;
+            } elseif ($item->total_price && $item->total_price > 0) {
+                $totalPrice = (float) $item->total_price;
+                $unitPrice = $quantity > 0 ? $totalPrice / $quantity : 0;
+            } elseif ($item->menuItem && $item->menuItem->price) {
+                $unitPrice = (float) $item->menuItem->price;
+                $totalPrice = $unitPrice * $quantity;
+            }
+
+            Log::debug('Formatting order item', [
+                'item_id' => $item->id,
+                'name' => $itemName,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice
+            ]);
+
             return [
-                'name' => $itemName . ' x' . $item->quantity,
-                'price' => (float) $item->total_price,
-                'unit_price' => (float) $item->unit_price,
-                'quantity' => (int) $item->quantity,
+                'name' => $itemName, // Clean name without quantity for JS
+                'quantity' => $quantity, // Separate quantity field
+                'price' => $totalPrice, // Total price for this item (for view compatibility)
+                'total_price' => $totalPrice, // Same as price for consistency
+                'unit_price' => $unitPrice, // Unit price
                 'item_id' => $item->id,
                 'menu_item_id' => $item->menu_item_id
             ];
         })->toArray();
+    }
+
+    /**
+     * Legacy method - keeping for backward compatibility but redirecting to fixed version
+     */
+    private function formatOrderItems($orderItems)
+    {
+        return $this->formatOrderItemsFixed($orderItems);
     }
 
     public function refreshOrders()
@@ -146,23 +243,36 @@ class CashierController extends Controller
 
             Log::info('Refresh orders found', [
                 'count' => $cashOrders->count(),
-                'orders' => $cashOrders->pluck('id')->toArray()
+                'orders' => $cashOrders->pluck('id')->toArray(),
+                'cash_amounts' => $cashOrders->map(function($order) {
+                    return [
+                        'id' => $order->id,
+                        'cash_amount' => $order->cash_amount,
+                        'total_amount' => $order->total_amount
+                    ];
+                })->toArray()
             ]);
 
             return response()->json([
                 'success' => true,
                 'orders' => $cashOrders->map(function ($order) {
+                    $calculatedTotal = $this->calculateCorrectTotal($order);
+                    $cashAmount = (float) ($order->cash_amount ?? 0);
+                    $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
+                    
                     return [
                         'id' => $order->id,
                         'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
                         'order_type' => $order->order_type,
-                        'total_amount' => (float) $order->total_amount,
-                        'cash_amount' => (float) ($order->cash_amount ?? 0),
+                        'total_amount' => $calculatedTotal, // Use calculated total
+                        'total' => $calculatedTotal, // Also provide 'total' for compatibility
+                        'cash_amount' => $cashAmount,
+                        'expected_change' => $expectedChange,
                         'change_amount' => (float) ($order->change_amount ?? 0),
                         'payment_method' => $order->payment_method,
                         'payment_status' => $order->payment_status,
                         'created_at' => $order->created_at->toISOString(),
-                        'order_items' => $this->formatOrderItems($order->orderItems)
+                        'order_items' => $this->formatOrderItemsFixed($order->orderItems)
                     ];
                 })
             ], 200, [
@@ -216,17 +326,21 @@ class CashierController extends Controller
         try {
             $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
 
-            Log::info('Order found', [
+            // Use calculated total instead of database total
+            $calculatedTotal = $this->calculateCorrectTotal($order);
+
+            Log::info('Order found with calculated total', [
                 'order_id' => $order->id,
-                'total_amount' => $order->total_amount,
+                'database_total' => $order->total_amount,
+                'calculated_total' => $calculatedTotal,
                 'cash_amount' => $validated['cash_amount']
             ]);
 
-            // Validate cash amount
-            if ($validated['cash_amount'] < $order->total_amount) {
+            // Validate cash amount against calculated total
+            if ($validated['cash_amount'] < $calculatedTotal) {
                 Log::warning('Insufficient cash amount', [
                     'cash_amount' => $validated['cash_amount'],
-                    'order_total' => $order->total_amount
+                    'calculated_total' => $calculatedTotal
                 ]);
 
                 return response()->json([
@@ -235,20 +349,20 @@ class CashierController extends Controller
                 ], 422);
             }
 
+            // Calculate change using calculated total
+            $changeAmount = $validated['cash_amount'] - $calculatedTotal;
 
-
-            // Calculate change
-            $changeAmount = $validated['cash_amount'] - $order->total_amount;
-
-            Log::info('Updating order', [
+            Log::info('Updating order with calculated values', [
                 'order_id' => $order->id,
+                'calculated_total' => $calculatedTotal,
                 'change_amount' => $changeAmount
             ]);
 
-            // Update order
+            // Update order with calculated total
             $order->update([
                 'cash_amount' => $validated['cash_amount'],
                 'change_amount' => $changeAmount,
+                'total_amount' => $calculatedTotal, // Update with calculated total
                 'payment_status' => 'paid',
                 'status' => 'preparing',
                 'paid_at' => now(),
@@ -267,6 +381,7 @@ class CashierController extends Controller
             Log::info('Order accepted by cashier', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
+                'calculated_total' => $calculatedTotal,
                 'cash_amount' => $validated['cash_amount'],
                 'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted
@@ -277,10 +392,12 @@ class CashierController extends Controller
                 'message' => 'Order accepted successfully',
                 'receipt_printed' => $receiptPrinted,
                 'change_amount' => $changeAmount,
+                'total_amount' => $calculatedTotal, // Return calculated total
                 'order' => [
                     'id' => $order->id,
                     'status' => $order->status,
-                    'payment_status' => $order->payment_status
+                    'payment_status' => $order->payment_status,
+                    'total_amount' => $calculatedTotal
                 ]
             ], 200, [
                 'Content-Type' => 'application/json'
@@ -350,7 +467,6 @@ class CashierController extends Controller
             ], 500);
         }
     }
-
 
     public function cancelOrder(Request $request)
     {
@@ -494,28 +610,40 @@ class CashierController extends Controller
         $receipt .= "ITEMS:\n";
         $receipt .= "-------------------------------------\n";
 
-        // Order items
+        // Order items with correct calculations
+        $calculatedSubtotal = 0;
         foreach ($order->orderItems as $item) {
             $itemName = $item->name ?? $item->menuItem->name ?? 'Custom Item';
-            $unitPrice = is_numeric($item->unit_price) ? (float) $item->unit_price : 0;
-            $totalPrice = is_numeric($item->total_price) ? (float) $item->total_price : 0;
+            $quantity = (int) $item->quantity;
+            
+            // Calculate unit price correctly
+            $unitPrice = 0;
+            if ($item->unit_price && $item->unit_price > 0) {
+                $unitPrice = (float) $item->unit_price;
+            } elseif ($item->total_price && $quantity > 0) {
+                $unitPrice = (float) $item->total_price / $quantity;
+            } elseif ($item->menuItem && $item->menuItem->price) {
+                $unitPrice = (float) $item->menuItem->price;
+            }
+            
+            $totalPrice = $unitPrice * $quantity;
+            $calculatedSubtotal += $totalPrice;
 
             $receipt .= $itemName . "\n";
-            $receipt .= "  " . $item->quantity . " x PHP " . number_format($unitPrice, 2);
+            $receipt .= "  " . $quantity . " x PHP " . number_format($unitPrice, 2);
             $receipt .= " = PHP " . number_format($totalPrice, 2) . "\n";
         }
 
         $receipt .= "\n-------------------------------------\n";
 
-        // Totals
-        $subtotal = is_numeric($order->subtotal) ? (float) $order->subtotal : 0;
+        // Use calculated totals
         $taxAmount = is_numeric($order->tax_amount) ? (float) $order->tax_amount : 0;
         $discountAmount = is_numeric($order->discount_amount) ? (float) $order->discount_amount : 0;
-        $totalAmount = is_numeric($order->total_amount) ? (float) $order->total_amount : 0;
+        $totalAmount = $calculatedSubtotal + $taxAmount - $discountAmount;
         $cashAmount = is_numeric($order->cash_amount) ? (float) $order->cash_amount : 0;
         $changeAmount = is_numeric($order->change_amount) ? (float) $order->change_amount : 0;
 
-        $receipt .= "Subtotal: PHP " . number_format($subtotal, 2) . "\n";
+        $receipt .= "Subtotal: PHP " . number_format($calculatedSubtotal, 2) . "\n";
 
         if ($taxAmount > 0) {
             $receipt .= "VAT (12%): PHP " . number_format($taxAmount, 2) . "\n";
