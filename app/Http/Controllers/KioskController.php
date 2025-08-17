@@ -55,7 +55,7 @@ class KioskController extends Controller
     }
 
     /**
-     * Process GCash payment via PayMongo
+     * Process GCash payment via PayMongo - KEEPS 10% TAX FOR ONLINE PAYMENTS
      */
     private function processGCashPayment(Request $request)
     {
@@ -70,18 +70,22 @@ class KioskController extends Controller
                 ]);
             }
 
-            // Calculate totals
+            // Calculate totals - ONLINE PAYMENT: ADD 10% TAX
             $subtotal = 0;
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
                 $subtotal += $itemPrice * $item['quantity'];
             }
 
-            $tax = $subtotal * 0.10; // 10% tax
+            $tax = $subtotal * 0.10; // 10% tax for online payments
             $total = $subtotal + $tax;
 
-            // TODO: Implement actual PayMongo integration here
-            // For now, return a placeholder response
+            Log::info('GCash payment calculation with tax:', [
+                'subtotal' => $subtotal,
+                'tax' => $tax,
+                'total' => $total,
+                'payment_method' => 'gcash'
+            ]);
 
             // Save order to database first
             DB::beginTransaction();
@@ -94,7 +98,8 @@ class KioskController extends Controller
                 'payment_method' => 'gcash',
                 'payment_status' => 'pending',
                 'status' => 'pending',
-                'notes' => "Order Type: {$orderType}",
+                'order_type' => $orderType,
+                'notes' => "Kiosk order - Type: {$orderType} (Online payment with 10% tax)",
                 'created_at' => now()
             ]);
 
@@ -105,10 +110,11 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'name' => $item['name'] ?? 'Custom Item',
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
-                    'special_instructions' => json_encode($item['addons'] ?? []),
+                    'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
                     'status' => 'pending'
                 ]);
             }
@@ -119,6 +125,9 @@ class KioskController extends Controller
             Session::forget('cart');
             Session::put('last_order_id', $order->id);
 
+            // Generate order number
+            $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
             // For now, simulate PayMongo checkout URL
             $checkoutUrl = route('kiosk.orderConfirmation', $order->id) . '?payment=gcash';
 
@@ -126,10 +135,13 @@ class KioskController extends Controller
                 'success' => true,
                 'checkout_url' => $checkoutUrl,
                 'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'total_amount' => $total, // Includes 10% tax
                 'message' => 'GCash payment initiated'
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('GCash payment failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'GCash payment failed: ' . $e->getMessage()
@@ -138,13 +150,7 @@ class KioskController extends Controller
     }
 
     /**
-     * Process cash payment
-     */
-    /**
-     * Process cash payment
-     */
-    /**
-     * Process cash payment - FIXED VERSION
+     * Process cash payment - TAX-INCLUSIVE PRICING
      */
     private function processCashPayment(Request $request)
     {
@@ -169,40 +175,44 @@ class KioskController extends Controller
 
             DB::beginTransaction();
 
-            // Calculate totals
+            // Calculate totals - CASH PAYMENT: TAX-INCLUSIVE
             $subtotal = 0;
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
                 $subtotal += $itemPrice * $item['quantity'];
             }
 
-            $tax = $subtotal * 0.10; // 10% tax
-            $total = $subtotal + $tax;
+            // For CASH payments: prices are tax-inclusive
+            // The displayed price IS the final price customer pays
+            $tax = 0; // No additional tax for cash (already included in price)
+            $total = $subtotal; // Total equals displayed prices
 
             // Recalculate change to ensure accuracy
             $actualChange = $cashAmount - $total;
 
-            Log::info('Cash payment calculations', [
+            Log::info('Cash payment calculations (TAX-INCLUSIVE)', [
                 'subtotal' => $subtotal,
                 'tax' => $tax,
                 'total' => $total,
                 'cash_amount' => $cashAmount,
-                'calculated_change' => $actualChange
+                'calculated_change' => $actualChange,
+                'payment_method' => 'cash',
+                'note' => 'Prices are tax-inclusive for cash payments'
             ]);
 
-            // FIXED: Create the order WITH cash_amount and change_amount
+            // Create the order WITH cash_amount and change_amount
             $order = Order::create([
                 'subtotal' => $subtotal,
-                'tax_amount' => $tax,
+                'tax_amount' => $tax, // 0 for cash (tax already included)
                 'discount_amount' => 0.00,
-                'total_amount' => $total,
+                'total_amount' => $total, // Exact amount displayed to customer
                 'payment_method' => 'cash',
                 'payment_status' => 'pending',
                 'status' => 'pending',
-                'cash_amount' => $cashAmount,        // FIXED: Save cash amount
-                'change_amount' => $actualChange,    // FIXED: Save change amount
-                'order_type' => $orderType,          // FIXED: Save order type in proper field
-                'notes' => "Kiosk order - Type: {$orderType}",
+                'cash_amount' => $cashAmount,        // Save cash amount
+                'change_amount' => $actualChange,    // Save change amount
+                'order_type' => $orderType,          // Save order type in proper field
+                'notes' => "Kiosk order - Type: {$orderType} (Tax-inclusive pricing)",
                 'created_at' => now()
             ]);
 
@@ -210,7 +220,8 @@ class KioskController extends Controller
                 'order_id' => $order->id,
                 'cash_amount' => $order->cash_amount,
                 'change_amount' => $order->change_amount,
-                'total_amount' => $order->total_amount
+                'total_amount' => $order->total_amount,
+                'pricing_model' => 'tax-inclusive'
             ]);
 
             // Create order items
@@ -220,7 +231,7 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
-                    'name' => $item['name'] ?? 'Custom Item',  // FIXED: Save item name
+                    'name' => $item['name'] ?? 'Custom Item',  // Save item name
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
@@ -249,7 +260,7 @@ class KioskController extends Controller
                 'order_number' => $orderNumber,
                 'cash_amount' => $cashAmount,
                 'change_amount' => $actualChange,
-                'total_amount' => $total,
+                'total_amount' => $total, // This should match the displayed price exactly
                 'message' => 'Cash order processed successfully'
             ]);
         } catch (\Exception $e) {
@@ -363,11 +374,18 @@ class KioskController extends Controller
                 'total' => $request->input('total', 0)
             ]);
 
+            Log::info('Checkout data stored:', [
+                'cart_items' => count($cartData),
+                'order_type' => $orderType,
+                'subtotal' => $request->input('subtotal', 0)
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cart saved successfully'
             ]);
         } catch (\Exception $e) {
+            Log::error('Checkout error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error saving cart: ' . $e->getMessage()
@@ -383,6 +401,11 @@ class KioskController extends Controller
         // Get cart from session
         $cart = Session::get('cart', []);
         $orderType = Session::get('orderType', 'dine-in');
+
+        Log::info('Review order page accessed:', [
+            'cart_items' => count($cart),
+            'order_type' => $orderType
+        ]);
 
         return view('kioskOrderConfirmation', compact('cart', 'orderType'));
     }
@@ -411,6 +434,7 @@ class KioskController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
+            Log::error('Update cart item error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -435,6 +459,7 @@ class KioskController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
+            Log::error('Remove cart item error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -449,8 +474,10 @@ class KioskController extends Controller
     {
         try {
             Session::forget(['cart', 'orderType', 'checkout_data']);
+            Log::info('Order cancelled - session data cleared');
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
+            Log::error('Cancel order error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -466,6 +493,7 @@ class KioskController extends Controller
         try {
             $cart = Session::get('cart', []);
             $orderType = Session::get('orderType', 'dine-in');
+            $paymentMethod = $request->input('payment_method', 'cash');
 
             if (empty($cart)) {
                 return response()->json([
@@ -476,15 +504,23 @@ class KioskController extends Controller
 
             DB::beginTransaction();
 
-            // Calculate totals
+            // Calculate totals based on payment method
             $subtotal = 0;
             foreach ($cart as $item) {
                 $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
                 $subtotal += $itemPrice * $item['quantity'];
             }
 
-            $tax = $subtotal * 0.10; // 10% tax
-            $total = $subtotal + $tax;
+            // Apply different tax logic based on payment method
+            if ($paymentMethod === 'cash') {
+                // Cash: tax-inclusive pricing
+                $tax = 0;
+                $total = $subtotal;
+            } else {
+                // Online payments: add 10% tax
+                $tax = $subtotal * 0.10;
+                $total = $subtotal + $tax;
+            }
 
             // Create the order
             $order = Order::create([
@@ -492,10 +528,11 @@ class KioskController extends Controller
                 'tax_amount' => $tax,
                 'discount_amount' => 0.00,
                 'total_amount' => $total,
-                'payment_method' => 'cash',
+                'payment_method' => $paymentMethod,
                 'payment_status' => 'pending',
                 'status' => 'pending',
-                'notes' => "Order Type: {$orderType}",
+                'order_type' => $orderType,
+                'notes' => "Kiosk order - Type: {$orderType}, Payment: {$paymentMethod}",
                 'created_at' => now()
             ]);
 
@@ -506,10 +543,11 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'name' => $item['name'] ?? 'Custom Item',
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
-                    'special_instructions' => json_encode($item['addons'] ?? []),
+                    'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
                     'status' => 'pending'
                 ]);
             }
@@ -520,12 +558,19 @@ class KioskController extends Controller
             Session::forget(['cart', 'checkout_data']);
             Session::put('last_order_id', $order->id);
 
+            Log::info('Order processed successfully:', [
+                'order_id' => $order->id,
+                'payment_method' => $paymentMethod,
+                'total_amount' => $total
+            ]);
+
             return response()->json([
                 'success' => true,
                 'redirect_url' => route('kiosk.orderConfirmation', $order->id)
             ]);
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Process order error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error processing order: ' . $e->getMessage()
@@ -619,6 +664,7 @@ class KioskController extends Controller
     public function dineIn(Request $request)
     {
         Session::put('order_type', 'dine-in');
+        Log::info('Order type set to dine-in');
         return redirect()->route('kiosk.main');
     }
 
@@ -628,6 +674,7 @@ class KioskController extends Controller
     public function takeOut(Request $request)
     {
         Session::put('order_type', 'take-out');
+        Log::info('Order type set to take-out');
         return redirect()->route('kiosk.main');
     }
 
@@ -639,44 +686,184 @@ class KioskController extends Controller
         // Get order type from session or default to 'dine-in'
         $orderType = Session::get('order_type', 'dine-in');
 
-        // Get all categories with their menu items
+        // Get all active categories
         $categories = Category::where('is_active', 1)
             ->orderBy('sort_order')
             ->get();
 
-        // Get all menu items with their categories, ordered by category
-        // Filter out items without categories to prevent null reference errors
+        // Get ALL available menu items with their categories
+        // Remove the whereHas filter to include items without categories too
         $menuItems = MenuItem::with(['category', 'variants'])
             ->where('is_available', 1)
-            ->whereHas('category') // This ensures only items with categories are included
             ->get()
-            ->filter(function ($item) {
-                return $item->category !== null; // Additional safety check
-            })
             ->sortBy(function ($item) {
-                return [$item->category->sort_order ?? 999, $item->name];
+                // Sort by category sort_order, then by item name
+                $categoryOrder = (is_object($item->category) && isset($item->category->sort_order)) ? $item->category->sort_order : 999;
+                return [$categoryOrder, $item->name];
             });
 
         // Group menu items by category for easier frontend handling
-        $itemsByCategory = $menuItems->groupBy('category.name');
+        $itemsByCategory = $menuItems->groupBy(fn($item) => $item->category && is_object($item->category) ? (string)$item->category->name : 'Uncategorized');
+
+        Log::info('Main menu page loaded:', [
+            'order_type' => $orderType,
+            'categories_count' => $categories->count(),
+            'menu_items_count' => $menuItems->count(),
+            'items_with_categories' => $menuItems->where('category_id', '!=', null)->count(),
+            'items_without_categories' => $menuItems->where('category_id', null)->count()
+        ]);
+
+        // Debug: Log items by category
+        foreach ($categories as $category) {
+            $categoryItems = $menuItems->where('category_id', $category->id);
+            Log::info("Category '{$category->name}' (ID: {$category->id}) has {$categoryItems->count()} items");
+        }
 
         return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
     }
-
+    /**
+     * Get category items via AJAX
+     */
     public function getCategoryItems($categoryId)
     {
-        $menuItems = MenuItem::where('category_id', $categoryId)
-            ->where('is_available', true)
-            ->get();
+        try {
+            Log::info('getCategoryItems called', ['category_id' => $categoryId]);
 
-        return response()->json(['menuItems' => $menuItems]);
+            // Get menu items with category relationship
+            $menuItems = MenuItem::with('category')
+                ->where('category_id', $categoryId)
+                ->where('is_available', true)
+                ->get();
+
+            Log::info('Found menu items', [
+                'category_id' => $categoryId,
+                'count' => $menuItems->count(),
+                'items' => $menuItems->pluck('name', 'id')->toArray()
+            ]);
+
+            // Transform the data to include proper image URLs
+            $transformedItems = $menuItems->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'price' => $item->price,
+                    'description' => $item->description,
+                    'image' => $item->image,
+                    'category_id' => $item->category_id,
+                    'category' => $item->category,
+                    'has_variants' => $item->has_variants ?? false,
+                    'is_available' => $item->is_available
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'menuItems' => $transformedItems
+            ]);
+        } catch (\Exception $e) {
+            Log::error('getCategoryItems error:', [
+                'category_id' => $categoryId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching category items: ' . $e->getMessage(),
+                'menuItems' => []
+            ], 500);
+        }
     }
 
-    //Update order type
+    /**
+     * HELPER METHOD: Assign uncategorized items to a default category
+     */
+    public function fixUncategorizedItems()
+    {
+        try {
+            // Find or create an "Uncategorized" category
+            $uncategorizedCategory = Category::firstOrCreate(
+                ['name' => 'Uncategorized'],
+                [
+                    'description' => 'Items without a specific category',
+                    'image' => null,
+                    'is_active' => true,
+                    'sort_order' => 999
+                ]
+            );
+
+            // Update all items without categories
+            $uncategorizedCount = MenuItem::whereNull('category_id')
+                ->update(['category_id' => $uncategorizedCategory->id]);
+
+            Log::info('Fixed uncategorized items', [
+                'uncategorized_category_id' => $uncategorizedCategory->id,
+                'items_updated' => $uncategorizedCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Fixed {$uncategorizedCount} uncategorized items",
+                'category_id' => $uncategorizedCategory->id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Fix uncategorized items error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fixing uncategorized items: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * DEBUG METHOD: Get category and item information
+     */
+    public function debugCategoriesAndItems()
+    {
+        $categories = Category::with(['menuItems' => function ($query) {
+            $query->where('is_available', 1);
+        }])->where('is_active', 1)->get();
+
+        $debugInfo = [];
+        foreach ($categories as $category) {
+            $debugInfo[] = [
+                'category_id' => $category->id,
+                'category_name' => $category->name,
+                'item_count' => $category->menuItems->count(),
+                'items' => $category->menuItems->pluck('name', 'id')->toArray()
+            ];
+        }
+
+        // Also check items without categories
+        $uncategorizedItems = MenuItem::whereNull('category_id')
+            ->where('is_available', 1)
+            ->get();
+
+        $debugInfo[] = [
+            'category_id' => null,
+            'category_name' => 'Uncategorized',
+            'item_count' => $uncategorizedItems->count(),
+            'items' => $uncategorizedItems->pluck('name', 'id')->toArray()
+        ];
+
+        Log::info('Categories and Items Debug Info:', $debugInfo);
+
+        return response()->json([
+            'success' => true,
+            'debug_info' => $debugInfo
+        ]);
+    }
+
+
+    /**
+     * Update order type via AJAX
+     */
     public function updateOrderType(Request $request)
     {
         $orderType = $request->input('order_type', 'dine-in');
         Session::put('order_type', $orderType);
+
+        Log::info('Order type updated:', ['order_type' => $orderType]);
 
         return response()->json(['status' => 'success', 'order_type' => $orderType]);
     }
@@ -716,6 +903,12 @@ class KioskController extends Controller
 
         session(['cart' => $cart]);
 
+        Log::info('Item added to cart:', [
+            'menu_item_id' => $request->input('menu_item_id'),
+            'quantity' => $request->input('quantity'),
+            'cart_total_items' => array_sum(array_column($cart, 'quantity'))
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Item added to cart',
@@ -734,6 +927,7 @@ class KioskController extends Controller
         if (isset($cart[$itemKey])) {
             unset($cart[$itemKey]);
             session(['cart' => $cart]);
+            Log::info('Item removed from cart:', ['item_key' => $itemKey]);
         }
 
         return response()->json([
@@ -772,8 +966,9 @@ class KioskController extends Controller
                 }
             }
 
-            $tax = $subtotal * 0.10;
-            $total = $subtotal + $tax;
+            // For submitted orders, assume cash payment (tax-inclusive)
+            $tax = 0;
+            $total = $subtotal;
 
             // Create the order using your actual database columns
             $order = Order::create([
@@ -784,6 +979,7 @@ class KioskController extends Controller
                 'payment_method' => 'cash',
                 'payment_status' => 'pending',
                 'status' => 'pending',
+                'order_type' => $orderType,
                 'notes' => "Order Type: {$orderType}" . ($orderType === 'dine_in' && $request->input('table_number') ? ", Table: {$request->input('table_number')}" : '') . ($request->input('customer_name') ? ", Customer: {$request->input('customer_name')}" : ''),
                 'created_at' => now()
             ]);
@@ -795,6 +991,7 @@ class KioskController extends Controller
                     OrderItem::create([
                         'order_id' => $order->id,
                         'menu_item_id' => $item['menu_item_id'],
+                        'name' => $menuItem->name,
                         'quantity' => $item['quantity'],
                         'unit_price' => $menuItem->price,
                         'total_price' => $menuItem->price * $item['quantity'],
@@ -809,10 +1006,16 @@ class KioskController extends Controller
             // Clear the cart and order type from session
             session()->forget(['cart', 'order_type']);
 
+            Log::info('Order submitted successfully:', [
+                'order_id' => $order->id,
+                'total_amount' => $total
+            ]);
+
             return redirect()->route('kiosk.orderConfirmation', $order->id)
                 ->with('success', 'Order placed successfully!');
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('Submit order error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to place order. Please try again.');
         }
     }
@@ -824,6 +1027,7 @@ class KioskController extends Controller
     {
         if ($orderId) {
             $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
+            Log::info('Order confirmation displayed:', ['order_id' => $orderId]);
             // Use the SUCCESS confirmation view
             return view('orderConfirmationSuccess', compact('order'));
         } else {
@@ -832,11 +1036,13 @@ class KioskController extends Controller
             if ($lastOrderId) {
                 $order = Order::with(['orderItems.menuItem'])->findOrFail($lastOrderId);
                 Session::forget('last_order_id');
+                Log::info('Order confirmation displayed from session:', ['order_id' => $lastOrderId]);
                 // Use the SUCCESS confirmation view
                 return view('orderConfirmationSuccess', compact('order'));
             }
         }
 
+        Log::warning('Order confirmation accessed without valid order ID');
         return redirect()->route('kiosk.index')->with('error', 'Order not found');
     }
 
@@ -890,6 +1096,8 @@ class KioskController extends Controller
             'started_at' => now()
         ]);
 
+        Log::info('Order started:', ['order_id' => $orderId]);
+
         return redirect()->route('kitchen.index')->with('success', 'Order started!');
     }
 
@@ -904,6 +1112,8 @@ class KioskController extends Controller
             'status' => 'completed',
             'completed_at' => now()
         ]);
+
+        Log::info('Order completed:', ['order_id' => $orderId]);
 
         return redirect()->route('kitchen.index')->with('success', 'Order completed!');
     }
@@ -944,9 +1154,9 @@ class KioskController extends Controller
      */
     private function extractOrderType($notes)
     {
-        if (strpos($notes, 'Order Type: dine_in') !== false) {
+        if (strpos($notes, 'Order Type: dine_in') !== false || strpos($notes, 'dine-in') !== false) {
             return 'dine-in';
-        } elseif (strpos($notes, 'Order Type: take_out') !== false) {
+        } elseif (strpos($notes, 'Order Type: take_out') !== false || strpos($notes, 'take-out') !== false) {
             return 'takeout';
         }
         return 'dine-in'; // default

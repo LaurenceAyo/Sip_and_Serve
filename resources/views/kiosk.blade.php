@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>L'PRIMERO CAFE - Kiosk</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -78,10 +79,17 @@
             justify-content: center;
             align-items: center;
             padding-left: 80px;
-            background: url('{{ asset('assets/bg1_sandwich.png') }}') no-repeat center center fixed;
+            background: url('/assets/bg1_sandwich.png') no-repeat center center fixed;
             background-size: cover;
             width: 100%;
             min-height: 100vh;
+            /* Fallback background if image not found */
+            background-color: #4a3228;
+        }
+
+        /* Dynamic background loading */
+        .main-content.bg-loaded {
+            background-image: var(--bg-image);
         }
 
         .content-wrapper {
@@ -89,6 +97,38 @@
             max-width: 600px;
             position: relative;
             width: 100%;
+        }
+
+        /* Success/Error Messages */
+        .alert {
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .alert-success {
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+        }
+
+        .alert-error {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Action Buttons - Optimized for Lenovo Tablet */
@@ -102,6 +142,11 @@
             left: 40%;
             transform: translate(-50%, -50%);
             margin-left: 0;
+        }
+
+        .button-form {
+            display: inline;
+            width: 100%;
         }
 
         .action-btn {
@@ -119,6 +164,13 @@
             position: relative;
             overflow: hidden;
             min-height: 80px; /* Minimum touch target height */
+            width: 100%;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         .action-btn::before {
@@ -161,9 +213,33 @@
         }
 
         /* Touch feedback for tablets */
-        .action-btn:active {
+        .action-btn:active:not(:disabled) {
             transform: translateY(2px) scale(0.98);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Loading state */
+        .action-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .action-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            margin: -12px 0 0 -12px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Decorative Elements */
@@ -336,27 +412,39 @@
         </nav>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="mainContent">
             <div class="content-wrapper">
-                <!-- Success Message -->
+                <!-- Success/Error Messages -->
+                @if(session('success'))
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="alert alert-error">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
                 @if(session('message'))
-                    <div style="background: rgba(46, 204, 113, 0.9); color: white; padding: 20px; border-radius: 15px; margin-bottom: 30px; text-align: center; font-weight: bold; font-size: 1.2rem;">
+                    <div class="alert alert-success">
                         {{ session('message') }}
                     </div>
                 @endif
                 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <form method="POST" action="{{ route('kiosk.dineIn') }}" style="display: inline;">
+                    <form method="POST" action="{{ route('kiosk.dineIn') }}" class="button-form" id="dineInForm">
                         @csrf
-                        <button type="submit" class="action-btn dine-in-btn">
+                        <button type="submit" class="action-btn dine-in-btn" id="dineInBtn">
                             Dine In
                         </button>
                     </form>
 
-                    <form method="POST" action="{{ route('kiosk.takeOut') }}" style="display: inline;">
+                    <form method="POST" action="{{ route('kiosk.takeOut') }}" class="button-form" id="takeOutForm">
                         @csrf
-                        <button type="submit" class="action-btn take-out-btn">
+                        <button type="submit" class="action-btn take-out-btn" id="takeOutBtn">
                             Take Out
                         </button>
                     </form>
@@ -371,11 +459,61 @@
     </div>
 
     <script>
+        // Load background image dynamically to handle Laravel asset paths
+        document.addEventListener('DOMContentLoaded', function() {
+            const mainContent = document.getElementById('mainContent');
+            const img = new Image();
+            
+            img.onload = function() {
+                mainContent.style.backgroundImage = `url('${this.src}')`;
+                mainContent.classList.add('bg-loaded');
+            };
+            
+            img.onerror = function() {
+                console.log('Background image not found, using fallback');
+                // Keep the fallback background color
+            };
+            
+            // Try to load the background image
+            img.src = '/assets/bg1_sandwich.png';
+        });
+
+        // Enhanced form submission with loading states
+        function handleFormSubmission(formId, buttonId) {
+            const form = document.getElementById(formId);
+            const button = document.getElementById(buttonId);
+            
+            form.addEventListener('submit', function(e) {
+                // Prevent double submission
+                if (button.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Show loading state
+                button.disabled = true;
+                button.classList.add('loading');
+                
+                // Optional: Add timeout to re-enable button if something goes wrong
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.classList.remove('loading');
+                }, 5000);
+            });
+        }
+
+        // Initialize form handlers
+        handleFormSubmission('dineInForm', 'dineInBtn');
+        handleFormSubmission('takeOutForm', 'takeOutBtn');
+
         // Enhanced touch feedback for Lenovo tablet
         document.querySelectorAll('.action-btn').forEach(button => {
             button.addEventListener('touchstart', function(e) {
                 // Prevent double-tap zoom
                 e.preventDefault();
+                
+                // Don't trigger feedback for disabled buttons
+                if (this.disabled) return;
                 
                 // Enhanced haptic feedback
                 if (navigator.vibrate) {
@@ -388,16 +526,19 @@
             });
             
             button.addEventListener('touchend', function() {
+                if (this.disabled) return;
                 this.style.transform = 'scale(1)';
                 this.style.transition = 'transform 0.3s ease';
             });
             
             // Mouse events for testing on desktop
             button.addEventListener('mousedown', function() {
+                if (this.disabled) return;
                 this.style.transform = 'scale(0.96)';
             });
             
             button.addEventListener('mouseup', function() {
+                if (this.disabled) return;
                 this.style.transform = 'scale(1)';
             });
         });
@@ -445,6 +586,33 @@
             if (wakeLock !== null) {
                 wakeLock.release();
             }
+        });
+
+        // Auto-dismiss alerts after 5 seconds
+        document.querySelectorAll('.alert').forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    alert.remove();
+                }, 500);
+            }, 5000);
+        });
+
+        // Error handling for navigation
+        window.addEventListener('error', function(e) {
+            console.error('Navigation error:', e.error);
+            // Could show a user-friendly error message here
+        });
+
+        // Connection status monitoring (for kiosk reliability)
+        window.addEventListener('online', function() {
+            console.log('Connection restored');
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('Connection lost');
+            // Could show offline message to user
         });
     </script>
 </body>
