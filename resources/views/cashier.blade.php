@@ -50,6 +50,32 @@
             font-size: 2rem;
         }
 
+        .printer-controls {
+            position: absolute;
+            left: 100px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .printer-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .printer-btn:hover {
+            background: white;
+            color: #8b4513;
+        }
+
         .refresh-button {
             position: absolute;
             right: 100px;
@@ -265,13 +291,19 @@
             min-width: 90px;
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         .btn-accept {
             background: linear-gradient(135deg, #27ae60, #2ecc71);
             color: white;
             box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
         }
 
-        .btn-accept:hover {
+        .btn-accept:hover:not(:disabled) {
             background: linear-gradient(135deg, #229954, #27ae60);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
@@ -283,7 +315,7 @@
             box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
         }
 
-        .btn-edit:hover {
+        .btn-edit:hover:not(:disabled) {
             background: linear-gradient(135deg, #e67e22, #d35400);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
@@ -295,7 +327,7 @@
             box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
         }
 
-        .btn-cancel:hover {
+        .btn-cancel:hover:not(:disabled) {
             background: linear-gradient(135deg, #c0392b, #a93226);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
@@ -612,6 +644,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .modal-btn:disabled {
@@ -644,6 +677,36 @@
 
         .modal-btn-confirm.cancel-style:hover:not(:disabled) {
             background: linear-gradient(135deg, #c0392b, #a93226);
+        }
+
+        .modal-btn-confirm.processing {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .modal-btn-confirm.processing::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            margin: auto;
+            border: 2px solid transparent;
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: button-loading-spinner 1s ease infinite;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes button-loading-spinner {
+            from {
+                transform: translate(-50%, -50%) rotate(0turn);
+            }
+
+            to {
+                transform: translate(-50%, -50%) rotate(1turn);
+            }
         }
 
         .customer-payment-info {
@@ -1109,6 +1172,41 @@
             opacity: 0.5;
         }
 
+        /* Printer status indicator */
+        .printer-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+
+        .printer-status.show {
+            display: block;
+        }
+
+        .printer-status.success {
+            background: rgba(40, 167, 69, 0.9);
+        }
+
+        .printer-status.error {
+            background: rgba(220, 53, 69, 0.9);
+        }
+
+        .printer-status.warning {
+            background: rgba(255, 193, 7, 0.9);
+            color: #212529;
+        }
+
+        .printer-status.processing {
+            background: rgba(108, 117, 125, 0.9);
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -1147,6 +1245,13 @@
                 grid-template-columns: 1fr;
                 gap: 15px;
             }
+
+            .printer-controls {
+                position: static;
+                transform: none;
+                margin-top: 10px;
+                justify-content: center;
+            }
         }
 
         @media (max-width: 768px) {
@@ -1177,6 +1282,11 @@
             .edit-modal-content {
                 padding: 15px;
             }
+
+            .printer-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
         }
     </style>
 </head>
@@ -1184,6 +1294,16 @@
 <body>
     <div class="header">
         SIP & SERVE - CASHIER
+
+        <!-- Printer Test Controls -->
+        <div class="printer-controls">
+            <button class="printer-btn" onclick="testPrinterConnection()">
+                🖨️ Test Printer
+            </button>
+            <button class="printer-btn" onclick="showPrinterInfo()">
+                ℹ️ Printer Info
+            </button>
+        </div>
     </div>
 
     <div class="container">
@@ -1230,7 +1350,8 @@
 
                             @if((isset($order['cash_amount']) && $order['cash_amount'] > 0) || (isset($order['payment_method']) && $order['payment_method'] === 'cash'))
                                 <div class="customer-payment-info">
-                                    <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                                    <div
+                                        style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
                                         💰 Customer's Payment Plan
                                     </div>
                                     <div class="payment-info-row">
@@ -1262,11 +1383,13 @@
 
                             <div class="order-total">
                                 <span>Total Amount:</span>
-                                <span class="total-amount">PHP {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
+                                <span class="total-amount">PHP
+                                    {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
                             </div>
 
                             <div class="order-actions">
-                                <button class="btn btn-accept" onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
+                                <button class="btn btn-accept"
+                                    onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
                                     ✅ Accept
                                 </button>
                                 <button class="btn btn-edit" onclick="editOrder('{{ $order['id'] }}')">
@@ -1319,7 +1442,8 @@
                 <div class="payment-form">
                     <div class="form-group">
                         <label class="form-label">Cash Received (PHP):</label>
-                        <input type="number" id="cashAmount" class="form-input" step="0.01" min="0" placeholder="0.00" oninput="calculateChange()">
+                        <input type="number" id="cashAmount" class="form-input" step="0.01" min="0" placeholder="0.00"
+                            oninput="calculateChange()">
 
                         <!-- Quick cash amount buttons -->
                         <div class="quick-cash-buttons" id="quickCashButtons">
@@ -1345,7 +1469,10 @@
 
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-cancel" onclick="hidePaymentModal()">Cancel</button>
-                    <button class="modal-btn modal-btn-confirm" id="confirmPaymentBtn" onclick="confirmPayment()" disabled>Process Payment</button>
+                    <button class="modal-btn modal-btn-confirm" id="confirmPaymentBtn" onclick="confirmPayment()"
+                        disabled>
+                        <span id="confirmBtnText">Process Payment</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1373,7 +1500,8 @@
                     <!-- Available Menu Items -->
                     <div class="edit-order-section">
                         <div class="edit-section-title">📋 Menu Items</div>
-                        <input type="text" class="menu-search" placeholder="🔍 Search menu items..." id="editMenuSearch" oninput="filterEditMenuItems()">
+                        <input type="text" class="menu-search" placeholder="🔍 Search menu items..." id="editMenuSearch"
+                            oninput="filterEditMenuItems()">
                         <div class="menu-items-list" id="editMenuItemsList">
                             <!-- Menu items will be populated here -->
                         </div>
@@ -1385,7 +1513,8 @@
                 <div class="edit-total-display" id="editTotalDisplay">Total: PHP 0.00</div>
                 <div class="edit-modal-actions">
                     <button class="edit-modal-btn edit-modal-btn-cancel" onclick="closeEditOrderModal()">Cancel</button>
-                    <button class="edit-modal-btn edit-modal-btn-save" onclick="saveEditOrderChanges()">Save Changes</button>
+                    <button class="edit-modal-btn edit-modal-btn-save" onclick="saveEditOrderChanges()">Save
+                        Changes</button>
                 </div>
             </div>
         </div>
@@ -1404,11 +1533,15 @@
                 <div class="modal-message" id="modalMessage">Are you sure you want to perform this action?</div>
                 <div class="modal-actions">
                     <button class="modal-btn modal-btn-cancel" onclick="hideModal()">Cancel</button>
-                    <button class="modal-btn modal-btn-confirm" id="confirmBtn" onclick="confirmAction()">Confirm</button>
+                    <button class="modal-btn modal-btn-confirm" id="confirmBtn"
+                        onclick="confirmAction()">Confirm</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Printer Status Indicator -->
+    <div class="printer-status" id="printerStatus"></div>
 
     <script>
         let currentAction = null;
@@ -1420,6 +1553,7 @@
         let changeAmount = 0;
         let processingOrders = new Map();
         let autoReloadInterval = null;
+        let isProcessingPayment = false;
 
         // Edit Order Modal Variables
         let editOrderData = null;
@@ -1441,18 +1575,36 @@
             { id: 15, name: 'Earl Grey Tea', price: 85.00, category: 'Tea' }
         ];
 
+        window.Laravel = {
+            csrfToken: '{{ csrf_token() }}'
+        };
+
         function debugLog(message, data = null) {
             console.log(`[Cashier Debug] ${message}`, data);
         }
 
         function getCSRFToken() {
-            const token = document.querySelector('meta[name="csrf-token"]');
-            if (!token) {
-                console.error('CSRF token not found in page');
-                return null;
+            // Try multiple methods to get CSRF token
+            let token = document.querySelector('meta[name="csrf-token"]');
+            if (token) {
+                return token.getAttribute('content');
             }
-            return token.getAttribute('content');
+
+            // Fallback: try to get from Laravel's global
+            if (window.Laravel && window.Laravel.csrfToken) {
+                return window.Laravel.csrfToken;
+            }
+
+            // Another fallback: try from input field
+            const tokenInput = document.querySelector('input[name="_token"]');
+            if (tokenInput) {
+                return tokenInput.value;
+            }
+
+            console.error('CSRF token not found in page');
+            return null;
         }
+
 
         // Enhanced fetchWithErrorHandling
         async function fetchWithErrorHandling(url, options = {}) {
@@ -1462,12 +1614,15 @@
             }
 
             const defaultOptions = {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                timeout: 10000
+                credentials: 'same-origin', // Include cookies
+                timeout: 30000 // Increased timeout for payment processing
             };
 
             const finalOptions = {
@@ -1546,17 +1701,17 @@
             try {
                 const orderNumber = orderCard.querySelector('.order-number').textContent.replace('#', '');
                 const orderItems = [];
-                
+
                 // Extract items from the order card
                 const itemElements = orderCard.querySelectorAll('.order-item');
                 itemElements.forEach((itemElement, index) => {
                     const itemText = itemElement.querySelector('.item-name').textContent;
                     const priceText = itemElement.querySelector('.item-price').textContent;
-                    
+
                     // Parse item name and quantity
                     const match = itemText.match(/^(.+?)\s+x(\d+)$/);
                     let itemName, quantity;
-                    
+
                     if (match) {
                         itemName = match[1].trim();
                         quantity = parseInt(match[2]);
@@ -1564,11 +1719,11 @@
                         itemName = itemText.trim();
                         quantity = 1;
                     }
-                    
+
                     // Parse price
                     const totalPrice = parseFloat(priceText.replace('PHP ', '').replace(',', ''));
                     const unitPrice = totalPrice / quantity;
-                    
+
                     orderItems.push({
                         id: index + 1, // Use index as temporary ID
                         name: itemName,
@@ -1591,17 +1746,17 @@
 
         function openEditOrderModal(orderData) {
             editOrderData = JSON.parse(JSON.stringify(orderData)); // Deep clone
-            
+
             const modal = document.getElementById('editOrderModal');
             const subtitle = document.getElementById('editModalSubtitle');
-            
+
             if (subtitle) {
                 subtitle.textContent = `Order #${orderData.orderNumber} - Modify items and quantities`;
             }
-            
+
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
-            
+
             populateEditOrderItems();
             populateEditMenuItems();
             updateEditTotal();
@@ -1616,7 +1771,7 @@
 
         function populateEditOrderItems() {
             const container = document.getElementById('editOrderItemsList');
-            
+
             if (!editOrderData || editOrderData.items.length === 0) {
                 container.innerHTML = `
                     <div class="empty-order-state">
@@ -1629,7 +1784,7 @@
             }
 
             container.innerHTML = '';
-            
+
             editOrderData.items.forEach(item => {
                 const itemElement = document.createElement('div');
                 itemElement.className = 'edit-order-item';
@@ -1651,7 +1806,7 @@
                         </button>
                     </div>
                 `;
-                
+
                 container.appendChild(itemElement);
             });
         }
@@ -1659,10 +1814,10 @@
         function populateEditMenuItems() {
             const container = document.getElementById('editMenuItemsList');
             container.innerHTML = '';
-            
+
             editMenuItems.forEach(item => {
                 const isInOrder = editOrderData.items.some(orderItem => orderItem.name.toLowerCase() === item.name.toLowerCase());
-                
+
                 const itemElement = document.createElement('div');
                 itemElement.className = 'edit-menu-item';
                 itemElement.innerHTML = `
@@ -1675,7 +1830,7 @@
                         ${isInOrder ? 'Added' : 'Add'}
                     </button>
                 `;
-                
+
                 container.appendChild(itemElement);
             });
         }
@@ -1684,7 +1839,7 @@
             const searchTerm = document.getElementById('editMenuSearch').value.toLowerCase();
             const menuItemsContainer = document.getElementById('editMenuItemsList');
             const menuItemElements = menuItemsContainer.querySelectorAll('.edit-menu-item');
-            
+
             menuItemElements.forEach(element => {
                 const itemName = element.querySelector('.edit-menu-item-name').textContent.toLowerCase();
                 if (itemName.includes(searchTerm)) {
@@ -1698,7 +1853,7 @@
         function addEditItemToOrder(itemId) {
             const menuItem = editMenuItems.find(item => item.id === itemId);
             if (!menuItem) return;
-            
+
             const existingItem = editOrderData.items.find(item => item.name.toLowerCase() === menuItem.name.toLowerCase());
             if (existingItem) {
                 existingItem.quantity++;
@@ -1711,7 +1866,7 @@
                     quantity: 1
                 });
             }
-            
+
             populateEditOrderItems();
             populateEditMenuItems();
             updateEditTotal();
@@ -1723,7 +1878,7 @@
             if (itemIndex > -1) {
                 const removedItem = editOrderData.items[itemIndex];
                 editOrderData.items.splice(itemIndex, 1);
-                
+
                 populateEditOrderItems();
                 populateEditMenuItems();
                 updateEditTotal();
@@ -1755,7 +1910,7 @@
             const total = editOrderData.items.reduce((sum, item) => {
                 return sum + (item.price * item.quantity);
             }, 0);
-            
+
             document.getElementById('editTotalDisplay').textContent = `Total: PHP ${total.toFixed(2)}`;
         }
 
@@ -1785,10 +1940,10 @@
 
                 if (data.success) {
                     showEditNotification('Order updated successfully!', 'success');
-                    
+
                     // Update the order card in the pending panel
                     updateOrderCardAfterEdit(editOrderData);
-                    
+
                     setTimeout(() => {
                         closeEditOrderModal();
                     }, 1500);
@@ -1816,9 +1971,9 @@
                     const itemElement = document.createElement('div');
                     itemElement.className = 'order-item';
                     itemElement.innerHTML = `
-                        <span class="item-name">${item.name} x${item.quantity}</span>
-                        <span class="item-price">PHP ${(item.price * item.quantity).toFixed(2)}</span>
-                    `;
+                       <span class="item-name">${item.name} x${item.quantity}</span>
+                       <span class="item-price">PHP ${(item.price * item.quantity).toFixed(2)}</span>
+                   `;
                     itemsContainer.appendChild(itemElement);
                 });
             }
@@ -1846,25 +2001,25 @@
             // Remove existing notifications
             const existingNotifications = document.querySelectorAll('.edit-notification');
             existingNotifications.forEach(notification => notification.remove());
-            
+
             const notification = document.createElement('div');
             notification.className = `edit-notification notification ${type}`;
             notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 8px;
-                color: white;
-                font-weight: bold;
-                z-index: 2000;
-                animation: slideInNotification 0.3s ease-out;
-                background: ${type === 'success' ? '#28a745' : '#dc3545'};
-            `;
+               position: fixed;
+               top: 20px;
+               right: 20px;
+               padding: 15px 20px;
+               border-radius: 8px;
+               color: white;
+               font-weight: bold;
+               z-index: 2000;
+               animation: slideInNotification 0.3s ease-out;
+               background: ${type === 'success' ? '#28a745' : '#dc3545'};
+           `;
             notification.textContent = message;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.remove();
             }, 3000);
@@ -1922,12 +2077,33 @@
             return total;
         }
 
+
+        // Page visibility API to pause/resume auto-reload when tab is not visible
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopAutoReload();
+                debugLog('Page hidden: Auto-reload paused');
+            } else {
+                // Auto-reload can resume, but don't trigger auto-refresh if it's unnecessary
+                debugLog('Page visible: Auto-reload resumed');
+
+                // Refresh immediately when the user comes back, but ensure print isn't triggered
+                setTimeout(() => {
+                    if (!document.querySelector('#paymentModal.show, #confirmModal.show, #editOrderModal.show')) {
+                        autoRefreshOrders();
+                    }
+                }, 500); // Small delay to ensure all modals are checked properly
+            }
+        });
+
+
         // Auto-refresh function with better error handling
         function autoRefreshOrders() {
             const paymentModal = document.getElementById('paymentModal');
             const confirmModal = document.getElementById('confirmModal');
             const editModal = document.getElementById('editOrderModal');
 
+            // Skip refreshing if modals are open to avoid triggering printing
             if ((paymentModal && paymentModal.classList.contains('show')) ||
                 (confirmModal && confirmModal.classList.contains('show')) ||
                 (editModal && editModal.classList.contains('show'))) {
@@ -1974,19 +2150,19 @@
         function showAutoRefreshError(message) {
             const indicator = document.createElement('div');
             indicator.style.cssText = `
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                background: rgba(220, 53, 69, 0.9);
-                color: white;
-                padding: 8px 15px;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                z-index: 1000;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                pointer-events: none;
-            `;
+               position: fixed;
+               top: 10px;
+               right: 10px;
+               background: rgba(220, 53, 69, 0.9);
+               color: white;
+               padding: 8px 15px;
+               border-radius: 20px;
+               font-size: 0.8rem;
+               z-index: 1000;
+               opacity: 0;
+               transition: opacity 0.3s ease;
+               pointer-events: none;
+           `;
 
             indicator.innerHTML = `⚠️ Refresh Failed`;
             document.body.appendChild(indicator);
@@ -2009,19 +2185,19 @@
         function showAutoRefreshIndicator() {
             const indicator = document.createElement('div');
             indicator.style.cssText = `
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                background: rgba(40, 167, 69, 0.9);
-                color: white;
-                padding: 8px 15px;
-                border-radius: 20px;
-                font-size: 0.8rem;
-                z-index: 1000;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                pointer-events: none;
-            `;
+               position: fixed;
+               top: 10px;
+               right: 10px;
+               background: rgba(40, 167, 69, 0.9);
+               color: white;
+               padding: 8px 15px;
+               border-radius: 20px;
+               font-size: 0.8rem;
+               z-index: 1000;
+               opacity: 0;
+               transition: opacity 0.3s ease;
+               pointer-events: none;
+           `;
 
             indicator.innerHTML = '🔄 Updated';
             document.body.appendChild(indicator);
@@ -2076,16 +2252,16 @@
                 const existingOrders = container.querySelectorAll('.order-card');
                 if (existingOrders.length === 0) {
                     container.innerHTML = emptyState ? emptyState.outerHTML : `
-                        <div class="empty-state" id="emptyState">
-                            <div class="empty-state-icon">📭</div>
-                            <p>No pending cash orders</p>
-                            <small>Orders will appear here when customers place cash orders</small>
-                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                                <span>🔄</span>
-                                <span>Auto-updating every 25 seconds</span>
-                            </div>
-                        </div>
-                    `;
+                       <div class="empty-state" id="emptyState">
+                           <div class="empty-state-icon">📭</div>
+                           <p>No pending cash orders</p>
+                           <small>Orders will appear here when customers place cash orders</small>
+                           <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                               <span>🔄</span>
+                               <span>Auto-updating every 25 seconds</span>
+                           </div>
+                       </div>
+                   `;
                 }
                 return;
             }
@@ -2141,16 +2317,16 @@
                 const remainingCards = container.querySelectorAll('.order-card');
                 if (remainingCards.length === 0) {
                     container.innerHTML = emptyState ? emptyState.outerHTML : `
-                        <div class="empty-state" id="emptyState">
-                            <div class="empty-state-icon">📭</div>
-                            <p>No pending cash orders</p>
-                            <small>Orders will appear here when customers place cash orders</small>
-                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                                <span>🔄</span>
-                                <span>Auto-updating every 25 seconds</span>
-                            </div>
-                        </div>
-                    `;
+                       <div class="empty-state" id="emptyState">
+                           <div class="empty-state-icon">📭</div>
+                           <p>No pending cash orders</p>
+                           <small>Orders will appear here when customers place cash orders</small>
+                           <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                               <span>🔄</span>
+                               <span>Auto-updating every 25 seconds</span>
+                           </div>
+                       </div>
+                   `;
                 }
             }, 100);
         }
@@ -2202,11 +2378,11 @@
                     });
 
                     itemsHtml += `
-                        <div class="order-item">
-                            <span class="item-name">${itemName} x${quantity}</span>
-                            <span class="item-price">PHP ${itemTotal.toFixed(2)}</span>
-                        </div>
-                    `;
+                       <div class="order-item">
+                           <span class="item-name">${itemName} x${quantity}</span>
+                           <span class="item-price">PHP ${itemTotal.toFixed(2)}</span>
+                       </div>
+                   `;
                 });
             }
 
@@ -2231,36 +2407,36 @@
                 const expectedChange = cashAmount > 0 ? (cashAmount - totalAmount) : 0;
 
                 customerPaymentHtml = `
-                    <div class="customer-payment-info">
-                        <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
-                            💰 Customer's Payment Plan
-                        </div>
-                        <div class="payment-info-row">
-                            <span class="payment-info-label">🏷️ Order Total:</span>
-                            <span>PHP ${totalAmount.toFixed(2)}</span>
-                        </div>
-                        ${cashAmount > 0 ? `
-                            <div class="payment-info-row">
-                                <span class="payment-info-label">💵 Will Bring:</span>
-                                <span>PHP ${cashAmount.toFixed(2)}</span>
-                            </div>
-                            ${expectedChange > 0 ? `
-                                <div class="payment-info-row expected-change">
-                                    <span class="payment-info-label">💸 Expected Change:</span>
-                                    <span>PHP ${expectedChange.toFixed(2)}</span>
-                                </div>
-                            ` : ''}
-                        ` : `
-                            <div class="payment-info-row">
-                                <span class="payment-info-label">💵 Will Bring:</span>
-                                <span style="color: #666; font-style: italic;">Amount to be determined</span>
-                            </div>
-                        `}
-                        <div class="edit-amount-note">
-                            💡 You can edit the cash amount during payment processing
-                        </div>
-                    </div>
-                `;
+                   <div class="customer-payment-info">
+                       <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                           💰 Customer's Payment Plan
+                       </div>
+                       <div class="payment-info-row">
+                           <span class="payment-info-label">🏷️ Order Total:</span>
+                           <span>PHP ${totalAmount.toFixed(2)}</span>
+                       </div>
+                       ${cashAmount > 0 ? `
+                           <div class="payment-info-row">
+                               <span class="payment-info-label">💵 Will Bring:</span>
+                               <span>PHP ${cashAmount.toFixed(2)}</span>
+                           </div>
+                           ${expectedChange > 0 ? `
+                               <div class="payment-info-row expected-change">
+                                   <span class="payment-info-label">💸 Expected Change:</span>
+                                   <span>PHP ${expectedChange.toFixed(2)}</span>
+                               </div>
+                           ` : ''}
+                       ` : `
+                           <div class="payment-info-row">
+                               <span class="payment-info-label">💵 Will Bring:</span>
+                               <span style="color: #666; font-style: italic;">Amount to be determined</span>
+                           </div>
+                       `}
+                       <div class="edit-amount-note">
+                           💡 You can edit the cash amount during payment processing
+                       </div>
+                   </div>
+               `;
             }
 
             const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
@@ -2274,39 +2450,39 @@
             const orderType = order.order_type || 'dine-in';
 
             orderCard.innerHTML = `
-                <div class="order-header">
-                    <span>Order</span>
-                    <span class="order-number">#${orderNumber}</span>
-                </div>
-                <div class="order-time">
-                    Placed at ${timeString}
-                    <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
-                </div>
-                <div class="status-badge status-pending">Pending Payment</div>
-                
-                <div class="order-items">
-                    ${itemsHtml}
-                </div>
+               <div class="order-header">
+                   <span>Order</span>
+                   <span class="order-number">#${orderNumber}</span>
+               </div>
+               <div class="order-time">
+                   Placed at ${timeString}
+                   <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
+               </div>
+               <div class="status-badge status-pending">Pending Payment</div>
+               
+               <div class="order-items">
+                   ${itemsHtml}
+               </div>
 
-                ${customerPaymentHtml}
-                
-                <div class="order-total">
-                    <span>Total Amount:</span>
-                    <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
-                </div>
-                
-                <div class="order-actions">
-                    <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
-                        ✅ Accept
-                    </button>
-                    <button class="btn btn-edit" onclick="editOrder(${order.id})">
-                        ✏️ Edit
-                    </button>
-                    <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
-                        ❌ Cancel
-                    </button>
-                </div>
-            `;
+               ${customerPaymentHtml}
+               
+               <div class="order-total">
+                   <span>Total Amount:</span>
+                   <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
+               </div>
+               
+               <div class="order-actions">
+                   <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
+                       ✅ Accept
+                   </button>
+                   <button class="btn btn-edit" onclick="editOrder(${order.id})">
+                       ✏️ Edit
+                   </button>
+                   <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
+                       ❌ Cancel
+                   </button>
+               </div>
+           `;
 
             return orderCard;
         }
@@ -2408,12 +2584,12 @@
 
             const confirmBtn = document.getElementById('confirmPaymentBtn');
             if (confirmBtn) {
-                if (cashReceived >= orderTotal) {
+                if (cashReceived >= orderTotal && !isProcessingPayment) {
                     confirmBtn.disabled = false;
                     cashInput.classList.remove('error');
                 } else {
                     confirmBtn.disabled = true;
-                    if (cashReceived > 0) {
+                    if (cashReceived > 0 && cashReceived < orderTotal) {
                         cashInput.classList.add('error');
                     } else {
                         cashInput.classList.remove('error');
@@ -2461,6 +2637,10 @@
             }
             document.body.style.overflow = '';
 
+            // Reset payment processing state
+            isProcessingPayment = false;
+            resetConfirmButton();
+
             currentOrderId = null;
             currentAmount = 0;
             currentOrderNumber = '';
@@ -2503,12 +2683,12 @@
                     // If no orders remain, show empty state
                     if (remainingOrders.length === 0) {
                         const emptyStateHtml = `
-                            <div class="empty-state" id="emptyState">
-                                <div class="empty-state-icon">📭</div>
-                                <p>No pending cash orders</p>
-                                <small>Orders will appear here when customers place cash orders</small>
-                            </div>
-                        `;
+                           <div class="empty-state" id="emptyState">
+                               <div class="empty-state-icon">📭</div>
+                               <p>No pending cash orders</p>
+                               <small>Orders will appear here when customers place cash orders</small>
+                           </div>
+                       `;
                         ordersContainer.innerHTML = emptyStateHtml;
                         debugLog('Added empty state after removing last order');
                     }
@@ -2522,14 +2702,21 @@
             }
         }
 
-        // FIXED: Properly move orders from pending to processing and remove from pending
+        // MAIN PAYMENT PROCESSING FUNCTION - FIXED WITH PRINTER INTEGRATION
         async function confirmPayment() {
             debugLog('Confirm payment called', {
                 orderId: currentOrderId,
                 cashReceived,
                 orderTotal,
-                changeAmount
+                changeAmount,
+                isProcessingPayment
             });
+
+            // Prevent double-clicking
+            if (isProcessingPayment) {
+                debugLog('Payment already in progress, ignoring click');
+                return;
+            }
 
             if (cashReceived < orderTotal) {
                 showErrorMessage('Insufficient cash amount');
@@ -2541,18 +2728,25 @@
                 return;
             }
 
+            // Set processing state
+            isProcessingPayment = true;
+            setConfirmButtonLoading(true);
+
+            // Show printer status
+            showPrinterStatus('Processing payment and printing receipt...', 'processing');
+
             const requestData = {
                 order_id: parseInt(currentOrderId),
                 cash_amount: parseFloat(cashReceived),
                 print_receipt: true
             };
 
-            debugLog('Request data being sent:', requestData);
+            debugLog('Payment request data:', requestData);
 
-            // Calculate the actual change before hiding modal
+            // Calculate the actual change before processing
             const actualChange = cashReceived - orderTotal;
 
-            // Store current order data before hiding modal
+            // Store current order data before processing
             const processingOrderId = currentOrderId;
             const processingOrderNumber = currentOrderNumber;
 
@@ -2592,8 +2786,27 @@
                 if (data.success) {
                     debugLog('Payment processed successfully, moving order');
 
+                    // Update printer status based on receipt printing result
+                    if (data.receipt_printed) {
+                        showPrinterStatus('✅ Payment completed! Receipt printed successfully.', 'success');
+                    } else {
+                        showPrinterStatus('⚠️ Payment completed! Receipt printing failed - check printer.', 'warning');
+                    }
+
                     // Move order to processing panel with correct total
                     moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData, orderTotal);
+
+                    // Show success message
+                    showSuccessMessage(`Order #${processingOrderNumber} payment processed successfully!`);
+
+                    // Log the complete transaction
+                    debugLog('Transaction completed', {
+                        orderId: processingOrderId,
+                        totalAmount: orderTotal,
+                        cashReceived: cashReceived,
+                        changeGiven: actualChange,
+                        receiptPrinted: data.receipt_printed
+                    });
 
                 } else {
                     // If payment failed, restore the order to pending
@@ -2610,8 +2823,52 @@
                     restoreOrderToPending(orderData);
                 }
 
+                // Show error message
                 showErrorMessage('Payment processing failed: ' + error.message);
+
+                // Show printer error status
+                showPrinterStatus('❌ Payment failed: ' + error.message, 'error');
+
+                // Reset processing state
+                isProcessingPayment = false;
+                setConfirmButtonLoading(false);
             }
+        }
+
+        function setConfirmButtonLoading(loading) {
+            const confirmBtn = document.getElementById('confirmPaymentBtn');
+            const btnText = document.getElementById('confirmBtnText');
+
+            if (!confirmBtn || !btnText) return;
+
+            if (loading) {
+                confirmBtn.classList.add('processing');
+                confirmBtn.disabled = true;
+                btnText.textContent = 'Processing...';
+            } else {
+                confirmBtn.classList.remove('processing');
+                confirmBtn.disabled = cashReceived < orderTotal;
+                btnText.textContent = 'Process Payment';
+            }
+        }
+
+        function resetConfirmButton() {
+            setConfirmButtonLoading(false);
+        }
+
+        function showPrinterStatus(message, type = 'info') {
+            const printerStatus = document.getElementById('printerStatus');
+            if (!printerStatus) return;
+
+            printerStatus.textContent = message;
+            printerStatus.className = `printer-status show ${type}`;
+
+            // Auto-hide after delay based on type
+            const delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 4000;
+
+            setTimeout(() => {
+                printerStatus.classList.remove('show');
+            }, delay);
         }
 
         // NEW: Restore order to pending if payment fails
@@ -2730,11 +2987,11 @@
                 const originalItems = orderData.orderCard.querySelector('.order-items');
                 if (originalItems) {
                     orderItemsHtml = `
-                        <div class="processing-order-items" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;">
-                            <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
-                            ${originalItems.innerHTML}
-                        </div>
-                    `;
+                       <div class="processing-order-items" style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                           <div style="font-weight: 600; margin-bottom: 10px; color: #495057;">📋 Order Items:</div>
+                           ${originalItems.innerHTML}
+                       </div>
+                   `;
                 }
             }
 
@@ -2743,80 +3000,80 @@
             orderProcessingCard.className = 'processing-order-card';
             orderProcessingCard.id = `processing-order-${orderId}`;
             orderProcessingCard.style.cssText = `
-                background: white;
-                border-radius: 15px;
-                padding: 20px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                border: 2px solid #e9ecef;
-                animation: slideInFromLeft 0.5s ease-out;
-            `;
+               background: white;
+               border-radius: 15px;
+               padding: 20px;
+               margin-bottom: 20px;
+               box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+               border: 2px solid #e9ecef;
+               animation: slideInFromLeft 0.5s ease-out;
+           `;
 
             orderProcessingCard.innerHTML = `
-                <div class="processing-order-header" style="margin-bottom: 20px;">
-                    <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
-                    <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
-                </div>
+               <div class="processing-order-header" style="margin-bottom: 20px;">
+                   <div class="processing-order-number" style="font-size: 1.4rem; font-weight: 700; color: #8B4513;">🏷️ Order #${displayOrderNumber}</div>
+                   <div class="processing-order-time" style="color: #666; font-size: 0.9rem;">💳 Payment completed at ${startTime.toLocaleTimeString()}</div>
+               </div>
 
-                ${orderItemsHtml}
-            
-                <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
-                        💰 Payment Completed Successfully!
-                    </div>
-                    <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
-                        <span style="color: #155724;">🏷️ Order Total:</span>
-                        <span style="font-weight: 700; color: #155724;">PHP ${displayTotal.toFixed(2)}</span>
-                    </div>
-                    <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
-                        <span style="color: #155724;">💸 Change Given:</span>
-                        <span style="font-weight: 700; color: #155724; font-size: 1.2rem;">PHP ${actualChangeGiven.toFixed(2)}</span>
-                    </div>
-                    <div style="margin-top: 15px; padding: 12px; background: rgba(21, 87, 36, 0.1); border-radius: 8px; text-align: center; color: #155724; font-weight: 600;">
-                        ${receiptStatus}
-                    </div>
-                </div>
+               ${orderItemsHtml}
+           
+               <div class="payment-details-box" style="background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                   <div style="font-size: 1.3rem; font-weight: 700; color: #155724; margin-bottom: 15px; text-align: center;">
+                       💰 Payment Completed Successfully!
+                   </div>
+                   <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
+                       <span style="color: #155724;">🏷️ Order Total:</span>
+                       <span style="font-weight: 700; color: #155724;">PHP ${displayTotal.toFixed(2)}</span>
+                   </div>
+                   <div class="processing-total-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.1rem;">
+                       <span style="color: #155724;">💸 Change Given:</span>
+                       <span style="font-weight: 700; color: #155724; font-size: 1.2rem;">PHP ${actualChangeGiven.toFixed(2)}</span>
+                   </div>
+                   <div style="margin-top: 15px; padding: 12px; background: rgba(21, 87, 36, 0.1); border-radius: 8px; text-align: center; color: #155724; font-weight: 600;">
+                       ${receiptStatus}
+                   </div>
+               </div>
 
-                <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 20px 0;">
-                    <div style="font-weight: 600; margin-bottom: 15px; color: #856404; text-align: center; font-size: 1.1rem;">⏱️ Order Status</div>
-                    <div style="color: #856404; line-height: 1.8; text-align: center;">
-                        <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🍳 Currently Preparing</div>
-                        <div style="font-size: 1rem;">📅 Estimated completion: ${estimatedTime.toLocaleTimeString()}</div>
-                        <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">⏰ Average wait time: 15 minutes</div>
-                    </div>
-                </div>
-                
-                <div class="processing-actions" style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button class="btn-large" style="
-                        background: #28a745; 
-                        color: white; 
-                        border: none; 
-                        border-radius: 8px; 
-                        cursor: pointer; 
-                        padding: 15px 25px; 
-                        font-size: 1.1rem; 
-                        flex: 1;
-                        font-weight: 600;
-                        transition: background-color 0.3s ease;
-                    " onclick="completeOrder(${orderId})" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-                        ✅ Mark as Complete
-                    </button>
-                    <button class="btn-large" style="
-                        background: #6c757d; 
-                        color: white; 
-                        border: none; 
-                        border-radius: 8px; 
-                        cursor: pointer; 
-                        padding: 15px 25px; 
-                        font-size: 1.1rem; 
-                        flex: 1;
-                        font-weight: 600;
-                        transition: background-color 0.3s ease;
-                    " onclick="moveBackToPending(${orderId})" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
-                        ↩️ Move Back to Pending
-                    </button>
-                </div>
-            `;
+               <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 10px; padding: 20px; margin: 20px 0;">
+                   <div style="font-weight: 600; margin-bottom: 15px; color: #856404; text-align: center; font-size: 1.1rem;">⏱️ Order Status</div>
+                   <div style="color: #856404; line-height: 1.8; text-align: center;">
+                       <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🍳 Currently Preparing</div>
+                       <div style="font-size: 1rem;">📅 Estimated completion: ${estimatedTime.toLocaleTimeString()}</div>
+                       <div style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">⏰ Average wait time: 15 minutes</div>
+                   </div>
+               </div>
+               
+               <div class="processing-actions" style="display: flex; gap: 15px; margin-top: 25px;">
+                   <button class="btn-large" style="
+                       background: #28a745; 
+                       color: white; 
+                       border: none; 
+                       border-radius: 8px; 
+                       cursor: pointer; 
+                       padding: 15px 25px; 
+                       font-size: 1.1rem; 
+                       flex: 1;
+                       font-weight: 600;
+                       transition: background-color 0.3s ease;
+                   " onclick="completeOrder(${orderId})" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                       ✅ Mark as Complete
+                   </button>
+                   <button class="btn-large" style="
+                       background: #6c757d; 
+                       color: white; 
+                       border: none; 
+                       border-radius: 8px; 
+                       cursor: pointer; 
+                       padding: 15px 25px; 
+                       font-size: 1.1rem; 
+                       flex: 1;
+                       font-weight: 600;
+                       transition: background-color 0.3s ease;
+                   " onclick="moveBackToPending(${orderId})" onmouseover="this.style.backgroundColor='#5a6268'" onmouseout="this.style.backgroundColor='#6c757d'">
+                       ↩️ Move Back to Pending
+                   </button>
+               </div>
+           `;
 
             // Add to the container
             const container = processingSection.querySelector('.processing-orders-container');
@@ -2907,15 +3164,15 @@
                 header = document.createElement('div');
                 header.className = 'processing-section-header';
                 header.style.cssText = `
-                    background: #8B4513;
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 10px 10px 0 0;
-                    margin-bottom: 20px;
-                    text-align: center;
-                    font-weight: 700;
-                    font-size: 1.2rem;
-                `;
+                   background: #8B4513;
+                   color: white;
+                   padding: 15px 20px;
+                   border-radius: 10px 10px 0 0;
+                   margin-bottom: 20px;
+                   text-align: center;
+                   font-weight: 700;
+                   font-size: 1.2rem;
+               `;
                 processingSection.insertBefore(header, processingSection.firstChild);
             }
 
@@ -2986,29 +3243,29 @@
 
             const toast = document.createElement('div');
             toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #d4edda;
-                color: #155724;
-                border: 2px solid #c3e6cb;
-                border-radius: 8px;
-                padding: 15px 20px;
-                box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
-                z-index: 3000;
-                max-width: 350px;
-                animation: slideIn 0.3s ease-out;
-            `;
+               position: fixed;
+               top: 20px;
+               right: 20px;
+               background: #d4edda;
+               color: #155724;
+               border: 2px solid #c3e6cb;
+               border-radius: 8px;
+               padding: 15px 20px;
+               box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+               z-index: 3000;
+               max-width: 350px;
+               animation: slideIn 0.3s ease-out;
+           `;
 
             toast.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5em;">✅</span>
-                    <div>
-                        <strong>Order #${displayOrderNumber} Complete!</strong><br>
-                        <small>Saved to sales database</small>
-                    </div>
-                </div>
-            `;
+               <div style="display: flex; align-items: center; gap: 10px;">
+                   <span style="font-size: 1.5em;">✅</span>
+                   <div>
+                       <strong>Order #${displayOrderNumber} Complete!</strong><br>
+                       <small>Saved to sales database</small>
+                   </div>
+               </div>
+           `;
 
             document.body.appendChild(toast);
 
@@ -3025,19 +3282,19 @@
 
             processingSection.className = 'processing-section';
             processingSection.innerHTML = `
-                <div class="processing-icon">💳</div>
-                <p><strong>SELECT AN ORDER</strong></p>
-                <p>FROM THE LEFT PANEL TO</p>
-                <p>BEGIN PROCESSING PAYMENT</p>
-                <br>
-                <p>Use the <strong>Accept</strong> button to process payment</p>
-                <p>Use the <strong>Edit</strong> button to modify orders</p>
-                <p>Use the <strong>Cancel</strong> button to cancel orders</p>
-                <div style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <span>🔄</span>
-                    <span>Auto-updating every 25 seconds</span>
-                </div>
-            `;
+               <div class="processing-icon">💳</div>
+               <p><strong>SELECT AN ORDER</strong></p>
+               <p>FROM THE LEFT PANEL TO</p>
+               <p>BEGIN PROCESSING PAYMENT</p>
+               <br>
+               <p>Use the <strong>Accept</strong> button to process payment</p>
+               <p>Use the <strong>Edit</strong> button to modify orders</p>
+               <p>Use the <strong>Cancel</strong> button to cancel orders</p>
+               <div style="margin-top: 20px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                   <span>🔄</span>
+                   <span>Auto-updating every 25 seconds</span>
+               </div>
+           `;
         }
 
         function cancelOrder(orderId) {
@@ -3157,16 +3414,16 @@
             if (orderCards.length === 0 && ordersContainer) {
                 if (!ordersContainer.contains(emptyState)) {
                     ordersContainer.innerHTML = `
-                        <div class="empty-state" id="emptyState">
-                            <div class="empty-state-icon">📭</div>
-                            <p>No pending cash orders</p>
-                            <small>Orders will appear here when customers place cash orders</small>
-                            <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                                <span>🔄</span>
-                                <span>Auto-updating every 25 seconds</span>
-                            </div>
-                        </div>
-                    `;
+                       <div class="empty-state" id="emptyState">
+                           <div class="empty-state-icon">📭</div>
+                           <p>No pending cash orders</p>
+                           <small>Orders will appear here when customers place cash orders</small>
+                           <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                               <span>🔄</span>
+                               <span>Auto-updating every 25 seconds</span>
+                           </div>
+                       </div>
+                   `;
                     debugLog('Empty state added to container');
                 }
             } else if (orderCards.length > 0 && emptyState) {
@@ -3181,39 +3438,39 @@
                 errorAlert = document.createElement('div');
                 errorAlert.id = 'errorAlert';
                 errorAlert.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: #f8d7da;
-                    color: #721c24;
-                    border: 2px solid #f5c6cb;
-                    border-radius: 8px;
-                    padding: 15px 20px;
-                    box-shadow: 0 4px 15px rgba(114, 28, 36, 0.2);
-                    z-index: 2000;
-                    max-width: 400px;
-                    animation: slideIn 0.3s ease-out;
-                `;
+                   position: fixed;
+                   top: 20px;
+                   right: 20px;
+                   background: #f8d7da;
+                   color: #721c24;
+                   border: 2px solid #f5c6cb;
+                   border-radius: 8px;
+                   padding: 15px 20px;
+                   box-shadow: 0 4px 15px rgba(114, 28, 36, 0.2);
+                   z-index: 2000;
+                   max-width: 400px;
+                   animation: slideIn 0.3s ease-out;
+               `;
                 document.body.appendChild(errorAlert);
             }
 
             errorAlert.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.2em;">⚠️</span>
-                    <div>
-                        <strong>Error</strong><br>
-                        ${message}
-                    </div>
-                    <button onclick="this.parentElement.parentElement.remove()" style="
-                        background: none; 
-                        border: none; 
-                        color: #721c24; 
-                        font-size: 1.2em; 
-                        cursor: pointer;
-                        margin-left: auto;
-                    ">×</button>
-                </div>
-            `;
+               <div style="display: flex; align-items: center; gap: 10px;">
+                   <span style="font-size: 1.2em;">⚠️</span>
+                   <div>
+                       <strong>Error</strong><br>
+                       ${message}
+                   </div>
+                   <button onclick="this.parentElement.parentElement.remove()" style="
+                       background: none; 
+                       border: none; 
+                       color: #721c24; 
+                       font-size: 1.2em; 
+                       cursor: pointer;
+                       margin-left: auto;
+                   ">×</button>
+               </div>
+           `;
 
             setTimeout(() => {
                 if (errorAlert && errorAlert.parentElement) {
@@ -3225,29 +3482,29 @@
         function showSuccessMessage(message) {
             const toast = document.createElement('div');
             toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #d4edda;
-                color: #155724;
-                border: 2px solid #c3e6cb;
-                border-radius: 8px;
-                padding: 15px 20px;
-                box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
-                z-index: 3000;
-                max-width: 350px;
-                animation: slideIn 0.3s ease-out;
-            `;
+               position: fixed;
+               top: 20px;
+               right: 20px;
+               background: #d4edda;
+               color: #155724;
+               border: 2px solid #c3e6cb;
+               border-radius: 8px;
+               padding: 15px 20px;
+               box-shadow: 0 4px 15px rgba(21, 87, 36, 0.2);
+               z-index: 3000;
+               max-width: 350px;
+               animation: slideIn 0.3s ease-out;
+           `;
 
             toast.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.5em;">✅</span>
-                    <div>
-                        <strong>Success!</strong><br>
-                        <small>${message}</small>
-                    </div>
-                </div>
-            `;
+               <div style="display: flex; align-items: center; gap: 10px;">
+                   <span style="font-size: 1.5em;">✅</span>
+                   <div>
+                       <strong>Success!</strong><br>
+                       <small>${message}</small>
+                   </div>
+               </div>
+           `;
 
             document.body.appendChild(toast);
 
@@ -3256,6 +3513,56 @@
                     toast.remove();
                 }
             }, 3000);
+        }
+
+        // Printer testing functions
+        async function testPrinterConnection() {
+            try {
+                showPrinterStatus('Testing printer connection...', 'processing');
+
+                const response = await fetch('/test-printer-print');
+                const data = await response.json();
+
+                if (data.success) {
+                    showPrinterStatus('✅ Printer test successful! Check if receipt printed.', 'success');
+                    alert('✅ Printer test successful! Check if receipt printed.\n\nUsing printer: ' + (data.connection_info?.configured_printer_path || 'Unknown'));
+                } else {
+                    showPrinterStatus('❌ Printer test failed - check logs', 'error');
+                    alert('❌ Printer test failed:\n' + data.error + '\n\nCheck browser console and Laravel logs for details.');
+                }
+
+                console.log('Printer test result:', data);
+            } catch (error) {
+                showPrinterStatus('❌ Printer test error: ' + error.message, 'error');
+                alert('❌ Printer test error: ' + error.message);
+                console.error('Printer test error:', error);
+            }
+        }
+
+        async function showPrinterInfo() {
+            try {
+                const response = await fetch('/test-printer-connection');
+                const data = await response.json();
+
+                let message = 'Printer Configuration:\n\n';
+                message += `Configured Printer: ${data.connection_info?.configured_printer_path || 'Not set'}\n`;
+                message += `OS: ${data.connection_info?.os_family || 'Unknown'}\n\n`;
+
+                if (data.connection_info?.system_printers?.length > 0) {
+                    message += 'Available Printers:\n';
+                    data.connection_info.system_printers.forEach((printer, index) => {
+                        message += `${index + 1}. ${printer}\n`;
+                    });
+                } else {
+                    message += 'No system printers detected\n';
+                }
+
+                alert(message);
+                console.log('Printer info:', data);
+            } catch (error) {
+                alert('❌ Error getting printer info: ' + error.message);
+                console.error('Printer info error:', error);
+            }
         }
 
         // Event listeners
@@ -3290,25 +3597,14 @@
                 const paymentModal = document.getElementById('paymentModal');
                 if (paymentModal && paymentModal.classList.contains('show')) {
                     const confirmBtn = document.getElementById('confirmPaymentBtn');
-                    if (confirmBtn && !confirmBtn.disabled) {
+                    if (confirmBtn && !confirmBtn.disabled && !isProcessingPayment) {
                         confirmPayment();
                     }
                 }
             }
         });
 
-        // Page visibility API to pause/resume auto-reload when tab is not visible
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden) {
-                stopAutoReload();
-                debugLog('Page hidden: Auto-reload paused');
-            } else {
-                startAutoReload();
-                debugLog('Page visible: Auto-reload resumed');
-                // Refresh immediately when user comes back
-                autoRefreshOrders();
-            }
-        });
+
 
         document.addEventListener('DOMContentLoaded', function () {
             debugLog('Cashier page loaded, initializing...');
@@ -3319,6 +3615,8 @@
 
             // Do initial refresh after a short delay
             setTimeout(autoRefreshOrders, 10000);
+
+            
         });
 
         // Stop auto-reload when page is about to unload
@@ -3326,42 +3624,57 @@
             stopAutoReload();
         });
 
+        function debugCSRF() {
+            const token = getCSRFToken();
+            console.log('CSRF Token:', token);
+            console.log('Meta tag exists:', !!document.querySelector('meta[name="csrf-token"]'));
+            console.log('Token length:', token ? token.length : 0);
+
+            // Test if token is valid
+            if (token && token.length !== 40) {
+                console.warn('CSRF token length seems incorrect. Expected 40 characters, got:', token.length);
+            }
+        }
+
+        // Call this function when page loads
+        document.addEventListener('DOMContentLoaded', debugCSRF);
+
         // Add CSS for animations
         const style = document.createElement('style');
         style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateY(-20px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes slideInFromLeft {
-                from {
-                    transform: translateX(-100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
+           @keyframes slideIn {
+               from {
+                   transform: translateY(-20px);
+                   opacity: 0;
+               }
+               to {
+                   transform: translateY(0);
+                   opacity: 1;
+               }
+           }
+           
+           @keyframes slideInFromLeft {
+               from {
+                   transform: translateX(-100%);
+                   opacity: 0;
+               }
+               to {
+                   transform: translateX(0);
+                   opacity: 1;
+               }
+           }
 
-            @keyframes slideInNotification {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-        `;
+           @keyframes slideInNotification {
+               from {
+                   transform: translateX(100%);
+                   opacity: 0;
+               }
+               to {
+                   transform: translateX(0);
+                   opacity: 1;
+               }
+           }
+       `;
         document.head.appendChild(style);
 
         // Global function exports
@@ -3384,6 +3697,8 @@
         window.decreaseEditQuantity = decreaseEditQuantity;
         window.saveEditOrderChanges = saveEditOrderChanges;
         window.filterEditMenuItems = filterEditMenuItems;
+        window.testPrinterConnection = testPrinterConnection;
+        window.showPrinterInfo = showPrinterInfo;
     </script>
 </body>
 

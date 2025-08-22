@@ -338,23 +338,8 @@
             box-shadow: none;
         }
 
-        .payment-modal-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .payment-modal-btn:hover::before {
-            left: 100%;
-        }
-
-        /* GCash Processing Modal */
-        .gcash-processing-modal {
+        /* Cash Payment Confirmation Modal */
+        .cash-confirmation-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -368,18 +353,17 @@
             backdrop-filter: blur(10px);
         }
 
-        .gcash-processing-modal.show {
+        .cash-confirmation-modal.show {
             display: flex;
         }
 
-        .gcash-processing-container {
-            background: linear-gradient(135deg, #007dfe, #0056b3);
-            width: 600px;
-            max-width: 90vw;
+        .cash-confirmation-container {
+            background: white;
+            width: 700px;
+            max-width: 95vw;
             border-radius: 25px;
-            box-shadow: 0 30px 60px rgba(0, 125, 254, 0.4);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
             overflow: hidden;
-            color: white;
             animation: slideInScale 0.5s ease-out;
         }
 
@@ -394,144 +378,153 @@
             }
         }
 
-        .gcash-processing-header {
-            background: linear-gradient(135deg, #0056b3, #004494);
+        .cash-confirmation-header {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
             padding: 30px;
             text-align: center;
-            position: relative;
         }
 
-        .gcash-logo {
-            width: 80px;
-            height: 80px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.5rem;
-            color: #007dfe;
-            font-weight: bold;
-        }
-
-        .gcash-processing-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .gcash-processing-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .gcash-processing-content {
+        .cash-confirmation-content {
             padding: 40px 30px;
-            text-align: center;
+            background: #f5f1e8;
         }
 
-        .processing-step {
-            background: rgba(255, 255, 255, 0.1);
+        .order-number-display {
+            background: linear-gradient(135deg, #8b4513, #a0522d);
+            color: white;
             border-radius: 15px;
             padding: 25px;
+            text-align: center;
             margin-bottom: 25px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(139, 69, 19, 0.3);
         }
 
-        .processing-step-number {
-            background: white;
-            color: #007dfe;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin: 0 auto 15px;
-        }
-
-        .processing-step-title {
-            font-size: 1.3rem;
-            font-weight: 700;
+        .order-number-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
             margin-bottom: 10px;
         }
 
-        .processing-step-description {
-            font-size: 1rem;
-            opacity: 0.9;
-            line-height: 1.4;
+        .order-number-value {
+            font-size: 3rem;
+            font-weight: 800;
+            font-family: 'Playfair Display', serif;
+            margin: 10px 0;
         }
 
-        .payment-details-box {
-            background: rgba(255, 255, 255, 0.15);
+        .order-number-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .cashier-instructions {
+            background: #fff3cd;
+            border: 3px solid #ffeaa7;
             border-radius: 15px;
             padding: 25px;
             margin: 25px 0;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: #856404;
+            text-align: center;
+        }
+
+        .cashier-instruction-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .cashier-instruction-text {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 700;
+            color: #2c1810;
+            font-size: 1.1rem;
+        }
+
+        .payment-details-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 2px solid #e9ecef;
         }
 
         .payment-detail-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
+            padding: 12px 0;
             font-size: 1.1rem;
+            color: #2c1810;
         }
 
         .payment-detail-row.total {
-            border-top: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #d4c4a8;
             margin-top: 15px;
             padding-top: 15px;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
+            color: #8b4513;
         }
 
-        .redirect-info {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+        .change-highlight {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            color: #155724;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .steps-list {
+            background: #e7f3ff;
+            border: 2px solid #b3d9ff;
+            border-radius: 15px;
             padding: 20px;
             margin: 25px 0;
-            border-left: 4px solid #ffd700;
         }
 
-        .redirect-info-icon {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-
-        .redirect-info-text {
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
             font-size: 1rem;
             line-height: 1.4;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
+        .step-number {
+            background: #8b4513;
+            color: white;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+            font-size: 0.9rem;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .step-text {
+            color: #2c1810;
         }
 
-        .gcash-processing-actions {
-            padding: 0 30px 30px;
+        .confirmation-actions {
             display: flex;
             gap: 15px;
             justify-content: center;
+            margin-top: 30px;
         }
 
-        .gcash-btn {
-            padding: 15px 25px;
+        .confirmation-btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 18px 25px;
             border: none;
             border-radius: 12px;
             font-size: 1rem;
@@ -542,98 +535,32 @@
             letter-spacing: 1px;
         }
 
-        .gcash-btn-primary {
-            background: white;
-            color: #007dfe;
-            flex: 1;
-            max-width: 200px;
+        .confirmation-btn-primary {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
         }
 
-        .gcash-btn-primary:hover {
-            background: #f8f9fa;
+        .confirmation-btn-primary:hover {
+            background: linear-gradient(135deg, #20c997, #17a2b8);
             transform: translateY(-2px);
         }
 
-        .gcash-btn-secondary {
-            background: transparent;
+        .confirmation-btn-secondary {
+            background: #6c757d;
             color: white;
-            border: 2px solid white;
-            flex: 1;
-            max-width: 200px;
         }
 
-        .gcash-btn-secondary:hover {
-            background: white;
-            color: #007dfe;
+        .confirmation-btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
         }
 
-        /* Success/Error States */
-        .status-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(44, 24, 16, 0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 4000;
-            backdrop-filter: blur(5px);
-        }
-
-        .status-modal.show {
-            display: flex;
-        }
-
-        .status-container {
-            background: white;
-            width: 500px;
-            max-width: 90vw;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+        .footer-note {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
             text-align: center;
-        }
-
-        .status-success {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            padding: 40px;
-        }
-
-        .status-error {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            color: white;
-            padding: 40px;
-        }
-
-        .status-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-
-        .status-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .status-message {
-            font-size: 1.1rem;
-            opacity: 0.95;
-        }
-
-        .status-content {
-            padding: 30px;
-        }
-
-        .status-actions {
-            padding: 20px 30px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
         }
 
         /* CANCEL ORDER MODAL */
@@ -724,39 +651,6 @@
             background: #f5f1e8;
         }
 
-        .cancel-warning-box {
-            background: #fff3cd;
-            border: 2px solid #ffeaa7;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: left;
-        }
-
-        .cancel-warning-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #856404;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .cancel-warning-text {
-            color: #856404;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-
-        .cancel-confirmation-text {
-            font-size: 1.2rem;
-            color: #2c1810;
-            font-weight: 600;
-            margin-bottom: 30px;
-            line-height: 1.4;
-        }
-
         .cancel-modal-actions {
             display: flex;
             gap: 15px;
@@ -775,8 +669,6 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
         }
 
         .cancel-modal-btn-no {
@@ -801,21 +693,6 @@
             background: linear-gradient(135deg, #c82333, #a71e2a);
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-        }
-
-        .cancel-modal-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .cancel-modal-btn:hover::before {
-            left: 100%;
         }
 
         /* Left Sidebar */
@@ -1083,21 +960,6 @@
             box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
         }
 
-        .btn-pay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-pay:hover::before {
-            left: 100%;
-        }
-
         .empty-cart {
             text-align: center;
             padding: 60px 20px;
@@ -1157,99 +1019,26 @@
 
             .cancel-modal-container,
             .payment-modal-container,
-            .gcash-processing-container {
+            .cash-confirmation-container {
                 width: 400px;
             }
 
             .cancel-modal-actions,
             .payment-modal-actions,
-            .gcash-processing-actions {
+            .confirmation-actions {
                 flex-direction: column;
                 gap: 12px;
             }
 
             .cancel-modal-btn,
             .payment-modal-btn,
-            .gcash-btn {
+            .confirmation-btn {
                 max-width: none;
             }
 
             .payment-methods {
                 grid-template-columns: 1fr;
                 gap: 15px;
-            }
-        }
-
-        /* Lenovo Xiaoxin Pad 2024 11" Optimizations */
-        @media (min-width: 1200px) and (max-width: 1920px) {
-            .review-title {
-                font-size: 3.5rem;
-            }
-
-            .order-item {
-                padding: 25px;
-            }
-
-            .order-item-image {
-                width: 90px;
-                height: 90px;
-            }
-
-            .order-item-name {
-                font-size: 1.3rem;
-            }
-
-            .order-item-price {
-                font-size: 1.3rem;
-            }
-
-            .quantity-btn {
-                width: 36px;
-                height: 36px;
-                font-size: 18px;
-            }
-
-            .btn {
-                padding: 22px 35px;
-                font-size: 1.2rem;
-            }
-
-            .summary-row {
-                font-size: 1.2rem;
-            }
-
-            .summary-row.total {
-                font-size: 1.5rem;
-            }
-
-            .cancel-modal-container,
-            .payment-modal-container,
-            .gcash-processing-container {
-                width: 600px;
-            }
-
-            .cancel-modal-title,
-            .payment-modal-title {
-                font-size: 2rem;
-            }
-
-            .cancel-confirmation-text {
-                font-size: 1.3rem;
-            }
-
-            .cancel-modal-btn,
-            .payment-modal-btn {
-                padding: 20px 30px;
-                font-size: 1.1rem;
-            }
-        }
-
-        /* Portrait mode optimization for tablet */
-        @media (orientation: portrait) and (min-width: 768px) {
-            .sidebar {
-                width: 180px !important;
-                min-width: 180px;
-                max-width: 180px;
             }
         }
     </style>
@@ -1300,9 +1089,7 @@
                                 </div>
                             </div>
 
-                            <button class="order-item-remove" onclick="removeItem({{ $index }})">
-                                🗑️
-                            </button>
+                            <button class="order-item-remove" onclick="removeItem({{ $index }})">🗑️</button>
                         </div>
                     @endforeach
                 @else
@@ -1352,12 +1139,8 @@
                             class="btn btn-back">
                             Back to Menu
                         </a>
-                        <button type="button" class="btn btn-cancel" onclick="showCancelModal()">
-                            Cancel Order
-                        </button>
-                        <button type="button" class="btn btn-pay" onclick="showPaymentModal()">
-                            PAY
-                        </button>
+                        <button type="button" class="btn btn-cancel" onclick="showCancelModal()">Cancel Order</button>
+                        <button type="button" class="btn btn-pay" onclick="showPaymentModal()" id="payButton">PAY</button>
                     </div>
                 </footer>
             @endif
@@ -1415,9 +1198,8 @@
                 </div>
 
                 <div class="payment-modal-actions">
-                    <button class="payment-modal-btn payment-modal-btn-cancel" onclick="hidePaymentModal()">
-                        Cancel
-                    </button>
+                    <button class="payment-modal-btn payment-modal-btn-cancel"
+                        onclick="hidePaymentModal()">Cancel</button>
                     <button class="payment-modal-btn payment-modal-btn-proceed" id="proceedPaymentBtn"
                         onclick="proceedWithPayment()" disabled>
                         Proceed to Payment
@@ -1427,96 +1209,79 @@
         </div>
     </div>
 
-    <!-- GCash Processing Modal -->
-    <div class="gcash-processing-modal" id="gcashProcessingModal">
-        <div class="gcash-processing-container">
-            <div class="gcash-processing-header">
-                <div class="gcash-logo">G₱</div>
-                <h2 class="gcash-processing-title">Preparing GCash Payment</h2>
-                <p class="gcash-processing-subtitle">Setting up your secure payment...</p>
+    <!-- Cash Payment Confirmation Modal -->
+    <div class="cash-confirmation-modal" id="cashConfirmationModal">
+        <div class="cash-confirmation-container">
+            <div class="cash-confirmation-header">
+                <div class="payment-modal-icon">✅</div>
+                <h2 class="payment-modal-title">Order Placed Successfully!</h2>
+                <p class="payment-modal-subtitle">Your order has been prepared and is ready for payment</p>
             </div>
-            
-            <div class="gcash-processing-content">
-                <div class="processing-step">
-                    <div class="processing-step-number" id="stepNumber">1</div>
-                    <div class="processing-step-title" id="stepTitle">Creating Payment Intent</div>
-                    <div class="processing-step-description" id="stepDescription">
-                        Securely connecting to PayMongo payment gateway
+
+            <div class="cash-confirmation-content">
+                <!-- Order Number Display -->
+                <div class="order-number-display">
+                    <div class="order-number-label">Your Order Number</div>
+                    <div class="order-number-value" id="orderNumberDisplay">C001</div>
+                    <div class="order-number-subtitle">Show this to the cashier</div>
+                </div>
+
+                <!-- Cashier Instructions -->
+                <div class="cashier-instructions">
+                    <div class="cashier-instruction-title">🗣️ <strong>Please tell the cashier:</strong></div>
+                    <div class="cashier-instruction-text" id="cashierInstruction">
+                        "Order #C001 - Cash Payment"
                     </div>
                 </div>
 
+                <!-- Payment Details -->
                 <div class="payment-details-box">
                     <div class="payment-detail-row">
-                        <span>Order Amount:</span>
-                        <span id="gcashOrderAmount">PHP {{ number_format($total ?? 0, 2) }}</span>
+                        <span>Order Total:</span>
+                        <span id="confirmationTotal">PHP 0.00</span>
                     </div>
                     <div class="payment-detail-row">
-                        <span>Payment Method:</span>
-                        <span>GCash via PayMongo</span>
+                        <span>You're Paying:</span>
+                        <span id="confirmationCash">PHP 0.00</span>
                     </div>
-                    <div class="payment-detail-row total">
-                        <span>Total to Pay:</span>
-                        <span id="gcashTotalAmount">PHP {{ number_format($total ?? 0, 2) }}</span>
-                    </div>
-                </div>
-
-                <div class="redirect-info">
-                    <div class="redirect-info-icon">🔒</div>
-                    <div class="redirect-info-text">
-                        <strong>What happens next?</strong><br>
-                        You'll be redirected to PayMongo's secure GCash checkout page. Complete your payment there and you'll be automatically returned to confirm your order.
+                    <div class="payment-detail-row change-highlight" id="confirmationChangeRow">
+                        <span>💰 Your Change:</span>
+                        <span id="confirmationChange">PHP 0.00</span>
                     </div>
                 </div>
 
-                <div class="spinner" id="loadingSpinner"></div>
-            </div>
+                <!-- Step-by-step Instructions -->
+                <div class="steps-list">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-text">Walk to the cashier counter with your order number</div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-text" id="step2Text">Tell them: "Order #C001 - Cash Payment"</div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-text" id="step3Text">Pay PHP 0.00 and collect your change</div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-text">Wait for your order to be prepared and served</div>
+                    </div>
+                </div>
 
-            <div class="gcash-processing-actions">
-                <button class="gcash-btn gcash-btn-primary" id="continueToGCashBtn" onclick="redirectToGCash()" style="display: none;">
-                    Continue to GCash
-                </button>
-                <button class="gcash-btn gcash-btn-secondary" onclick="cancelGCashPayment()">
-                    Cancel Payment
-                </button>
-            </div>
-        </div>
-    </div>
+                <div class="confirmation-actions">
+                    <button class="confirmation-btn confirmation-btn-primary" onclick="completeOrder()">
+                        Complete Order
+                    </button>
+                    <button class="confirmation-btn confirmation-btn-secondary" onclick="orderMore()">
+                        Order More Items
+                    </button>
+                </div>
 
-    <!-- Payment Success Modal -->
-    <div class="status-modal" id="successModal">
-        <div class="status-container">
-            <div class="status-success">
-                <div class="status-icon">✅</div>
-                <h2 class="status-title">Payment Successful!</h2>
-                <p class="status-message">Your GCash payment has been processed successfully</p>
-            </div>
-            <div class="status-content">
-                <p>Your order has been confirmed and sent to the kitchen.</p>
-                <p>Please wait for your order to be prepared.</p>
-            </div>
-            <div class="status-actions">
-                <button class="payment-modal-btn payment-modal-btn-proceed" onclick="completeOrder()">
-                    Complete Order
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Payment Error Modal -->
-    <div class="status-modal" id="errorModal">
-        <div class="status-container">
-            <div class="status-error">
-                <div class="status-icon">❌</div>
-                <h2 class="status-title">Payment Failed</h2>
-                <p class="status-message" id="errorMessage">There was an issue processing your GCash payment</p>
-            </div>
-            <div class="status-content">
-                <p>Your order has not been placed. Please try again or choose a different payment method.</p>
-            </div>
-            <div class="status-actions">
-                <button class="payment-modal-btn payment-modal-btn-cancel" onclick="closeErrorModal()">
-                    Try Again
-                </button>
+                <div class="footer-note">
+                    Thank you for choosing Sip & Serve! 🍽️
+                </div>
             </div>
         </div>
     </div>
@@ -1531,186 +1296,60 @@
             </div>
 
             <div class="cancel-modal-content">
-                <div class="cancel-warning-box">
-                    <div class="cancel-warning-title">
-                        <span>📋</span>
-                        What will happen:
-                    </div>
-                    <div class="cancel-warning-text">
-                        • All items will be removed from your cart<br>
-                        • Your order will be completely deleted<br>
-                        • You'll return to the main kiosk screen
-                    </div>
-                </div>
-
-                <div class="cancel-confirmation-text">
-                    Are you sure you want to cancel your entire order?
-                </div>
-
                 <div class="cancel-modal-actions">
-                    <button class="cancel-modal-btn cancel-modal-btn-no" onclick="hideCancelModal()">
-                        No, Keep Order
-                    </button>
-                    <button class="cancel-modal-btn cancel-modal-btn-yes" onclick="confirmCancelOrder()">
-                        Yes, Cancel Order
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cash Payment Confirmation Screen -->
-    <div class="payment-modal-overlay" id="cashConfirmationModal">
-        <div class="payment-modal-container" style="max-width: 700px;">
-            <div class="payment-modal-header" style="background: linear-gradient(135deg, #28a745, #20c997);">
-                <div class="payment-modal-icon">✅</div>
-                <h2 class="payment-modal-title">Order Placed Successfully!</h2>
-                <p class="payment-modal-subtitle">Your order has been prepared and is ready for payment</p>
-            </div>
-
-            <div class="payment-modal-content">
-                <!-- Order Number Display -->
-                <div class="payment-amount-display"
-                    style="background: linear-gradient(135deg, #8b4513, #a0522d); color: white; margin-bottom: 25px;">
-                    <div class="payment-amount-label" style="color: rgba(255,255,255,0.9);">Your Order Number</div>
-                    <div class="payment-amount-value" id="orderNumberDisplay"
-                        style="color: white; font-size: 3rem; margin: 10px 0;">
-                        C001
-                    </div>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">Show this to the cashier</div>
-                </div>
-
-                <!-- Cashier Instructions -->
-                <div
-                    style="background: #fff3cd; border: 3px solid #ffeaa7; border-radius: 15px; padding: 25px; margin: 25px 0; text-align: center; color: #856404;">
-                    <div
-                        style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px; font-family: 'Inter', sans-serif;">
-                        🗣️ <strong>Please tell the cashier:</strong>
-                    </div>
-                    <div style="font-size: 1.1rem; background: white; padding: 15px; border-radius: 10px; font-weight: 700; color: #2c1810; font-family: 'Inter', sans-serif;"
-                        id="cashierInstruction">
-                        "Order #C001 - Cash Payment"
-                    </div>
-                </div>
-
-                <!-- Payment Details -->
-                <div
-                    style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin: 25px 0; border: 2px solid #e9ecef;">
-                    <div
-                        style="display: flex; justify-content: space-between; padding: 12px 0; font-size: 1.1rem; color: #2c1810; font-family: 'Inter', sans-serif;">
-                        <span style="font-weight: 500;">Order Total:</span>
-                        <span
-                            style="font-weight: 700; font-family: 'Inter', sans-serif; color: #8b4513; font-size: 1.2rem;"
-                            id="confirmationTotal">PHP 0.00</span>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; padding: 12px 0; font-size: 1.1rem; color: #2c1810; font-family: 'Inter', sans-serif;">
-                        <span style="font-weight: 500;">You're Paying:</span>
-                        <span
-                            style="font-weight: 700; font-family: 'Inter', sans-serif; color: #8b4513; font-size: 1.2rem;"
-                            id="confirmationCash">PHP 0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 15px; margin-top: 15px; background: #d4edda; border: 2px solid #c3e6cb; border-radius: 10px; color: #155724; font-weight: 700; font-size: 1.2rem; font-family: 'Inter', sans-serif;"
-                        id="confirmationChangeRow">
-                        <span style="font-weight: 600;">💰 Your Change:</span>
-                        <span style="font-weight: 800; font-family: 'Inter', sans-serif;" id="confirmationChange">PHP
-                            0.00</span>
-                    </div>
-                </div>
-
-                <!-- Step-by-step Instructions -->
-                <div
-                    style="background: #e7f3ff; border: 2px solid #b3d9ff; border-radius: 15px; padding: 20px; margin: 25px 0; text-align: left;">
-                    <div
-                        style="display: flex; align-items: flex-start; margin-bottom: 15px; font-size: 1rem; line-height: 1.4;">
-                        <div
-                            style="background: #8b4513; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px; flex-shrink: 0; font-size: 0.9rem;">
-                            1</div>
-                        <div style="font-family: 'Inter', sans-serif; color: #2c1810;">Walk to the cashier counter with
-                            your order number</div>
-                    </div>
-                    <div
-                        style="display: flex; align-items: flex-start; margin-bottom: 15px; font-size: 1rem; line-height: 1.4;">
-                        <div
-                            style="background: #8b4513; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px; flex-shrink: 0; font-size: 0.9rem;">
-                            2</div>
-                        <div style="font-family: 'Inter', sans-serif; color: #2c1810;" id="step2Text">Tell them: "Order
-                            #C001 - Cash Payment"</div>
-                    </div>
-                    <div
-                        style="display: flex; align-items: flex-start; margin-bottom: 15px; font-size: 1rem; line-height: 1.4;">
-                        <div
-                            style="background: #8b4513; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px; flex-shrink: 0; font-size: 0.9rem;">
-                            3</div>
-                        <div style="font-family: 'Inter', sans-serif; color: #2c1810;" id="step3Text">Pay PHP 0.00 and
-                            collect your change</div>
-                    </div>
-                    <div
-                        style="display: flex; align-items: flex-start; margin-bottom: 15px; font-size: 1rem; line-height: 1.4;">
-                        <div
-                            style="background: #8b4513; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px; flex-shrink: 0; font-size: 0.9rem;">
-                            4</div>
-                        <div style="font-family: 'Inter', sans-serif; color: #2c1810;">Wait for your order to be
-                            prepared and served</div>
-                    </div>
-                </div>
-
-                <!-- Table Information (if available) -->
-                <div style="background: #f5f1e8; border-radius: 10px; padding: 15px; margin: 20px 0; border: 2px solid #d4c4a8; font-weight: 600; color: #2c1810; text-align: center; display: none;"
-                    id="tableInfoSection">
-                    📍 <strong id="tableInfo">Table 1</strong>
-                </div>
-
-                <div class="payment-modal-actions" style="margin-top: 30px;">
-                    <button class="payment-modal-btn"
-                        style="background: linear-gradient(135deg, #28a745, #20c997); color: white;"
-                        onclick="completeOrder()">
-                        Complete Order
-                    </button>
-                    <button class="payment-modal-btn payment-modal-btn-cancel" onclick="orderMore()">
-                        Order More Items
-                    </button>
-                </div>
-
-                <!-- Footer note -->
-                <div style="margin-top: 30px; font-size: 0.9rem; color: #666; font-style: italic; text-align: center;">
-                    Thank you for choosing Sip & Serve! 🍽️
+                    <button class="cancel-modal-btn cancel-modal-btn-no" onclick="hideCancelModal()">No, Keep
+                        Order</button>
+                    <button class="cancel-modal-btn cancel-modal-btn-yes" onclick="confirmCancelOrder()">Yes, Cancel
+                        Order</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let cart = @json(session('cart', []));
+        // Initialize cart data and global variables
+        let cart = [];
         let selectedPaymentMethod = null;
         let totalAmount = {{ $total ?? 0 }};
-        let checkoutUrl = null;
-        let orderData = null;
+
+        // Safely parse cart data from Laravel session
+        try {
+            const rawCart = {!! json_encode(session('cart', [])) !!};
+            cart = Array.isArray(rawCart) ? rawCart : Object.values(rawCart || {});
+        } catch (e) {
+            console.error('Error parsing cart data:', e);
+            cart = [];
+        }
+
+        function getCsrfToken() {
+            const token = document.querySelector('meta[name="csrf-token"]');
+            return token ? token.getAttribute('content') : '';
+        }
 
         function updateItemQuantity(index, change) {
             fetch('{{ route("kiosk.updateCartItem") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRF-TOKEN': getCsrfToken()
                 },
                 body: JSON.stringify({
                     index: index,
                     change: change
                 })
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Error updating item quantity');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
                     alert('Error updating item quantity');
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating item quantity');
+            });
         }
 
         function removeItem(index) {
@@ -1719,28 +1358,27 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        'X-CSRF-TOKEN': getCsrfToken()
                     },
                     body: JSON.stringify({
                         index: index
                     })
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            location.reload();
-                        } else {
-                            alert('Error removing item');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
                         alert('Error removing item');
-                    });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error removing item');
+                });
             }
         }
 
-        // PAYMENT MODAL FUNCTIONS
         function showPaymentModal() {
             if (cart.length === 0) {
                 alert('Your cart is empty!');
@@ -1748,29 +1386,43 @@
             }
 
             const modal = document.getElementById('paymentModal');
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
 
-            // Reset payment method selection
-            selectedPaymentMethod = null;
-            document.querySelectorAll('.payment-method-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            document.getElementById('cashInputSection').classList.remove('show');
-            document.getElementById('proceedPaymentBtn').disabled = true;
-            document.getElementById('proceedPaymentBtn').textContent = 'Select Payment Method';
+                // Reset payment method selection
+                selectedPaymentMethod = null;
+                document.querySelectorAll('.payment-method-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                
+                const cashSection = document.getElementById('cashInputSection');
+                const proceedBtn = document.getElementById('proceedPaymentBtn');
+                
+                if (cashSection) cashSection.classList.remove('show');
+                if (proceedBtn) {
+                    proceedBtn.disabled = true;
+                    proceedBtn.textContent = 'Select Payment Method';
+                }
+            }
         }
 
         function hidePaymentModal() {
             const modal = document.getElementById('paymentModal');
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
 
-            // Reset form
-            selectedPaymentMethod = null;
-            document.getElementById('cashAmountInput').value = '';
-            document.getElementById('changeDisplay').style.display = 'none';
-            document.getElementById('cashInputSection').classList.remove('show');
+                // Reset form
+                selectedPaymentMethod = null;
+                const cashInput = document.getElementById('cashAmountInput');
+                const changeDisplay = document.getElementById('changeDisplay');
+                const cashSection = document.getElementById('cashInputSection');
+                
+                if (cashInput) cashInput.value = '';
+                if (changeDisplay) changeDisplay.style.display = 'none';
+                if (cashSection) cashSection.classList.remove('show');
+            }
         }
 
         function selectPaymentMethod(method) {
@@ -1781,21 +1433,25 @@
                 btn.classList.remove('selected');
             });
 
-            const selectedBtn = event.currentTarget;
-            selectedBtn.classList.add('selected');
+            event.currentTarget.classList.add('selected');
 
             const proceedBtn = document.getElementById('proceedPaymentBtn');
             const cashSection = document.getElementById('cashInputSection');
 
             if (method === 'gcash') {
-                cashSection.classList.remove('show');
-                proceedBtn.disabled = false;
-                proceedBtn.textContent = 'Pay with GCash';
+                if (cashSection) cashSection.classList.remove('show');
+                if (proceedBtn) {
+                    proceedBtn.disabled = false;
+                    proceedBtn.textContent = 'Pay with GCash';
+                }
             } else if (method === 'cash') {
-                cashSection.classList.add('show');
-                proceedBtn.disabled = true;
-                proceedBtn.textContent = 'Enter Cash Amount';
-                document.getElementById('cashAmountInput').focus();
+                if (cashSection) cashSection.classList.add('show');
+                if (proceedBtn) {
+                    proceedBtn.disabled = true;
+                    proceedBtn.textContent = 'Enter Cash Amount';
+                }
+                const cashInput = document.getElementById('cashAmountInput');
+                if (cashInput) cashInput.focus();
             }
         }
 
@@ -1804,6 +1460,8 @@
             const changeDisplay = document.getElementById('changeDisplay');
             const changeAmount = document.getElementById('changeAmount');
             const proceedBtn = document.getElementById('proceedPaymentBtn');
+
+            if (!cashInput || !changeDisplay || !changeAmount || !proceedBtn) return;
 
             const cashValue = parseFloat(cashInput.value) || 0;
             const change = cashValue - totalAmount;
@@ -1835,294 +1493,176 @@
                 return;
             }
 
-            if (selectedPaymentMethod === 'gcash') {
-                // Process GCash payment via PayMongo
-                processGCashPayment();
-            } else if (selectedPaymentMethod === 'cash') {
-                // Process cash payment
+            if (selectedPaymentMethod === 'cash') {
                 processCashPayment();
+            } else if (selectedPaymentMethod === 'gcash') {
+                alert('GCash payment not implemented yet');
             }
-        }
-
-        function processGCashPayment() {
-            // Hide payment modal and show GCash processing
-            hidePaymentModal();
-            document.getElementById('gcashProcessingModal').classList.add('show');
-
-            orderData = {
-                order_type: '{{ session("orderType", "dine-in") }}',
-                items: cart,
-                subtotal: totalAmount,
-                tax_amount: 0,
-                discount_amount: 0,
-                total_amount: totalAmount,
-                payment_method: 'gcash'
-            };
-
-            fetch('{{ route("kiosk.processPayment") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify(orderData)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.checkout_url) {
-                        checkoutUrl = data.checkout_url;
-                        
-                        // Store order info for return
-                        sessionStorage.setItem('pendingGCashOrder', JSON.stringify(data));
-
-                        // Hide spinner and show continue button
-                        document.getElementById('loadingSpinner').style.display = 'none';
-                        document.getElementById('continueToGCashBtn').style.display = 'block';
-                        
-                        // Update step indicator
-                        updateProcessingStep('Payment intent created successfully', '2');
-                    } else {
-                        handleGCashError(data.message || 'Payment processing failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    handleGCashError('Network error occurred');
-                });
-        }
-
-        function updateProcessingStep(message, stepNumber) {
-            document.getElementById('stepNumber').textContent = stepNumber;
-            document.getElementById('stepTitle').textContent = 'Ready for Payment';
-            document.getElementById('stepDescription').textContent = message;
-        }
-
-        function redirectToGCash() {
-            if (checkoutUrl) {
-                // Store order info for when user returns
-                sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
-                
-                // Redirect to PayMongo GCash checkout
-                window.location.href = checkoutUrl;
-            } else {
-                handleGCashError('No checkout URL available');
-            }
-        }
-
-        function cancelGCashPayment() {
-            document.getElementById('gcashProcessingModal').classList.remove('show');
-            document.getElementById('paymentModal').classList.add('show');
-        }
-
-        function handleGCashError(message) {
-            document.getElementById('gcashProcessingModal').classList.remove('show');
-            document.getElementById('errorModal').classList.add('show');
-            
-            // Update error message
-            document.getElementById('errorMessage').textContent = message;
-        }
-
-        function closeErrorModal() {
-            document.getElementById('errorModal').classList.remove('show');
-            document.getElementById('paymentModal').classList.add('show');
-        }
-
-        function showPaymentSuccess() {
-            document.getElementById('gcashProcessingModal').classList.remove('show');
-            document.getElementById('successModal').classList.add('show');
         }
 
         function processCashPayment() {
-            const cashAmount = parseFloat(document.getElementById('cashAmountInput').value);
+            const cashAmountInput = document.getElementById('cashAmountInput');
+            if (!cashAmountInput) {
+                alert('Please enter cash amount');
+                return;
+            }
 
-            if (cashAmount < totalAmount) {
-                alert('Insufficient cash amount');
+            const cashAmount = parseFloat(cashAmountInput.value);
+            if (isNaN(cashAmount) || cashAmount < totalAmount) {
+                alert('Insufficient or invalid cash amount.');
                 return;
             }
 
             // Show loading state
             const proceedBtn = document.getElementById('proceedPaymentBtn');
-            proceedBtn.disabled = true;
-            proceedBtn.textContent = 'Processing...';
+            const originalText = proceedBtn ? proceedBtn.textContent : '';
+            if (proceedBtn) {
+                proceedBtn.disabled = true;
+                proceedBtn.textContent = 'Processing...';
+            }
 
             const orderData = {
-                order_type: '{{ session("orderType", "dine-in") }}',
-                items: cart,
-                subtotal: totalAmount,
-                tax_amount: 0,
-                discount_amount: 0,
-                total_amount: totalAmount,
-                payment_method: 'cash',
                 cash_amount: cashAmount,
                 change_amount: cashAmount - totalAmount
             };
 
-            fetch('{{ route("kiosk.processPayment") }}', {
+            fetch('/kiosk/process-cash-payment', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
                 },
                 body: JSON.stringify(orderData)
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Hide payment modal
-                        hidePaymentModal();
-
-                        // Show cash payment confirmation screen
-                        showCashPaymentConfirmation(data);
-                    } else {
-                        alert('Error processing cash payment: ' + (data.message || 'Unknown error'));
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.message || 'Server error');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    hidePaymentModal();
+                    showCashPaymentConfirmation(data);
+                } else {
+                    alert('Error processing cash payment: ' + (data.message || 'Unknown error'));
+                    if (proceedBtn) {
                         proceedBtn.disabled = false;
-                        proceedBtn.textContent = 'Proceed to Cashier';
+                        proceedBtn.textContent = originalText;
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error processing payment. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Payment Error:', error);
+                alert('Error processing payment. Please try again.');
+                if (proceedBtn) {
                     proceedBtn.disabled = false;
-                    proceedBtn.textContent = 'Proceed to Cashier';
-                });
+                    proceedBtn.textContent = originalText;
+                }
+            });
         }
 
-        // CANCEL ORDER MODAL FUNCTIONS
-        function showCancelModal() {
-            const modal = document.getElementById('cancelModal');
+        function showCashPaymentConfirmation(data) {
+            const modal = document.getElementById('cashConfirmationModal');
+            if (!modal) return;
+
+            // Update order number displays
+            const orderNumber = data.order_number || 'C001';
+            const orderNumberDisplay = document.getElementById('orderNumberDisplay');
+            if (orderNumberDisplay) orderNumberDisplay.textContent = orderNumber;
+
+            // Update cashier instruction
+            const cashierInstruction = document.getElementById('cashierInstruction');
+            if (cashierInstruction) cashierInstruction.textContent = `"Order #${orderNumber} - Cash Payment"`;
+
+            // Update step instructions
+            const step2Text = document.getElementById('step2Text');
+            const step3Text = document.getElementById('step3Text');
+            if (step2Text) step2Text.textContent = `Tell them: "Order #${orderNumber} - Cash Payment"`;
+            if (step3Text) step3Text.textContent = `Pay PHP ${parseFloat(data.cash_amount || 0).toFixed(2)} and collect your change`;
+
+            // Update payment amounts
+            const totalAmountFromData = parseFloat(data.total_amount) || totalAmount;
+            const cashAmount = parseFloat(data.cash_amount) || 0;
+            const changeAmount = parseFloat(data.change_amount) || 0;
+
+            const confirmationTotal = document.getElementById('confirmationTotal');
+            const confirmationCash = document.getElementById('confirmationCash');
+            const confirmationChange = document.getElementById('confirmationChange');
+            
+            if (confirmationTotal) confirmationTotal.textContent = `PHP ${totalAmountFromData.toFixed(2)}`;
+            if (confirmationCash) confirmationCash.textContent = `PHP ${cashAmount.toFixed(2)}`;
+            if (confirmationChange) confirmationChange.textContent = `PHP ${changeAmount.toFixed(2)}`;
+
+            // Show/hide change row if no change needed
+            const changeRow = document.getElementById('confirmationChangeRow');
+            if (changeRow) {
+                changeRow.style.display = changeAmount <= 0 ? 'none' : 'flex';
+            }
+
+            // Show the modal
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
 
+        function orderMore() {
+            window.location.href = '{{ route("kiosk.main") }}';
+        }
+
+        function completeOrder() {
+            window.location.href = '{{ route("kiosk.index") }}';
+        }
+
+        function showCancelModal() {
+            const modal = document.getElementById('cancelModal');
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
         function hideCancelModal() {
             const modal = document.getElementById('cancelModal');
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
         }
 
         function confirmCancelOrder() {
             fetch('{{ route("kiosk.cancelOrder") }}', {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRF-TOKEN': getCsrfToken()
                 }
             })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = '{{ route("kiosk.index") }}';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     window.location.href = '{{ route("kiosk.index") }}';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                window.location.href = '{{ route("kiosk.index") }}';
+            });
+        }
+
+        // Initialize event listeners when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const cashInput = document.getElementById('cashAmountInput');
+            if (cashInput) {
+                cashInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        const proceedBtn = document.getElementById('proceedPaymentBtn');
+                        if (proceedBtn && !proceedBtn.disabled) {
+                            proceedWithPayment();
+                        }
+                    }
                 });
-        }
-
-        // Close modals when clicking outside
-        document.getElementById('cancelModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                hideCancelModal();
-            }
-        });
-
-        document.getElementById('paymentModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                hidePaymentModal();
-            }
-        });
-
-        document.getElementById('gcashProcessingModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                cancelGCashPayment();
-            }
-        });
-
-        // Add touch feedback for better UX
-        document.querySelectorAll('.btn, .quantity-btn, .order-item-remove, .cancel-modal-btn, .payment-modal-btn, .payment-method-btn, .gcash-btn').forEach(button => {
-            button.addEventListener('touchstart', function () {
-                this.style.transform = 'scale(0.98)';
-            });
-
-            button.addEventListener('touchend', function () {
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-            });
-        });
-
-        // Handle Enter key in cash input
-        document.getElementById('cashAmountInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter' && !document.getElementById('proceedPaymentBtn').disabled) {
-                proceedWithPayment();
-            }
-        });
-
-        // CASH PAYMENT CONFIRMATION FUNCTIONS
-        function showCashPaymentConfirmation(data) {
-            const modal = document.getElementById('cashConfirmationModal');
-
-            // Generate order number
-            const orderNumber = data.order_number || 'C' + String(data.order_id || Math.floor(Math.random() * 1000)).padStart(3, '0');
-
-            // Update order number displays
-            document.getElementById('orderNumberDisplay').textContent = orderNumber;
-            document.getElementById('cashierInstruction').textContent = `"Order #${orderNumber} - Cash Payment"`;
-            document.getElementById('step2Text').textContent = `Tell them: "Order #${orderNumber} - Cash Payment"`;
-
-            // Get payment amounts from the response data
-            const cashAmount = parseFloat(data.cash_amount) || parseFloat(document.getElementById('cashAmountInput').value) || 0;
-            const totalAmountFromData = parseFloat(data.total_amount) || totalAmount || 0;
-            const changeAmount = parseFloat(data.change_amount) || (cashAmount - totalAmountFromData);
-
-            // Update payment amounts with proper formatting
-            document.getElementById('confirmationTotal').textContent = `PHP ${totalAmountFromData.toFixed(2)}`;
-            document.getElementById('confirmationCash').textContent = `PHP ${cashAmount.toFixed(2)}`;
-            document.getElementById('confirmationChange').textContent = `PHP ${changeAmount.toFixed(2)}`;
-            document.getElementById('step3Text').textContent = `Pay PHP ${cashAmount.toFixed(2)} and collect your change`;
-
-            // Show/hide change row if no change needed
-            if (changeAmount <= 0) {
-                document.getElementById('confirmationChangeRow').style.display = 'none';
-            } else {
-                document.getElementById('confirmationChangeRow').style.display = 'flex';
-            }
-
-            // Hide table info section by default
-            const tableInfoSection = document.getElementById('tableInfoSection');
-            if (tableInfoSection) {
-                tableInfoSection.style.display = 'none';
-            }
-
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function completeOrder() {
-            // Redirect to kiosk home or confirmation page
-            window.location.href = '{{ route("kiosk.index") }}';
-        }
-
-        function orderMore() {
-            // Redirect back to menu
-            window.location.href = '{{ route("kiosk.main") }}';
-        }
-
-        // Close cash confirmation modal when clicking outside
-        document.getElementById('cashConfirmationModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                completeOrder();
-            }
-        });
-
-        // Handle return from PayMongo
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const paymentIntentId = urlParams.get('payment_intent_id');
-            
-            if (paymentIntentId) {
-                // Payment completed - show success
-                showPaymentSuccess();
             }
         });
     </script>

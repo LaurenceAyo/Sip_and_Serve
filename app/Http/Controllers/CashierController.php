@@ -12,14 +12,24 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Services\ThermalPrinterService;
 use Exception;
+use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\Printer;
 
 class CashierController extends Controller
 {
+    protected $thermalPrinterService;
+
+    public function __construct()
+    {
+        $this->thermalPrinterService = new ThermalPrinterService();
+    }
+
     public function index()
     {
         try {
-            Log::info('Cashier index method called');
+            Log::info('Cashier index method called - GOOJPRT PT-210 System');
 
             // Get pending cash orders only (not preparing ones for the pending panel)
             $cashOrders = Order::with([
@@ -33,17 +43,11 @@ class CashierController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            Log::info('Cashier Debug - Orders Found', [
+            Log::info('GOOJPRT PT-210 Cashier Debug - Orders Found', [
                 'count' => $cashOrders->count(),
                 'order_ids' => $cashOrders->pluck('id')->toArray(),
-                'orders_with_cash_amounts' => $cashOrders->map(function($order) {
-                    return [
-                        'id' => $order->id,
-                        'cash_amount' => $order->cash_amount,
-                        'total_amount' => $order->total_amount,
-                        'payment_method' => $order->payment_method
-                    ];
-                })->toArray()
+                'printer_configured' => env('THERMAL_PRINTER_NAME', 'Not configured'),
+                'printer_path' => env('THERMAL_PRINTER_PATH', 'Not configured')
             ]);
 
             // Get categories for manual order creation
@@ -55,11 +59,11 @@ class CashierController extends Controller
             $pendingOrders = $cashOrders->map(function ($order) {
                 // Calculate the correct total from order items
                 $calculatedTotal = $this->calculateCorrectTotal($order);
-                
+
                 // Get cash amount and calculate expected change
                 $cashAmount = (float) ($order->cash_amount ?? 0);
                 $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
-                
+
                 return [
                     'id' => $order->id, // Use actual ID, not padded
                     'actual_id' => $order->id,
@@ -81,14 +85,14 @@ class CashierController extends Controller
                 ];
             })->toArray();
 
-            Log::info('Pending orders formatted with cash amounts', [
+            Log::info('GOOJPRT PT-210 system - Pending orders formatted', [
                 'count' => count($pendingOrders),
                 'sample_order' => count($pendingOrders) > 0 ? $pendingOrders[0] : null
             ]);
 
             return view('cashier', compact('pendingOrders', 'categories'));
         } catch (Exception $e) {
-            Log::error('Error loading cashier page', [
+            Log::error('Error loading GOOJPRT PT-210 cashier page', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -106,11 +110,11 @@ class CashierController extends Controller
     private function calculateCorrectTotal($order)
     {
         $total = 0;
-        
+
         foreach ($order->orderItems as $item) {
             $quantity = (int) $item->quantity;
             $unitPrice = 0;
-            
+
             // Determine unit price with proper fallback logic
             if ($item->unit_price && $item->unit_price > 0) {
                 $unitPrice = (float) $item->unit_price;
@@ -121,11 +125,11 @@ class CashierController extends Controller
                 // Use menu item price as fallback
                 $unitPrice = (float) $item->menuItem->price;
             }
-            
+
             $itemTotal = $unitPrice * $quantity;
             $total += $itemTotal;
-            
-            Log::debug('Item total calculation', [
+
+            Log::debug('GOOJPRT PT-210 - Item total calculation', [
                 'item_id' => $item->id,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
@@ -133,23 +137,23 @@ class CashierController extends Controller
                 'running_total' => $total
             ]);
         }
-        
+
         // Only use database total if calculated total is 0 (fallback)
         if ($total <= 0 && $order->total_amount > 0) {
             $total = (float) $order->total_amount;
-            Log::warning('Using database total as fallback', [
+            Log::warning('GOOJPRT PT-210 - Using database total as fallback', [
                 'order_id' => $order->id,
                 'calculated_total' => 0,
                 'database_total' => $total
             ]);
         }
-        
-        Log::info('Final total calculation', [
+
+        Log::info('GOOJPRT PT-210 - Final total calculation', [
             'order_id' => $order->id,
             'calculated_total' => $total,
             'database_total' => $order->total_amount
         ]);
-        
+
         return $total;
     }
 
@@ -172,7 +176,7 @@ class CashierController extends Controller
                         $itemName = $menuItem->name;
                     }
                 } catch (Exception $e) {
-                    Log::warning('Could not find menu item', [
+                    Log::warning('GOOJPRT PT-210 - Could not find menu item', [
                         'menu_item_id' => $item->menu_item_id,
                         'order_item_id' => $item->id
                     ]);
@@ -186,11 +190,11 @@ class CashierController extends Controller
 
             // Get quantity
             $quantity = (int) $item->quantity;
-            
+
             // Calculate unit price and total price correctly
             $unitPrice = 0;
             $totalPrice = 0;
-            
+
             if ($item->unit_price && $item->unit_price > 0) {
                 $unitPrice = (float) $item->unit_price;
                 $totalPrice = $unitPrice * $quantity;
@@ -202,7 +206,7 @@ class CashierController extends Controller
                 $totalPrice = $unitPrice * $quantity;
             }
 
-            Log::debug('Formatting order item', [
+            Log::debug('GOOJPRT PT-210 - Formatting order item', [
                 'item_id' => $item->id,
                 'name' => $itemName,
                 'quantity' => $quantity,
@@ -222,18 +226,10 @@ class CashierController extends Controller
         })->toArray();
     }
 
-    /**
-     * Legacy method - keeping for backward compatibility but redirecting to fixed version
-     */
-    private function formatOrderItems($orderItems)
-    {
-        return $this->formatOrderItemsFixed($orderItems);
-    }
-
     public function refreshOrders()
     {
         try {
-            Log::info('Refresh orders method called');
+            Log::info('GOOJPRT PT-210 - Refresh orders method called');
 
             $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
                 ->where('payment_method', 'cash')
@@ -241,16 +237,9 @@ class CashierController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            Log::info('Refresh orders found', [
+            Log::info('GOOJPRT PT-210 - Refresh orders found', [
                 'count' => $cashOrders->count(),
-                'orders' => $cashOrders->pluck('id')->toArray(),
-                'cash_amounts' => $cashOrders->map(function($order) {
-                    return [
-                        'id' => $order->id,
-                        'cash_amount' => $order->cash_amount,
-                        'total_amount' => $order->total_amount
-                    ];
-                })->toArray()
+                'orders' => $cashOrders->pluck('id')->toArray()
             ]);
 
             return response()->json([
@@ -259,7 +248,7 @@ class CashierController extends Controller
                     $calculatedTotal = $this->calculateCorrectTotal($order);
                     $cashAmount = (float) ($order->cash_amount ?? 0);
                     $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
-                    
+
                     return [
                         'id' => $order->id,
                         'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
@@ -274,12 +263,17 @@ class CashierController extends Controller
                         'created_at' => $order->created_at->toISOString(),
                         'order_items' => $this->formatOrderItemsFixed($order->orderItems)
                     ];
-                })
+                }),
+                'printer_info' => [
+                    'name' => env('THERMAL_PRINTER_NAME', 'GOOJPRT PT-210'),
+                    'path' => env('THERMAL_PRINTER_PATH', 'GOOJPRT PT-210'),
+                    'status' => 'Ready'
+                ]
             ], 200, [
                 'Content-Type' => 'application/json'
             ]);
         } catch (Exception $e) {
-            Log::error('Error refreshing cashier orders', [
+            Log::error('GOOJPRT PT-210 - Error refreshing cashier orders', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -295,9 +289,9 @@ class CashierController extends Controller
 
     public function acceptOrder(Request $request)
     {
-        Log::info('Accept order method called', [
+        Log::info('GOOJPRT PT-210 - Accept order method called', [
             'request_data' => $request->all(),
-            'headers' => $request->headers->all()
+            'printer_configured' => env('THERMAL_PRINTER_NAME', 'Not configured')
         ]);
 
         try {
@@ -307,9 +301,9 @@ class CashierController extends Controller
                 'print_receipt' => 'boolean'
             ]);
 
-            Log::info('Validation passed', ['validated' => $validated]);
+            Log::info('GOOJPRT PT-210 - Validation passed', ['validated' => $validated]);
         } catch (ValidationException $e) {
-            Log::error('Validation failed', [
+            Log::error('GOOJPRT PT-210 - Validation failed', [
                 'errors' => $e->errors(),
                 'input' => $request->all()
             ]);
@@ -329,7 +323,7 @@ class CashierController extends Controller
             // Use calculated total instead of database total
             $calculatedTotal = $this->calculateCorrectTotal($order);
 
-            Log::info('Order found with calculated total', [
+            Log::info('GOOJPRT PT-210 - Order found with calculated total', [
                 'order_id' => $order->id,
                 'database_total' => $order->total_amount,
                 'calculated_total' => $calculatedTotal,
@@ -338,7 +332,7 @@ class CashierController extends Controller
 
             // Validate cash amount against calculated total
             if ($validated['cash_amount'] < $calculatedTotal) {
-                Log::warning('Insufficient cash amount', [
+                Log::warning('GOOJPRT PT-210 - Insufficient cash amount', [
                     'cash_amount' => $validated['cash_amount'],
                     'calculated_total' => $calculatedTotal
                 ]);
@@ -352,7 +346,7 @@ class CashierController extends Controller
             // Calculate change using calculated total
             $changeAmount = $validated['cash_amount'] - $calculatedTotal;
 
-            Log::info('Updating order with calculated values', [
+            Log::info('GOOJPRT PT-210 - Updating order with calculated values', [
                 'order_id' => $order->id,
                 'calculated_total' => $calculatedTotal,
                 'change_amount' => $changeAmount
@@ -370,21 +364,43 @@ class CashierController extends Controller
             ]);
 
             $receiptPrinted = false;
+            $printerError = null;
 
-            // Print receipt if requested
+            // Print receipt using GOOJPRT PT-210 if requested
             if ($validated['print_receipt'] ?? true) {
-                $receiptPrinted = $this->printReceipt($order);
+                Log::info('GOOJPRT PT-210 - Attempting to print receipt', [
+                    'order_id' => $order->id,
+                    'printer_name' => env('THERMAL_PRINTER_NAME'),
+                    'printer_path' => env('THERMAL_PRINTER_PATH')
+                ]);
+                
+                try {
+                    $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
+                    
+                    Log::info('GOOJPRT PT-210 - Receipt printing result', [
+                        'order_id' => $order->id,
+                        'receipt_printed' => $receiptPrinted
+                    ]);
+                } catch (Exception $e) {
+                    $printerError = $e->getMessage();
+                    Log::error('GOOJPRT PT-210 - Receipt printing exception', [
+                        'order_id' => $order->id,
+                        'error' => $printerError
+                    ]);
+                    $receiptPrinted = false;
+                }
             }
 
             DB::commit();
 
-            Log::info('Order accepted by cashier', [
+            Log::info('GOOJPRT PT-210 - Order accepted by cashier', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
                 'calculated_total' => $calculatedTotal,
                 'cash_amount' => $validated['cash_amount'],
                 'change_amount' => $changeAmount,
-                'receipt_printed' => $receiptPrinted
+                'receipt_printed' => $receiptPrinted,
+                'printer_error' => $printerError
             ]);
 
             return response()->json([
@@ -393,6 +409,8 @@ class CashierController extends Controller
                 'receipt_printed' => $receiptPrinted,
                 'change_amount' => $changeAmount,
                 'total_amount' => $calculatedTotal, // Return calculated total
+                'printer_info' => 'GOOJPRT PT-210 USB',
+                'printer_error' => $printerError,
                 'order' => [
                     'id' => $order->id,
                     'status' => $order->status,
@@ -405,7 +423,7 @@ class CashierController extends Controller
         } catch (Exception $e) {
             DB::rollback();
 
-            Log::error('Error accepting order', [
+            Log::error('GOOJPRT PT-210 - Error accepting order', [
                 'order_id' => $validated['order_id'] ?? 'unknown',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -447,8 +465,13 @@ class CashierController extends Controller
                 'change_given' => $validated['change_given'],
                 'completion_time' => $validated['completion_time'],
                 'receipt_printed' => $validated['receipt_printed'],
+                'printer_used' => 'GOOJPRT PT-210',
                 'created_at' => now(),
                 'updated_at' => now()
+            ]);
+
+            Log::info('GOOJPRT PT-210 - Order completed and saved to sales', [
+                'order_id' => $validated['order_id']
             ]);
 
             return response()->json([
@@ -456,7 +479,7 @@ class CashierController extends Controller
                 'message' => 'Order completed and saved to sales'
             ]);
         } catch (Exception $e) {
-            Log::error('Error completing order', [
+            Log::error('GOOJPRT PT-210 - Error completing order', [
                 'order_id' => $validated['order_id'],
                 'error' => $e->getMessage()
             ]);
@@ -470,7 +493,7 @@ class CashierController extends Controller
 
     public function cancelOrder(Request $request)
     {
-        Log::info('Cancel order method called', [
+        Log::info('GOOJPRT PT-210 - Cancel order method called', [
             'request_data' => $request->all()
         ]);
 
@@ -480,7 +503,7 @@ class CashierController extends Controller
                 'reason' => 'nullable|string|max:255'
             ]);
         } catch (ValidationException $e) {
-            Log::error('Cancel order validation failed', [
+            Log::error('GOOJPRT PT-210 - Cancel order validation failed', [
                 'errors' => $e->errors(),
                 'input' => $request->all()
             ]);
@@ -497,7 +520,7 @@ class CashierController extends Controller
         try {
             $order = Order::findOrFail($validated['order_id']);
 
-            Log::info('Cancelling order', [
+            Log::info('GOOJPRT PT-210 - Cancelling order', [
                 'order_id' => $order->id,
                 'reason' => $validated['reason'] ?? 'No reason provided'
             ]);
@@ -512,7 +535,7 @@ class CashierController extends Controller
 
             DB::commit();
 
-            Log::info('Order cancelled by cashier', [
+            Log::info('GOOJPRT PT-210 - Order cancelled by cashier', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
                 'reason' => $validated['reason']
@@ -527,7 +550,7 @@ class CashierController extends Controller
         } catch (Exception $e) {
             DB::rollback();
 
-            Log::error('Error cancelling order', [
+            Log::error('GOOJPRT PT-210 - Error cancelling order', [
                 'order_id' => $validated['order_id'] ?? 'unknown',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -542,189 +565,106 @@ class CashierController extends Controller
         }
     }
 
-    private function printReceipt(Order $order)
+    // ENHANCED: Printer testing routes with proper GOOJPRT PT-210 integration
+    public function testPrinterPrint()
     {
         try {
-            // For production environments with actual thermal printers
-            // Uncomment and configure your printer connection
-            // $connector = new WindowsPrintConnector("POS-80");
-
-            // For development - save receipt to file and simulate printing
-            $receiptPath = storage_path('app/receipts');
-            if (!file_exists($receiptPath)) {
-                mkdir($receiptPath, 0755, true);
-            }
-
-            $receiptFile = $receiptPath . '/receipt_' . $order->id . '_' . now()->format('YmdHis') . '.txt';
-
-            // Generate receipt content
-            $receiptContent = $this->generateReceiptContent($order);
-
-            // Save receipt to file
-            file_put_contents($receiptFile, $receiptContent);
-
-            // Log successful receipt generation
-            Log::info('Receipt generated successfully', [
-                'order_id' => $order->id,
-                'file_path' => $receiptFile,
-                'order_total' => $order->total_amount,
-                'cash_amount' => $order->cash_amount,
-                'change_amount' => $order->change_amount
+            Log::info('GOOJPRT PT-210 - Manual printer test requested via controller');
+            
+            $result = $this->thermalPrinterService->testPrinter();
+            $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
+            
+            return response()->json([
+                'success' => $result,
+                'message' => $result ? 'GOOJPRT PT-210 test print sent successfully!' : 'GOOJPRT PT-210 test print failed',
+                'connection_info' => $connectionInfo,
+                'timestamp' => now()->toISOString()
             ]);
-
-            // Simulate cash register opening (in production, this would trigger hardware)
-            $this->openCashDrawer();
-
-            return true;
+            
         } catch (Exception $e) {
-            Log::error('Receipt printing failed', [
-                'order_id' => $order->id,
+            Log::error('GOOJPRT PT-210 - Printer test controller error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return false;
+            
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'GOOJPRT PT-210 test failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 
-    private function generateReceiptContent(Order $order)
-    {
-        $receipt = "";
-        $receipt .= "=====================================\n";
-        $receipt .= "          SIP & SERVE CAFE          \n";
-        $receipt .= "=====================================\n";
-        $receipt .= "         OFFICIAL RECEIPT           \n";
-        $receipt .= "=====================================\n\n";
-
-        // Order details
-        $receipt .= "Receipt #: " . ($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)) . "\n";
-        $receipt .= "Date: " . $order->created_at->format('M d, Y H:i') . "\n";
-        $receipt .= "Cashier: " . (Auth::user()->name ?? 'System') . "\n";
-        $receipt .= "Type: " . ucfirst($order->order_type ?? 'Dine-in') . "\n";
-
-        if ($order->customer_name) {
-            $receipt .= "Customer: " . $order->customer_name . "\n";
-        }
-
-        $receipt .= "\n-------------------------------------\n";
-        $receipt .= "ITEMS:\n";
-        $receipt .= "-------------------------------------\n";
-
-        // Order items with correct calculations
-        $calculatedSubtotal = 0;
-        foreach ($order->orderItems as $item) {
-            $itemName = $item->name ?? $item->menuItem->name ?? 'Custom Item';
-            $quantity = (int) $item->quantity;
-            
-            // Calculate unit price correctly
-            $unitPrice = 0;
-            if ($item->unit_price && $item->unit_price > 0) {
-                $unitPrice = (float) $item->unit_price;
-            } elseif ($item->total_price && $quantity > 0) {
-                $unitPrice = (float) $item->total_price / $quantity;
-            } elseif ($item->menuItem && $item->menuItem->price) {
-                $unitPrice = (float) $item->menuItem->price;
-            }
-            
-            $totalPrice = $unitPrice * $quantity;
-            $calculatedSubtotal += $totalPrice;
-
-            $receipt .= $itemName . "\n";
-            $receipt .= "  " . $quantity . " x PHP " . number_format($unitPrice, 2);
-            $receipt .= " = PHP " . number_format($totalPrice, 2) . "\n";
-        }
-
-        $receipt .= "\n-------------------------------------\n";
-
-        // Use calculated totals
-        $taxAmount = is_numeric($order->tax_amount) ? (float) $order->tax_amount : 0;
-        $discountAmount = is_numeric($order->discount_amount) ? (float) $order->discount_amount : 0;
-        $totalAmount = $calculatedSubtotal + $taxAmount - $discountAmount;
-        $cashAmount = is_numeric($order->cash_amount) ? (float) $order->cash_amount : 0;
-        $changeAmount = is_numeric($order->change_amount) ? (float) $order->change_amount : 0;
-
-        $receipt .= "Subtotal: PHP " . number_format($calculatedSubtotal, 2) . "\n";
-
-        if ($taxAmount > 0) {
-            $receipt .= "VAT (12%): PHP " . number_format($taxAmount, 2) . "\n";
-        }
-
-        if ($discountAmount > 0) {
-            $receipt .= "Discount: -PHP " . number_format($discountAmount, 2) . "\n";
-        }
-
-        $receipt .= "\n=====================================\n";
-        $receipt .= "TOTAL: PHP " . number_format($totalAmount, 2) . "\n";
-        $receipt .= "=====================================\n\n";
-
-        // Payment details
-        $receipt .= "PAYMENT DETAILS:\n";
-        $receipt .= "-------------------------------------\n";
-        $receipt .= "Payment Method: CASH\n";
-        $receipt .= "Cash Received: PHP " . number_format($cashAmount, 2) . "\n";
-
-        if ($changeAmount > 0) {
-            $receipt .= "Change: PHP " . number_format($changeAmount, 2) . "\n";
-        }
-
-        $receipt .= "Status: PAID\n";
-        $receipt .= "\n=====================================\n";
-
-        // Special instructions
-        if ($order->special_instructions) {
-            $receipt .= "Special Instructions:\n";
-            $receipt .= $order->special_instructions . "\n";
-            $receipt .= "-------------------------------------\n";
-        }
-
-        // Footer
-        $receipt .= "\n       Thank you for dining\n";
-        $receipt .= "            with us!\n";
-        $receipt .= "        Please come again!\n\n";
-        $receipt .= "=====================================\n";
-        $receipt .= "BIR Permit #: 12345678\n";
-        $receipt .= "TIN: 123-456-789-000\n";
-        $receipt .= "www.sipandserve.com\n";
-        $receipt .= "=====================================\n";
-
-        return $receipt;
-    }
-
-    private function openCashDrawer()
+    public function testPrinterConnection()
     {
         try {
-            // In production, this would send commands to open the cash drawer
-            // For development, we'll just log the action
-            Log::info('Cash drawer opened', [
-                'timestamp' => now(),
-                'action' => 'drawer_open',
-                'cashier' => Auth::user()->name ?? 'System'
+            Log::info('GOOJPRT PT-210 - Printer connection info requested via controller');
+            
+            $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
+            
+            return response()->json([
+                'success' => true,
+                'connection_info' => $connectionInfo,
+                'printer_model' => 'GOOJPRT PT-210',
+                'connection_status' => 'Ready to test'
             ]);
-
-            // If you have a physical cash drawer, uncomment and configure:
-            // $this->sendCashDrawerCommand();
-
+            
         } catch (Exception $e) {
-            Log::error('Failed to open cash drawer', [
+            Log::error('GOOJPRT PT-210 - Printer connection info controller error', [
                 'error' => $e->getMessage()
             ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'connection_info' => [
+                    'configured_printer_name' => env('THERMAL_PRINTER_NAME', 'Not configured'),
+                    'configured_printer_path' => env('THERMAL_PRINTER_PATH', 'Not configured'),
+                    'error' => 'Could not retrieve printer information'
+                ]
+            ], 500);
         }
     }
 
-    // Uncomment and implement for physical cash drawer integration
-    /*
-    private function sendCashDrawerCommand()
+    public function resetPrinterConnection()
     {
-        // ESC/POS command to open cash drawer (Drawer 1)
-        $drawerCommand = "\x1B\x70\x00\x19\x19";
-        
-        // Send to printer (which typically controls the cash drawer)
-        $connector = new WindowsPrintConnector("POS-80");
-        $printer = new Printer($connector);
-        $printer->text($drawerCommand);
-        $printer->close();
+        try {
+            Log::info('GOOJPRT PT-210 - Manual printer connection reset requested');
+            
+            // Clear any cached connections or temporary files
+            $receiptPath = storage_path('app/thermal_receipts');
+            if (file_exists($receiptPath)) {
+                $files = glob($receiptPath . '/*');
+                foreach ($files as $file) {
+                    if (is_file($file) && (time() - filemtime($file)) > 3600) { // Delete files older than 1 hour
+                        unlink($file);
+                    }
+                }
+            }
+            
+            // Re-initialize printer service
+            $this->thermalPrinterService = new ThermalPrinterService();
+            $testResult = $this->thermalPrinterService->testPrinter();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'GOOJPRT PT-210 connection reset completed',
+                'test_result' => $testResult,
+                'timestamp' => now()->toISOString()
+            ]);
+            
+        } catch (Exception $e) {
+            Log::error('GOOJPRT PT-210 - Printer reset error', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Failed to reset GOOJPRT PT-210 connection'
+            ], 500);
+        }
     }
-    */
 
     public function getDashboardStats()
     {
@@ -737,7 +677,10 @@ class CashierController extends Controller
                     ->where('payment_status', 'paid')
                     ->sum('total_amount'),
                 'pending_orders' => Order::where('payment_status', 'pending')->count(),
-                'preparing_orders' => Order::where('status', 'preparing')->count()
+                'preparing_orders' => Order::where('status', 'preparing')->count(),
+                'printer_status' => 'GOOJPRT PT-210 Ready',
+                'printer_name' => env('THERMAL_PRINTER_NAME', 'GOOJPRT PT-210'),
+                'printer_path' => env('THERMAL_PRINTER_PATH', 'GOOJPRT PT-210')
             ];
 
             return response()->json([
@@ -747,7 +690,7 @@ class CashierController extends Controller
                 'Content-Type' => 'application/json'
             ]);
         } catch (Exception $e) {
-            Log::error('Error getting dashboard stats', [
+            Log::error('GOOJPRT PT-210 - Error getting dashboard stats', [
                 'error' => $e->getMessage()
             ]);
 
@@ -816,7 +759,7 @@ class CashierController extends Controller
 
             DB::commit();
 
-            Log::info('Manual order created', [
+            Log::info('GOOJPRT PT-210 - Manual order created', [
                 'order_id' => $order->id,
                 'created_by' => Auth::id(),
                 'total_amount' => $totalAmount
@@ -840,7 +783,7 @@ class CashierController extends Controller
         } catch (Exception $e) {
             DB::rollback();
 
-            Log::error('Error creating manual order', [
+            Log::error('GOOJPRT PT-210 - Error creating manual order', [
                 'error' => $e->getMessage(),
                 'input' => $request->all()
             ]);
@@ -848,6 +791,155 @@ class CashierController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create manual order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order items (for edit functionality)
+     */
+    public function updateOrder(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'order_id' => 'required|integer|exists:orders,id',
+                'items' => 'required|array|min:1',
+                'items.*.name' => 'required|string',
+                'items.*.price' => 'required|numeric|min:0',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.total_price' => 'required|numeric|min:0'
+            ]);
+
+            DB::beginTransaction();
+
+            $order = Order::findOrFail($validated['order_id']);
+
+            // Check if order is still pending
+            if ($order->payment_status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot edit order - payment already processed'
+                ], 422);
+            }
+
+            // Delete existing order items
+            $order->orderItems()->delete();
+
+            $newTotal = 0;
+
+            // Add updated order items
+            foreach ($validated['items'] as $itemData) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'name' => $itemData['name'],
+                    'quantity' => $itemData['quantity'],
+                    'unit_price' => $itemData['price'],
+                    'total_price' => $itemData['total_price']
+                ]);
+
+                $newTotal += $itemData['total_price'];
+            }
+
+            // Update order total
+            $order->update([
+                'total_amount' => $newTotal,
+                'subtotal' => $newTotal
+            ]);
+
+            DB::commit();
+
+            Log::info('GOOJPRT PT-210 - Order updated', [
+                'order_id' => $order->id,
+                'new_total' => $newTotal,
+                'items_count' => count($validated['items'])
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order updated successfully',
+                'new_total' => $newTotal
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            DB::rollback();
+
+            Log::error('GOOJPRT PT-210 - Error updating order', [
+                'error' => $e->getMessage(),
+                'input' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get detailed printer diagnostics
+     */
+    public function printerDiagnostics()
+    {
+        try {
+            $diagnostics = [
+                'timestamp' => now()->toISOString(),
+                'printer_model' => 'GOOJPRT PT-210',
+                'environment_config' => [
+                    'THERMAL_PRINTER_NAME' => env('THERMAL_PRINTER_NAME'),
+                    'THERMAL_PRINTER_TYPE' => env('THERMAL_PRINTER_TYPE'),
+                    'THERMAL_PRINTER_PATH' => env('THERMAL_PRINTER_PATH'),
+                    'THERMAL_PRINTER_DEBUG' => env('THERMAL_PRINTER_DEBUG'),
+                ],
+                'system_info' => [
+                    'php_version' => PHP_VERSION,
+                    'os_family' => PHP_OS_FAMILY,
+                    'os' => php_uname(),
+                ],
+                'printer_library' => [
+                    'escpos_installed' => class_exists('Mike42\Escpos\Printer'),
+                    'version_info' => 'mike42/escpos-php library loaded'
+                ]
+            ];
+            
+            // Test basic printer connectivity
+            try {
+                $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
+                $diagnostics['connection_test'] = $connectionInfo;
+                $diagnostics['connection_status'] = 'Available';
+            } catch (Exception $e) {
+                $diagnostics['connection_test'] = ['error' => $e->getMessage()];
+                $diagnostics['connection_status'] = 'Failed';
+            }
+            
+            // Get Windows printer list if possible
+            if (PHP_OS_FAMILY === 'Windows') {
+                try {
+                    $output = shell_exec('wmic printer get name,portname,drivername /format:csv 2>nul');
+                    $diagnostics['windows_printers'] = $output ? explode("\n", $output) : ['Could not retrieve'];
+                } catch (Exception $e) {
+                    $diagnostics['windows_printers'] = ['Error: ' . $e->getMessage()];
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'diagnostics' => $diagnostics
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'diagnostics' => [
+                    'timestamp' => now()->toISOString(),
+                    'error' => 'Could not complete diagnostics'
+                ]
             ], 500);
         }
     }

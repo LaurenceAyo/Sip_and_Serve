@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Models\{Order, OrderItem, MenuItem, Category, Inventory, Ingredient};
 use Illuminate\Support\Facades\{DB, Session, Log};
+use Exception;
 
 class KioskController extends Controller
 {
@@ -27,30 +28,121 @@ class KioskController extends Controller
     }
 
     /**
-     * Process payment for both GCash and Cash
+     * Process cash payment - TAX-INCLUSIVE PRICING
      */
-    public function processPayment(Request $request)
+    public function processCashPayment(Request $request)
     {
-        try {
-            $paymentMethod = $request->input('payment_method');
+        // Validate incoming data
+        $validated = $request->validate([
+            'cash_amount' => 'required|numeric|min:0',
+        ]);
 
-            if ($paymentMethod === 'gcash') {
-                // Handle GCash payment via PayMongo
-                return $this->processGCashPayment($request);
-            } elseif ($paymentMethod === 'cash') {
-                // Handle cash payment
-                return $this->processCashPayment($request);
+        try {
+            $cart = Session::get('cart', []);
+            $orderType = Session::get('orderType', 'dine-in');
+            $cashAmount = floatval($validated['cash_amount']);
+
+            if (empty($cart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your cart is empty. Please add items before proceeding.'
+                ], 400); // Bad Request
             }
 
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
+                $subtotal += $itemPrice * ($item['quantity'] ?? 1);
+            }
+
+            // For cash payments, prices are treated as tax-inclusive.
+            $tax = 0;
+            $total = $subtotal;
+
+            if ($cashAmount < $total) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient cash amount provided.'
+                ], 400); // Bad Request
+            }
+
+            $actualChange = $cashAmount - $total;
+
+            $order = null; // Initialize order variable
+
+            DB::transaction(function () use ($cart, $orderType, $subtotal, $tax, $total, $cashAmount, $actualChange, &$order) {
+                // Create the order
+                $order = Order::create([
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $tax,
+                    'discount_amount' => 0.00,
+                    'total_amount' => $total,
+                    'payment_method' => 'cash',
+                    'payment_status' => 'pending', // Will be marked 'paid' by cashier
+                    'status' => 'pending', // Initial status
+                    'cash_amount' => $cashAmount,
+                    'change_amount' => $actualChange,
+                    'order_type' => $orderType,
+                    'notes' => "Kiosk order - Type: {$orderType}",
+                ]);
+
+                // Create order items
+                foreach ($cart as $id => $item) {
+                    $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'menu_item_id' => $item['menu_item_id'] ?? null,
+                        'name' => $item['name'] ?? 'N/A',
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $itemPrice,
+                        'total_price' => $itemPrice * $item['quantity'],
+                        'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
+                        'status' => 'pending'
+                    ]);
+                }
+            });
+
+            // Generate a user-friendly order number
+            if ($order) {
+                $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+                $order->order_number = $orderNumber;
+                $order->save();
+            } else {
+                Log::error('Order object is null after transaction.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create order. Please try again.'
+                ], 500);
+            }
+
+
+            // Clear the cart and store the last order ID for the confirmation page
+            Session::forget('cart');
+            Session::put('last_order_id', $order->id);
+
+            Log::info('Cash payment processed successfully for Order ID: ' . $order->id);
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'cash_amount' => $cashAmount,
+                'change_amount' => $actualChange,
+                'total_amount' => $total,
+                'message' => 'Cash order processed successfully. Please proceed to the cashier.'
+            ]);
+
+        } catch (Exception $e) {
+            // Log the detailed error for debugging
+            Log::error('Cash payment failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return a generic error message to the user
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid payment method'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment processing failed: ' . $e->getMessage()
-            ]);
+                'message' => 'An unexpected error occurred. Please contact staff for assistance.'
+            ], 500); // Internal Server Error
         }
     }
 
@@ -139,136 +231,12 @@ class KioskController extends Controller
                 'total_amount' => $total, // Includes 10% tax
                 'message' => 'GCash payment initiated'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollback();
             Log::error('GCash payment failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'GCash payment failed: ' . $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Process cash payment - TAX-INCLUSIVE PRICING
-     */
-    private function processCashPayment(Request $request)
-    {
-        try {
-            $cart = Session::get('cart', []);
-            $orderType = Session::get('orderType', 'dine-in');
-            $cashAmount = floatval($request->input('cash_amount', 0));
-            $changeAmount = floatval($request->input('change_amount', 0));
-
-            Log::info('Processing cash payment', [
-                'cash_amount' => $cashAmount,
-                'change_amount' => $changeAmount,
-                'cart_items' => count($cart)
-            ]);
-
-            if (empty($cart)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cart is empty'
-                ]);
-            }
-
-            DB::beginTransaction();
-
-            // Calculate totals - CASH PAYMENT: TAX-INCLUSIVE
-            $subtotal = 0;
-            foreach ($cart as $item) {
-                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
-                $subtotal += $itemPrice * $item['quantity'];
-            }
-
-            // For CASH payments: prices are tax-inclusive
-            // The displayed price IS the final price customer pays
-            $tax = 0; // No additional tax for cash (already included in price)
-            $total = $subtotal; // Total equals displayed prices
-
-            // Recalculate change to ensure accuracy
-            $actualChange = $cashAmount - $total;
-
-            Log::info('Cash payment calculations (TAX-INCLUSIVE)', [
-                'subtotal' => $subtotal,
-                'tax' => $tax,
-                'total' => $total,
-                'cash_amount' => $cashAmount,
-                'calculated_change' => $actualChange,
-                'payment_method' => 'cash',
-                'note' => 'Prices are tax-inclusive for cash payments'
-            ]);
-
-            // Create the order WITH cash_amount and change_amount
-            $order = Order::create([
-                'subtotal' => $subtotal,
-                'tax_amount' => $tax, // 0 for cash (tax already included)
-                'discount_amount' => 0.00,
-                'total_amount' => $total, // Exact amount displayed to customer
-                'payment_method' => 'cash',
-                'payment_status' => 'pending',
-                'status' => 'pending',
-                'cash_amount' => $cashAmount,        // Save cash amount
-                'change_amount' => $actualChange,    // Save change amount
-                'order_type' => $orderType,          // Save order type in proper field
-                'notes' => "Kiosk order - Type: {$orderType} (Tax-inclusive pricing)",
-                'created_at' => now()
-            ]);
-
-            Log::info('Order created with cash details', [
-                'order_id' => $order->id,
-                'cash_amount' => $order->cash_amount,
-                'change_amount' => $order->change_amount,
-                'total_amount' => $order->total_amount,
-                'pricing_model' => 'tax-inclusive'
-            ]);
-
-            // Create order items
-            foreach ($cart as $item) {
-                $itemPrice = $item['price'] + ($item['addonsPrice'] ?? 0);
-
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'menu_item_id' => $item['menu_item_id'] ?? null,
-                    'name' => $item['name'] ?? 'Custom Item',  // Save item name
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $itemPrice,
-                    'total_price' => $itemPrice * $item['quantity'],
-                    'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
-                    'status' => 'pending'
-                ]);
-            }
-
-            DB::commit();
-
-            // Generate order number
-            $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
-
-            // Clear cart session
-            Session::forget('cart');
-            Session::put('last_order_id', $order->id);
-
-            Log::info('Cash payment processed successfully', [
-                'order_id' => $order->id,
-                'order_number' => $orderNumber
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'order_id' => $order->id,
-                'order_number' => $orderNumber,
-                'cash_amount' => $cashAmount,
-                'change_amount' => $actualChange,
-                'total_amount' => $total, // This should match the displayed price exactly
-                'message' => 'Cash order processed successfully'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollback();
-            Log::error('Cash payment failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Cash payment failed: Please try again'
             ]);
         }
     }
@@ -339,7 +307,7 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('storeMenuItem error:', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -384,7 +352,7 @@ class KioskController extends Controller
                 'success' => true,
                 'message' => 'Cart saved successfully'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Checkout error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -433,7 +401,7 @@ class KioskController extends Controller
             }
 
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Update cart item error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -458,7 +426,7 @@ class KioskController extends Controller
             }
 
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Remove cart item error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -476,7 +444,7 @@ class KioskController extends Controller
             Session::forget(['cart', 'orderType', 'checkout_data']);
             Log::info('Order cancelled - session data cleared');
             return response()->json(['success' => true]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Cancel order error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -568,7 +536,7 @@ class KioskController extends Controller
                 'success' => true,
                 'redirect_url' => route('kiosk.orderConfirmation', $order->id)
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollback();
             Log::error('Process order error: ' . $e->getMessage());
             return response()->json([
@@ -608,7 +576,7 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('updateMenuItem error:', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -648,7 +616,7 @@ class KioskController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('deleteMenuItem error:', ['error' => $e->getMessage()]);
 
             return response()->json([
@@ -721,6 +689,7 @@ class KioskController extends Controller
 
         return view('kioskMain', compact('categories', 'menuItems', 'itemsByCategory', 'orderType'));
     }
+
     /**
      * Get category items via AJAX
      */
@@ -760,7 +729,7 @@ class KioskController extends Controller
                 'success' => true,
                 'menuItems' => $transformedItems
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('getCategoryItems error:', [
                 'category_id' => $categoryId,
                 'error' => $e->getMessage(),
@@ -806,7 +775,7 @@ class KioskController extends Controller
                 'message' => "Fixed {$uncategorizedCount} uncategorized items",
                 'category_id' => $uncategorizedCategory->id
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Fix uncategorized items error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -853,7 +822,6 @@ class KioskController extends Controller
             'debug_info' => $debugInfo
         ]);
     }
-
 
     /**
      * Update order type via AJAX
@@ -1013,7 +981,7 @@ class KioskController extends Controller
 
             return redirect()->route('kiosk.orderConfirmation', $order->id)
                 ->with('success', 'Order placed successfully!');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollback();
             Log::error('Submit order error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to place order. Please try again.');
@@ -1025,163 +993,30 @@ class KioskController extends Controller
      */
     public function orderConfirmation($orderId = null)
     {
-        if ($orderId) {
-            $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
-            Log::info('Order confirmation displayed:', ['order_id' => $orderId]);
-            // Use the SUCCESS confirmation view
-            return view('orderConfirmationSuccess', compact('order'));
-        } else {
-            // Handle case where no order ID is provided (from processOrder)
-            $lastOrderId = Session::get('last_order_id');
-            if ($lastOrderId) {
+        try {
+            if ($orderId) {
+                $order = Order::with(['orderItems.menuItem'])->findOrFail($orderId);
+            } else {
+                $lastOrderId = Session::get('last_order_id');
+                if (!$lastOrderId) {
+                    return redirect()->route('kiosk.index')->with('error', 'Order not found');
+                }
                 $order = Order::with(['orderItems.menuItem'])->findOrFail($lastOrderId);
                 Session::forget('last_order_id');
-                Log::info('Order confirmation displayed from session:', ['order_id' => $lastOrderId]);
-                // Use the SUCCESS confirmation view
-                return view('orderConfirmationSuccess', compact('order'));
             }
-        }
 
-        Log::warning('Order confirmation accessed without valid order ID');
-        return redirect()->route('kiosk.index')->with('error', 'Order not found');
-    }
-
-    /**
-     * Display kitchen screen
-     */
-    public function kitchen()
-    {
-        $pendingOrders = Order::with(['orderItems.menuItem'])
-            ->where('status', 'pending')
-            ->orderBy('created_at')
-            ->get();
-
-        $processingOrders = Order::with(['orderItems.menuItem'])
-            ->where('status', 'processing')
-            ->orderBy('updated_at')
-            ->get();
-
-        // Add calculated fields for display
-        foreach ($pendingOrders as $order) {
-            $order->order_type = $this->extractOrderType($order->notes);
-            $order->table_number = $this->extractTableNumber($order->notes);
-            $order->customer_name = $this->extractCustomerName($order->notes);
-            $order->estimated_prep_time = $this->calculatePrepTime($order->orderItems);
-        }
-
-        foreach ($processingOrders as $order) {
-            $order->order_type = $this->extractOrderType($order->notes);
-            $order->table_number = $this->extractTableNumber($order->notes);
-            $order->customer_name = $this->extractCustomerName($order->notes);
-            $order->started_at = $order->updated_at; // Use updated_at as started_at
-        }
-
-        // If this is an AJAX request, return only the data
-        if (request()->ajax()) {
-            return view('kitchen', compact('pendingOrders', 'processingOrders'));
-        }
-
-        return view('kitchen', compact('pendingOrders', 'processingOrders'));
-    }
-
-    /**
-     * Start processing an order
-     */
-    public function startOrder($orderId)
-    {
-        $order = Order::findOrFail($orderId);
-
-        $order->update([
-            'status' => 'processing',
-            'started_at' => now()
-        ]);
-
-        Log::info('Order started:', ['order_id' => $orderId]);
-
-        return redirect()->route('kitchen.index')->with('success', 'Order started!');
-    }
-
-    /**
-     * Complete an order
-     */
-    public function completeOrder($orderId)
-    {
-        $order = Order::findOrFail($orderId);
-
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => now()
-        ]);
-
-        Log::info('Order completed:', ['order_id' => $orderId]);
-
-        return redirect()->route('kitchen.index')->with('success', 'Order completed!');
-    }
-
-    /**
-     * Calculate estimated preparation time based on cart items or order items
-     */
-    private function calculatePrepTime($items)
-    {
-        $totalTime = 0;
-        $itemCount = 0;
-
-        foreach ($items as $item) {
-            if (is_array($item)) {
-                // Cart item
-                $menuItem = MenuItem::find($item['menu_item_id']);
-                if ($menuItem) {
-                    $baseTime = $menuItem->preparation_time ?? 5;
-                    $totalTime += $baseTime * $item['quantity'];
-                    $itemCount += $item['quantity'];
-                }
-            } else {
-                // Order item (from database)
-                $baseTime = $item->menuItem->preparation_time ?? 5;
-                $totalTime += $baseTime * $item->quantity;
-                $itemCount += $item->quantity;
+            // Ensure order has required fields for the view
+            if (!$order->order_number) {
+                $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+                $order->update(['order_number' => $orderNumber]);
+                $order->refresh();
             }
+
+            return view('orderConfirmationSuccess', compact('order'));
+        } catch (Exception $e) {
+            Log::error('Order confirmation error: ' . $e->getMessage());
+            return redirect()->route('kiosk.index')->with('error', 'Order not found');
         }
-
-        // Apply some logic to calculate realistic prep time
-        $estimatedTime = max(15, min(45, $totalTime + ($itemCount * 2)));
-
-        return $estimatedTime;
-    }
-
-    /**
-     * Extract order type from notes
-     */
-    private function extractOrderType($notes)
-    {
-        if (strpos($notes, 'Order Type: dine_in') !== false || strpos($notes, 'dine-in') !== false) {
-            return 'dine-in';
-        } elseif (strpos($notes, 'Order Type: take_out') !== false || strpos($notes, 'take-out') !== false) {
-            return 'takeout';
-        }
-        return 'dine-in'; // default
-    }
-
-    /**
-     * Extract table number from notes
-     */
-    private function extractTableNumber($notes)
-    {
-        if (preg_match('/Table: (\d+)/', $notes, $matches)) {
-            return $matches[1];
-        }
-        return null;
-    }
-
-    /**
-     * Extract customer name from notes
-     */
-    private function extractCustomerName($notes)
-    {
-        if (preg_match('/Customer: ([^,]+)/', $notes, $matches)) {
-            return trim($matches[1]);
-        }
-        return null;
     }
 
     /**
