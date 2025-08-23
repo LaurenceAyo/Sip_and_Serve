@@ -63,7 +63,7 @@
 
             .button-group {
                 display: flex;
-                gap: 1.5rem;
+                gap: 1.9rem;
                 width: auto;
             }
 
@@ -121,9 +121,10 @@
             }
 
             .bottom-nav {
+                display: flex; 
                 flex-direction: row;
                 gap: 0;
-                margin-top: 3rem;
+                margin-top: 14rem;
                 padding: 0;
                 background: none;
                 border-radius: 0;
@@ -247,6 +248,74 @@
             .unit-option input[type="radio"] {
                 width: 20px;
                 height: 20px;
+            }
+
+           
+            /* Fix for tablet layout - replace the existing controls-section CSS */
+            .controls-section {
+                display: grid;
+                grid-template-columns: 1fr auto auto;
+                gap: 2rem;
+                align-items: center;
+                margin-bottom: 2rem;
+            }
+
+            .filter-section {
+                grid-column: 1;
+                justify-self: start;
+            }
+
+            .button-group {
+                grid-column: 2;
+                display: flex;
+                gap: 0.3rem;
+            }
+
+            .filter-dropdown {
+                grid-column: 3;
+                justify-self: end;
+                width: 200px;
+                /* Fixed width instead of 320px */
+                padding: 18px 20px;
+                font-size: 1.1rem;
+                text-align: center;
+                border: 3px solid #d4c5a9;
+                border-radius: 8px;
+            }
+
+            /* For smaller tablets */
+            @media (max-width: 1000px) {
+                .controls-section {
+                    grid-template-columns: 1fr;
+                    gap: 1.5rem;
+                    text-align: center;
+                }
+
+                .filter-section,
+                .button-group,
+                .filter-dropdown {
+                    grid-column: 1;
+                    justify-self: center;
+                }
+
+                .button-group {
+                    justify-content: center;
+                }
+
+                .filter-dropdown {
+                    width: 100%;
+                    max-width: 300px;
+                }
+            }
+
+
+            /* For even smaller screens */
+            @media (max-width: 1000px) {
+                .filter-dropdown {
+                    width: 200px;
+                    /* Even more width for smaller screens */
+                    font-size: 1rem;
+                }
             }
 
             .btn-cancel-add,
@@ -762,6 +831,51 @@
             font-weight: 500;
             display: none;
         }
+        
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 16px 18px; /* Slightly reduced padding */
+        font-size: 1.1rem;
+        min-width: 150px; /* Slightly reduced width */
+        min-height: 60px;
+        white-space: nowrap;
+    }
+
+    .filter-dropdown {
+        width: 160px; /* Fixed width to prevent overflow */
+        padding: 16px 12px;
+        font-size: 1rem;
+        justify-self: end;
+    }
+}
+
+/* For smaller screens */
+@media (max-width: 1100px) {
+    .controls-section {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        text-align: center;
+    }
+
+    .button-group {
+        justify-content: center;
+        gap: 0.8rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        min-width: 130px;
+        font-size: 1rem;
+        padding: 14px 16px;
+    }
+
+    .filter-dropdown {
+        width: 180px;
+        margin: 0 auto;
+        justify-self: center;
+    }
+}
     </style>
 </head>
 
@@ -791,7 +905,7 @@
                     <!-- Empty div to maintain layout -->
                 </div>
 
-                <div class="button-group flex items-center space-x-4">
+                <div class="button-group flex items-center space-x-1">
                     <button class="btn-primary" onclick="openShoppingListModal()">🛒 Generate Shopping List</button>
                     <button class="btn-primary" onclick="openAddModal()">+ ADD ITEM</button>
                     <button class="btn-secondary" onclick="openEditModal()">EDIT ITEMS</button>
@@ -839,15 +953,17 @@
                     <table class="inventory-table" style="width: 100%;">
                         <tbody id="inventoryBody">
                             @php
-                                $mergedIngredients = $ingredients->groupBy('name')->map(function($group) {
+                                $mergedIngredients = $ingredients->groupBy('name')->map(function ($group) {
                                     $first = $group->first();
                                     $totalQuantity = $group->sum('stock_quantity');
-                                    
+
                                     // Determine status based on total quantity
                                     $status = 'good';
-                                    if ($totalQuantity < 2) $status = 'critical';
-                                    elseif ($totalQuantity < 5) $status = 'low';
-                                    
+                                    if ($totalQuantity < 2)
+                                        $status = 'critical';
+                                    elseif ($totalQuantity < 5)
+                                        $status = 'low';
+
                                     return (object) [
                                         'name' => $first->name,
                                         'category' => $first->category,
@@ -940,38 +1056,46 @@
                 <div class="form-group">
                     <label>Item Name:</label>
                     <div style="position: relative;">
-                        <input type="text" id="editItemName" placeholder="Search item..." oninput="searchItems(this.value)">
-                        <div id="searchResults" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+                        <input type="text" id="editItemName" placeholder="Search item..."
+                            oninput="searchItems(this.value)">
+                        <div id="searchResults"
+                            style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1000; display: none;">
+                        </div>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>New Item Name: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
                     <input type="text" id="editNewItemName" placeholder="product name">
                 </div>
-                
+
                 <div class="form-group">
                     <label>Modify Unit Type:</label>
                     <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
-                        <input type="text" id="editUnitDisplay" value="" readonly style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
+                        <input type="text" id="editUnitDisplay" value="" readonly
+                            style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
                         <span style="color: #9ca3af; font-size: 0.8rem;">Smart Unit Detection</span>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Modify Quantity:</label>
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <button type="button" class="quantity-btn" onclick="decreaseQuantity()" style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">-</button>
-                        <input type="number" id="editQuantity" value="0" min="0" step="0.1" style="width: 80px; text-align: center; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
-                        <button type="button" class="quantity-btn" onclick="increaseQuantity()" style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">+</button>
+                        <button type="button" class="quantity-btn" onclick="decreaseQuantity()"
+                            style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">-</button>
+                        <input type="number" id="editQuantity" value="0" min="0" step="0.1"
+                            style="width: 80px; text-align: center; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
+                        <button type="button" class="quantity-btn" onclick="increaseQuantity()"
+                            style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">+</button>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Critical Level: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
-                    <input type="number" id="editAlertLevel" placeholder="enter critical stock number" min="1" step="0.1">
+                    <input type="number" id="editAlertLevel" placeholder="enter critical stock number" min="1"
+                        step="0.1">
                 </div>
-                
+
                 <div class="add-modal-actions">
                     <button type="button" class="btn-cancel-add" onclick="closeEditModal()">CANCEL</button>
                     <button type="submit" class="btn-save-add">SAVE</button>
@@ -987,7 +1111,7 @@
                     <label>Item Name:</label>
                     <input type="text" id="itemName" placeholder="product name" required>
                 </div>
-                
+
                 <div class="quantity-group">
                     <div class="quantity-input">
                         <div class="form-group">
@@ -995,20 +1119,21 @@
                             <input type="number" id="quantity" value="1" min="0" step="0.1" required>
                         </div>
                     </div>
-                    
+
                     <div class="unit-selector">
                         <div class="form-group">
                             <label>Unit:</label>
-                            <input type="text" id="unitDisplay" value="kg" readonly style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280;">
+                            <input type="text" id="unitDisplay" value="kg" readonly
+                                style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280;">
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Date Added:</label>
                     <input type="text" class="date-field" id="currentDate" readonly>
                 </div>
-                
+
                 <div class="add-modal-actions">
                     <button type="button" class="btn-cancel-add" onclick="closeAddModal()">CANCEL</button>
                     <button type="submit" class="btn-save-add">SAVE</button>
@@ -1037,7 +1162,7 @@
         // Search functionality for edit modal
         let ingredientsData = [
             @foreach($ingredients as $ingredient)
-                {
+                        {
                     name: "{{ $ingredient->name }}",
                     unit: "{{ $ingredient->unit }}",
                     stock_quantity: {{ $ingredient->stock_quantity }},
@@ -1048,13 +1173,13 @@
 
         function searchItems(query) {
             const resultsContainer = document.getElementById('searchResults');
-            
+
             if (query.length === 0) {
                 resultsContainer.style.display = 'none';
                 return;
             }
 
-            const filteredItems = ingredientsData.filter(item => 
+            const filteredItems = ingredientsData.filter(item =>
                 item.name.toLowerCase().includes(query.toLowerCase())
             );
 
@@ -1063,7 +1188,7 @@
                 return;
             }
 
-            resultsContainer.innerHTML = filteredItems.map(item => 
+            resultsContainer.innerHTML = filteredItems.map(item =>
                 `<div onclick="selectItem('${item.name}', '${item.unit}', ${item.stock_quantity})" 
                       style="padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; hover:background-color: #f9fafb;">
                     ${item.name} (${item.stock_quantity} ${item.unit})
@@ -1077,20 +1202,20 @@
             document.getElementById('editItemName').value = name;
             document.getElementById('editQuantity').value = quantity;
             document.getElementById('searchResults').style.display = 'none';
-            
+
             // Auto-detect and set unit for edit modal
             const detectedUnit = detectUnit(name);
             document.getElementById('editUnitDisplay').value = detectedUnit;
         }
 
         // Update unit when editing item name changes
-        document.getElementById('editItemName').addEventListener('input', function() {
+        document.getElementById('editItemName').addEventListener('input', function () {
             const unit = detectUnit(this.value);
             document.getElementById('editUnitDisplay').value = unit;
         });
 
         // Hide search results when clicking outside
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (!e.target.closest('#editItemName') && !e.target.closest('#searchResults')) {
                 document.getElementById('searchResults').style.display = 'none';
             }
@@ -1118,15 +1243,15 @@
         }
 
         // Edit item form submission
-        document.getElementById('editItemForm').addEventListener('submit', function(e) {
+        document.getElementById('editItemForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             const itemName = document.getElementById('editItemName').value;
             const newQuantity = parseFloat(document.getElementById('editQuantity').value);
             const criticalLevel = document.getElementById('editAlertLevel').value ? parseFloat(document.getElementById('editAlertLevel').value) : null;
-            
+
             console.log('Submitting:', { itemName, newQuantity, criticalLevel }); // Debug log
-            
+
             if (itemName.trim()) {
                 // Check if CSRF token exists
                 const csrfToken = document.querySelector('meta[name="csrf-token"]');
@@ -1135,7 +1260,7 @@
                     alert('CSRF token missing. Please refresh the page.');
                     return;
                 }
-                
+
                 // Send AJAX request to Laravel backend
                 fetch('/ingredients/update', {
                     method: 'POST',
@@ -1149,25 +1274,25 @@
                         critical_level: criticalLevel
                     })
                 })
-                .then(response => {
-                    console.log('Response status:', response.status); // Debug log
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Response data:', data); // Debug log
-                    if (data.success) {
-                        // Update the table row with new values
-                        updateTableRow(itemName, newQuantity, criticalLevel);
-                        closeEditModal();
-                        showSuccessPopup('ITEM UPDATED SUCCESSFULLY');
-                    } else {
-                        alert('Error updating item: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    alert('Network error. Check console for details.');
-                });
+                    .then(response => {
+                        console.log('Response status:', response.status); // Debug log
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Response data:', data); // Debug log
+                        if (data.success) {
+                            // Update the table row with new values
+                            updateTableRow(itemName, newQuantity, criticalLevel);
+                            closeEditModal();
+                            showSuccessPopup('ITEM UPDATED SUCCESSFULLY');
+                        } else {
+                            alert('Error updating item: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        alert('Network error. Check console for details.');
+                    });
             } else {
                 alert('Please select an item first');
             }
@@ -1180,15 +1305,15 @@
                 if (nameCell && nameCell.textContent.trim() === itemName) {
                     const cells = row.querySelectorAll('td');
                     cells[1].textContent = newQuantity.toFixed(2); // IN column
-                    
+
                     // Get the updated unit from the edit form
                     const updatedUnit = document.getElementById('editUnitDisplay').value || 'grams';
                     cells[3].textContent = `${newQuantity.toFixed(2)} ${updatedUnit}`; // CURRENT INVENTORY with updated unit
-                    
+
                     // Update status indicator with new logic
                     const statusCell = cells[4].querySelector('.status-indicator');
                     statusCell.className = `status-indicator ${getStockLevel(newQuantity, criticalLevel)}`;
-                    
+
                     console.log(`Updated ${itemName}: quantity=${newQuantity}, critical=${criticalLevel}, status=${getStockLevel(newQuantity, criticalLevel)}`);
                 }
             });
@@ -1204,7 +1329,7 @@
         }
 
         // Close edit modal when clicking outside
-        document.getElementById('editItemModal').addEventListener('click', function(e) {
+        document.getElementById('editItemModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeEditModal();
             }
@@ -1218,12 +1343,12 @@
             'butter': 'grams', 'cheese': 'grams', 'meat': 'grams', 'chicken': 'grams', 'fish': 'grams',
             'potato': 'grams', 'vegetables': 'grams', 'chocolate': 'grams', 'tofu': 'grams', 'pasta': 'grams',
             'crab': 'grams', 'rice': 'grams', 'kaya': 'grams', 'spread': 'grams',
-            
+
             // Liquids - ml
             'water': 'ml', 'milk': 'ml', 'oil': 'ml', 'juice': 'ml', 'syrup': 'ml',
             'sauce': 'ml', 'liquid': 'ml', 'cream': 'ml', 'honey': 'ml', 'pepper': 'ml',
             'soy': 'ml', 'yogurt': 'ml',
-            
+
             // Countable items - pieces
             'eggs': 'pieces', 'cups': 'pieces', 'plates': 'pieces', 'napkins': 'pieces', 'straws': 'pieces',
             'bags': 'pieces', 'bottles': 'pieces', 'cans': 'pieces', 'boxes': 'pieces', 'containers': 'pieces',
@@ -1232,25 +1357,25 @@
 
         function detectUnit(itemName) {
             const name = itemName.toLowerCase();
-            
+
             // Check for exact matches first
             if (unitMapping[name]) {
                 return unitMapping[name];
             }
-            
+
             // Check for partial matches
             for (let ingredient in unitMapping) {
                 if (name.includes(ingredient)) {
                     return unitMapping[ingredient];
                 }
             }
-            
+
             // Default to grams
             return 'grams';
         }
 
         // Update unit when item name changes
-        document.getElementById('itemName').addEventListener('input', function() {
+        document.getElementById('itemName').addEventListener('input', function () {
             const unit = detectUnit(this.value);
             document.getElementById('unitDisplay').value = unit;
         });
@@ -1280,11 +1405,11 @@
         function generateShoppingList() {
             const tbody = document.getElementById('shoppingListBody');
             tbody.innerHTML = '';
-            
+
             // Get low stock items from current inventory
             const rows = document.querySelectorAll('.inventory-table tbody tr');
             const lowStockItems = [];
-            
+
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
                 if (cells.length >= 4) {
@@ -1292,7 +1417,7 @@
                     const currentStock = parseFloat(cells[3].textContent.trim().split(' ')[0]);
                     const unit = cells[3].textContent.trim().split(' ')[1];
                     const statusIndicator = cells[4].querySelector('.status-indicator');
-                    
+
                     // Check if item is low or critical stock
                     if (statusIndicator && (statusIndicator.classList.contains('status-low') || statusIndicator.classList.contains('status-critical'))) {
                         const neededAmount = statusIndicator.classList.contains('status-critical') ? 10 : 5;
@@ -1305,12 +1430,12 @@
                     }
                 }
             });
-            
+
             if (lowStockItems.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #6b7280;">No items need restocking</td></tr>';
                 return;
             }
-            
+
             lowStockItems.forEach(item => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1325,7 +1450,7 @@
         function printShoppingList() {
             const printWindow = window.open('', '_blank');
             const shoppingListContent = document.getElementById('shoppingListBody').innerHTML;
-            
+
             printWindow.document.write(`
                 <html>
                 <head>
@@ -1357,13 +1482,13 @@
                 </body>
                 </html>
             `);
-            
+
             printWindow.document.close();
             printWindow.print();
         }
 
         // Close shopping list modal when clicking outside
-        document.getElementById('shoppingListModal').addEventListener('click', function(e) {
+        document.getElementById('shoppingListModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeShoppingListModal();
             }
@@ -1382,9 +1507,9 @@
             // If criticalLevel is provided, use the new logic
             if (criticalLevel !== null && criticalLevel > 0) {
                 const warningLevel = criticalLevel * 0.25; // 1/4 of critical level
-                
+
                 console.log(`Stock check: quantity=${quantity}, critical=${criticalLevel}, warning=${warningLevel}`);
-                
+
                 if (quantity <= criticalLevel) {
                     console.log('Status: CRITICAL (red)');
                     return 'status-critical'; // Red when at or below critical
@@ -1396,7 +1521,7 @@
                 console.log('Status: GOOD (green)');
                 return 'status-good'; // Green otherwise
             }
-            
+
             // Fallback to original logic if no criticalLevel
             if (quantity < 2) return 'status-critical';
             if (quantity < 5) return 'status-low';
@@ -1404,19 +1529,19 @@
         }
 
         // Add item form submission
-        document.getElementById('addItemForm').addEventListener('submit', function(e) {
+        document.getElementById('addItemForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             const itemName = document.getElementById('itemName').value;
             const quantity = parseFloat(document.getElementById('quantity').value);
             const unit = document.getElementById('unitDisplay').value;
-            
+
             if (itemName.trim()) {
                 const tbody = document.getElementById('inventoryBody');
                 const row = document.createElement('tr');
                 row.setAttribute('data-category', 'ingredients');
                 row.style.display = 'flex';
-                
+
                 row.innerHTML = `
                     <td style="flex: 1; padding: 12px; text-align: center;">${itemName}</td>
                     <td style="flex: 1; padding: 12px; text-align: center;">${quantity.toFixed(2)}</td>
@@ -1426,7 +1551,7 @@
                         <div class="status-indicator ${getStockLevel(quantity)}"></div>
                     </td>
                 `;
-                
+
                 tbody.appendChild(row);
                 closeAddModal();
                 showSuccessPopup();
@@ -1442,7 +1567,7 @@
         }
 
         // Close add modal when clicking outside
-        document.getElementById('addItemModal').addEventListener('click', function(e) {
+        document.getElementById('addItemModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeAddModal();
             }
