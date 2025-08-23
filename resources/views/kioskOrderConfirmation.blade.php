@@ -372,6 +372,7 @@
                 opacity: 0;
                 transform: translateY(-30px) scale(0.95);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -1307,15 +1308,16 @@
     </div>
 
     <script>
-        // Initialize cart data and global variables
+        // Global variables
         let cart = [];
         let selectedPaymentMethod = null;
         let totalAmount = {{ $total ?? 0 }};
 
-        // Safely parse cart data from Laravel session
+        // Safely parse cart data
         try {
             const rawCart = {!! json_encode(session('cart', [])) !!};
             cart = Array.isArray(rawCart) ? rawCart : Object.values(rawCart || {});
+            console.log('Cart loaded:', cart.length, 'items');
         } catch (e) {
             console.error('Error parsing cart data:', e);
             cart = [];
@@ -1338,18 +1340,18 @@
                     change: change
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error updating item quantity');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     alert('Error updating item quantity');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error updating item quantity');
-            });
+                });
         }
 
         function removeItem(index) {
@@ -1364,46 +1366,51 @@
                         index: index
                     })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Error removing item');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         alert('Error removing item');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error removing item');
-                });
+                    });
             }
         }
 
         function showPaymentModal() {
+            console.log('showPaymentModal called, cart length:', cart.length);
+
             if (cart.length === 0) {
                 alert('Your cart is empty!');
                 return;
             }
 
             const modal = document.getElementById('paymentModal');
-            if (modal) {
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
+            if (!modal) {
+                console.error('Payment modal not found');
+                return;
+            }
 
-                // Reset payment method selection
-                selectedPaymentMethod = null;
-                document.querySelectorAll('.payment-method-btn').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
-                
-                const cashSection = document.getElementById('cashInputSection');
-                const proceedBtn = document.getElementById('proceedPaymentBtn');
-                
-                if (cashSection) cashSection.classList.remove('show');
-                if (proceedBtn) {
-                    proceedBtn.disabled = true;
-                    proceedBtn.textContent = 'Select Payment Method';
-                }
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            // Reset payment method selection
+            selectedPaymentMethod = null;
+            document.querySelectorAll('.payment-method-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            const cashSection = document.getElementById('cashInputSection');
+            const proceedBtn = document.getElementById('proceedPaymentBtn');
+
+            if (cashSection) cashSection.classList.remove('show');
+            if (proceedBtn) {
+                proceedBtn.disabled = true;
+                proceedBtn.textContent = 'Select Payment Method';
             }
         }
 
@@ -1418,7 +1425,7 @@
                 const cashInput = document.getElementById('cashAmountInput');
                 const changeDisplay = document.getElementById('changeDisplay');
                 const cashSection = document.getElementById('cashInputSection');
-                
+
                 if (cashInput) cashInput.value = '';
                 if (changeDisplay) changeDisplay.style.display = 'none';
                 if (cashSection) cashSection.classList.remove('show');
@@ -1526,48 +1533,62 @@
                 change_amount: cashAmount - totalAmount
             };
 
+            console.log('Sending payment request:', orderData);
+
             fetch('/kiosk/process-cash-payment', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify(orderData)
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(errorData => {
-                        throw new Error(errorData.message || 'Server error');
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    hidePaymentModal();
-                    showCashPaymentConfirmation(data);
-                } else {
-                    alert('Error processing cash payment: ' + (data.message || 'Unknown error'));
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('Error response:', text);
+                            try {
+                                const errorData = JSON.parse(text);
+                                throw new Error(errorData.message || `Server error: ${response.status}`);
+                            } catch (e) {
+                                throw new Error(`Server error: ${response.status}`);
+                            }
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success response:', data);
+                    if (data.success) {
+                        hidePaymentModal();
+                        showCashPaymentConfirmation(data);
+                    } else {
+                        alert('Error processing cash payment: ' + (data.message || 'Unknown error'));
+                        if (proceedBtn) {
+                            proceedBtn.disabled = false;
+                            proceedBtn.textContent = originalText;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Payment Error:', error);
+                    alert('Error processing payment: ' + error.message);
                     if (proceedBtn) {
                         proceedBtn.disabled = false;
                         proceedBtn.textContent = originalText;
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Payment Error:', error);
-                alert('Error processing payment. Please try again.');
-                if (proceedBtn) {
-                    proceedBtn.disabled = false;
-                    proceedBtn.textContent = originalText;
-                }
-            });
+                });
         }
 
         function showCashPaymentConfirmation(data) {
             const modal = document.getElementById('cashConfirmationModal');
-            if (!modal) return;
+            if (!modal) {
+                console.error('Cash confirmation modal not found');
+                return;
+            }
 
             // Update order number displays
             const orderNumber = data.order_number || 'C001';
@@ -1592,7 +1613,7 @@
             const confirmationTotal = document.getElementById('confirmationTotal');
             const confirmationCash = document.getElementById('confirmationCash');
             const confirmationChange = document.getElementById('confirmationChange');
-            
+
             if (confirmationTotal) confirmationTotal.textContent = `PHP ${totalAmountFromData.toFixed(2)}`;
             if (confirmationCash) confirmationCash.textContent = `PHP ${cashAmount.toFixed(2)}`;
             if (confirmationChange) confirmationChange.textContent = `PHP ${changeAmount.toFixed(2)}`;
@@ -1639,20 +1660,21 @@
                     'X-CSRF-TOKEN': getCsrfToken()
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '{{ route("kiosk.index") }}';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     window.location.href = '{{ route("kiosk.index") }}';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                window.location.href = '{{ route("kiosk.index") }}';
-            });
+                });
         }
 
-        // Initialize event listeners when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM loaded, initializing...');
             const cashInput = document.getElementById('cashAmountInput');
             if (cashInput) {
                 cashInput.addEventListener('keypress', function (e) {

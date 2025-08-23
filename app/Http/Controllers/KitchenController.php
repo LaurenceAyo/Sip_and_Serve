@@ -9,9 +9,16 @@ class KitchenController extends Controller
 {
     public function index()
     {
-        // Get pending orders (paid but not started)
+        // Get pending orders (either paid OR cash orders accepted by cashier)
         $pendingOrders = Order::with('orderItems.menuItem')
-            ->where('payment_status', 'paid')
+            ->where(function ($query) {
+                $query->where('payment_status', 'paid')  // Fully paid orders (GCash, etc.)
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('payment_method', 'cash')
+                            ->where('payment_status', 'pending')
+                            ->whereNotNull('cash_amount'); // Cash orders from kiosk
+                    });
+            })
             ->where('status', 'pending')
             ->latest()
             ->get();
@@ -22,6 +29,25 @@ class KitchenController extends Controller
             ->latest()
             ->get();
 
+        // Add processing time calculation for each order
+        $processingOrders->each(function ($order) {
+            if ($order->started_at) {
+                $processingSeconds = now()->diffInSeconds($order->started_at);
+                $order->processing_time = sprintf(
+                    '%02d:%02d',
+                    floor($processingSeconds / 60),
+                    $processingSeconds % 60
+                );
+
+                // Check if overdue
+                $estimatedSeconds = ($order->estimated_prep_time ?? 30) * 60;
+                $order->is_overdue = $processingSeconds > $estimatedSeconds;
+            } else {
+                $order->processing_time = '00:00';
+                $order->is_overdue = false;
+            }
+        });
+
         // Get recently completed orders (last 2 hours)
         $completedOrders = Order::with('orderItems.menuItem')
             ->where('status', 'completed')
@@ -29,6 +55,13 @@ class KitchenController extends Controller
             ->latest('completed_at')
             ->take(10)
             ->get();
+
+        // Add total prep time for completed orders
+        $completedOrders->each(function ($order) {
+            if ($order->started_at && $order->completed_at) {
+                $order->total_prep_time = $order->completed_at->diffInMinutes($order->started_at);
+            }
+        });
 
         return view('kitchen', compact('pendingOrders', 'processingOrders', 'completedOrders'));
     }
@@ -38,49 +71,121 @@ class KitchenController extends Controller
     {
         // Calculate estimated prep time if not set
         if (!$order->estimated_prep_time) {
-            $order->calculateEstimatedPrepTime();
+            // Simple calculation: 5 minutes per item + 10 minutes base
+            $totalItems = $order->orderItems->sum('quantity');
+            $order->estimated_prep_time = min(max($totalItems * 5 + 10, 15), 60); // Between 15-60 minutes
+            $order->save();
         }
+
+        $estimatedCompletionTime = now()->addMinutes($order->estimated_prep_time);
 
         $order->update([
             'status' => 'preparing',
             'started_at' => now()
         ]);
 
-        return redirect()->back()->with('success', 'Order started! Estimated completion: ' . 
-            $order->estimated_completion_time->format('g:i A'));
+        return redirect()->back()->with('success', 'Order started! Estimated completion: ' .
+            $estimatedCompletionTime->format('g:i A'));
     }
 
     // Complete an order
+    // In your KitchenController.php
     public function completeOrder(Order $order)
     {
+        $completedAt = now();
         $order->update([
             'status' => 'completed',
-            'completed_at' => now()
+            'completed_at' => $completedAt
         ]);
 
-        $actualPrepTime = $order->total_prep_time;
-        $estimatedTime = $order->estimated_prep_time;
-        
-        $message = "Order completed! ";
-        if ($actualPrepTime && $estimatedTime) {
+        // Record daily sales - THIS IS THE MISSING PART
+        $this->recordDailySale($order);
+
+        // Calculate actual prep time
+        if ($order->started_at) {
+            $actualPrepTime = $order->started_at->diffInMinutes($completedAt);
+            $estimatedTime = $order->estimated_prep_time ?? 30;
+
+            $message = "Order completed! ";
             $variance = $actualPrepTime - $estimatedTime;
+
             if ($variance > 5) {
                 $message .= "Took {$variance} minutes longer than estimated.";
             } elseif ($variance < -5) {
-                $message .= "Completed {$variance} minutes faster than estimated!";
+                $message .= "Completed " . abs($variance) . " minutes faster than estimated!";
             } else {
                 $message .= "Completed on time!";
             }
+        } else {
+            $message = "Order completed successfully!";
         }
 
         return redirect()->back()->with('success', $message);
+    }
+
+    // Add this new method to KitchenController
+    private function recordDailySale($order)
+    {
+        $today = now()->format('Y-m-d');
+
+        // Find or create today's daily sales record
+        $dailySale = \DB::table('daily_sales')->where('date', $today)->first();
+
+        if ($dailySale) {
+            // Update existing record
+            \DB::table('daily_sales')
+                ->where('date', $today)
+                ->increment('total_orders', 1);
+
+            \DB::table('daily_sales')
+                ->where('date', $today)
+                ->increment('total_sales', $order->total_amount);
+
+            // Update payment method specific columns
+            if ($order->payment_method === 'cash') {
+                \DB::table('daily_sales')
+                    ->where('date', $today)
+                    ->increment('cash_sales', $order->total_amount);
+            } elseif ($order->payment_method === 'card') {
+                \DB::table('daily_sales')
+                    ->where('date', $today)
+                    ->increment('card_sales', $order->total_amount);
+            } elseif ($order->payment_method === 'gcash') {
+                \DB::table('daily_sales')
+                    ->where('date', $today)
+                    ->increment('digital_wallet_sales', $order->total_amount);
+            }
+        } else {
+            // Create new daily sales record
+            $cashSales = $order->payment_method === 'cash' ? $order->total_amount : 0;
+            $cardSales = $order->payment_method === 'card' ? $order->total_amount : 0;
+            $digitalWalletSales = $order->payment_method === 'gcash' ? $order->total_amount : 0;
+
+            \DB::table('daily_sales')->insert([
+                'date' => $today,
+                'total_orders' => 1,
+                'total_sales' => $order->total_amount,
+                'cash_sales' => $cashSales,
+                'card_sales' => $cardSales,
+                'digital_wallet_sales' => $digitalWalletSales,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     // Get real-time kitchen data for AJAX updates
     public function getData()
     {
         $pendingOrders = Order::with('orderItems.menuItem')
-            ->where('payment_status', 'paid')
+            ->where(function ($query) {
+                $query->where('payment_status', 'paid')
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('payment_method', 'cash')
+                            ->where('payment_status', 'pending')
+                            ->whereNotNull('cash_amount');
+                    });
+            })
             ->where('status', 'pending')
             ->latest()
             ->get();
@@ -89,6 +194,20 @@ class KitchenController extends Controller
             ->where('status', 'preparing')
             ->latest()
             ->get();
+
+        // Add processing time for each processing order
+        $processingOrders->each(function ($order) {
+            if ($order->started_at) {
+                $processingSeconds = now()->diffInSeconds($order->started_at);
+                $order->processing_time = sprintf(
+                    '%02d:%02d',
+                    floor($processingSeconds / 60),
+                    $processingSeconds % 60
+                );
+                $estimatedSeconds = ($order->estimated_prep_time ?? 30) * 60;
+                $order->is_overdue = $processingSeconds > $estimatedSeconds;
+            }
+        });
 
         $completedOrders = Order::with('orderItems.menuItem')
             ->where('status', 'completed')

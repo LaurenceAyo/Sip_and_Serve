@@ -175,6 +175,8 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/place-order', [KioskController::class, 'placeOrder'])->name('placeOrder');
     Route::post('/update-order-type', [KioskController::class, 'updateOrderType'])->name('updateOrderType');
 
+    Route::post('/process-cash-payment', [KioskController::class, 'processCashPayment'])->name('processCashPayment');
+
     // Cart management
     Route::post('/cart/add', [KioskController::class, 'addToCart'])->name('addToCart');
     Route::delete('/cart/remove', [KioskController::class, 'removeFromCart'])->name('removeFromCart');

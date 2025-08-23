@@ -23,6 +23,34 @@
             min-height: 100vh;
         }
 
+        /* Add this to your existing CSS */
+        .btn,
+        .action-btn,
+        button,
+        .dine-in-btn,
+        .take-out-btn {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            cursor: pointer !important;
+            touch-action: manipulation;
+        }
+
+        /* Fix for tablet touch events */
+        @media (pointer: coarse) {
+
+            .btn,
+            .action-btn,
+            button {
+                min-height: 48px;
+                min-width: 48px;
+                padding: 15px 20px !important;
+            }
+        }
+
         .kiosk-container {
             height: 100vh;
             display: flex;
@@ -1548,6 +1576,42 @@
         function closeAddonModal() {
             document.getElementById('addonModal').style.display = 'none';
         }
+
+
+        // Add this JavaScript to fix touch events
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fix touch events for all buttons
+            const buttons = document.querySelectorAll('button, .btn, .action-btn');
+
+            buttons.forEach(button => {
+                // Add touch event listeners
+                button.addEventListener('touchstart', function (e) {
+                    e.preventDefault();
+                    this.style.transform = 'scale(0.98)';
+                });
+
+                button.addEventListener('touchend', function (e) {
+                    e.preventDefault();
+                    this.style.transform = 'scale(1)';
+
+                    // Trigger click after a short delay
+                    setTimeout(() => {
+                        this.click();
+                    }, 50);
+                });
+
+                // Add visual feedback
+                button.addEventListener('touchstart', function () {
+                    this.classList.add('active');
+                });
+
+                button.addEventListener('touchend', function () {
+                    setTimeout(() => {
+                        this.classList.remove('active');
+                    }, 150);
+                });
+            });
+        });
 
         function toggleAddon(element, addon) {
             element.classList.toggle('selected');

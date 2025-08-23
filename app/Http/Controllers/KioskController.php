@@ -92,7 +92,7 @@ class KioskController extends Controller
                     OrderItem::create([
                         'order_id' => $order->id,
                         'menu_item_id' => $item['menu_item_id'] ?? null,
-                        'name' => $item['name'] ?? 'N/A',
+                        // Remove this line: 'name' => $item['name'] ?? 'N/A',
                         'quantity' => $item['quantity'],
                         'unit_price' => $itemPrice,
                         'total_price' => $itemPrice * $item['quantity'],
@@ -131,7 +131,6 @@ class KioskController extends Controller
                 'total_amount' => $total,
                 'message' => 'Cash order processed successfully. Please proceed to the cashier.'
             ]);
-
         } catch (Exception $e) {
             // Log the detailed error for debugging
             Log::error('Cash payment failed: ' . $e->getMessage(), [
