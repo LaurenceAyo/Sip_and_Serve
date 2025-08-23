@@ -10,6 +10,7 @@ use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\PaymongoWebhookController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\KitchenController;
+use App\Http\Controllers\SalesController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use Illuminate\Support\Facades\Route;
@@ -309,9 +310,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [KioskController::class, 'dashboard'])->middleware('verified')->name('dashboard');
 
     // Sales & Inventory
-    Route::get('/sales', function () {
-        return view('profile.sales');
-    })->name('sales');
+    Route::get('/sales', [SalesController::class, 'index'])->name('sales');
 
     Route::get('/inventory', [KioskController::class, 'dashboard'])->name('inventory');
 

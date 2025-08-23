@@ -38,6 +38,12 @@ class Order extends Model
 
     protected $appends = ['processing_time', 'estimated_completion_time'];
 
+
+    public function getFormattedCompletedAtAttribute()
+{
+    return $this->completed_at ? $this->completed_at->format('g:i A') : 'N/A';
+}
+
     protected $casts = [
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',

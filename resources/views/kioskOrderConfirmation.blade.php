@@ -878,6 +878,7 @@
 
         /* Bottom Summary Section */
         .order-summary {
+            margin-bottom: 6rem;
             background: white;
             border-top: 3px solid #d4c4a8;
             padding: 30px 40px;
@@ -1603,7 +1604,7 @@
             const step2Text = document.getElementById('step2Text');
             const step3Text = document.getElementById('step3Text');
             if (step2Text) step2Text.textContent = `Tell them: "Order #${orderNumber} - Cash Payment"`;
-            if (step3Text) step3Text.textContent = `Pay PHP ${parseFloat(data.cash_amount || 0).toFixed(2)} and collect your change`;
+            if (step3Text) step3Text.textContent = `Pay PHP ${parseFloat(data.cash_amount || 0).toFixed(2)} and collect your change if needed`;
 
             // Update payment amounts
             const totalAmountFromData = parseFloat(data.total_amount) || totalAmount;

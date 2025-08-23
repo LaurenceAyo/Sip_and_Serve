@@ -180,14 +180,15 @@
         }
 
         .order-summary {
+            margin-top: -900px;
             background: #f5f1e8;
-            padding: 30px 20px;
+            padding: 20px;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 7px;
             font-size: 14px;
         }
 

@@ -18,6 +18,7 @@
             background: linear-gradient(135deg, #2c1810 0%, #4a3228 100%);
             min-height: 100vh;
             overflow: hidden;
+            touch-action: manipulation; /* Optimize touch events */
         }
 
         .kiosk-container {
@@ -135,7 +136,7 @@
         .action-buttons {
             display: flex;
             flex-direction: column;
-            gap: 30px; /* Increased gap for better touch targets */
+            gap: 30px;
             align-items: center;
             position: absolute;
             top: 50%;
@@ -150,21 +151,30 @@
         }
 
         .action-btn {
-            width: 320px; /* Increased width for tablet */
-            padding: 25px 50px; /* Increased padding for better touch */
-            font-size: 2rem; /* Larger font for 11" screen */
+            width: 320px;
+            padding: 25px 50px;
+            font-size: 2rem;
             font-weight: bold;
             border: none;
-            border-radius: 20px; /* Larger border radius */
+            border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); /* Enhanced shadow */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
             position: relative;
             overflow: hidden;
-            min-height: 80px; /* Minimum touch target height */
+            min-height: 80px;
             width: 100%;
+            
+            /* Critical tablet fixes */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         .action-btn:disabled {
@@ -196,7 +206,7 @@
         .dine-in-btn:hover,
         .dine-in-btn:active {
             background: linear-gradient(135deg, #229954, #27ae60);
-            transform: translateY(-4px) scale(1.02); /* Enhanced feedback */
+            transform: translateY(-4px) scale(1.02);
             box-shadow: 0 12px 30px rgba(39, 174, 96, 0.5);
         }
 
@@ -208,14 +218,19 @@
         .take-out-btn:hover,
         .take-out-btn:active {
             background: linear-gradient(135deg, #d35400, #e67e22);
-            transform: translateY(-4px) scale(1.02); /* Enhanced feedback */
+            transform: translateY(-4px) scale(1.02);
             box-shadow: 0 12px 30px rgba(230, 126, 34, 0.5);
         }
 
-        /* Touch feedback for tablets */
+        /* Enhanced touch feedback for tablets */
         .action-btn:active:not(:disabled) {
             transform: translateY(2px) scale(0.98);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-btn.touched {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
         }
 
         /* Loading state */
@@ -286,22 +301,22 @@
         /* Lenovo Xiaoxin Pad 2024 Optimizations */
         @media (min-width: 1200px) and (max-width: 1920px) {
             .cafe-title {
-                font-size: 3rem; /* Larger title for 11" screen */
+                font-size: 3rem;
             }
             
             .action-btn {
-                width: 380px; /* Even larger buttons for landscape */
+                width: 380px;
                 font-size: 2.2rem;
                 padding: 30px 60px;
                 min-height: 90px;
             }
             
             .action-buttons {
-                gap: 40px; /* More spacing in landscape */
+                gap: 40px;
             }
             
             .nav-text {
-                font-size: 3rem; /* Larger side text */
+                font-size: 3rem;
             }
         }
 
@@ -331,7 +346,7 @@
             }
         }
 
-        /* Standard tablet responsive (768px - 1199px) */
+        /* Standard tablet responsive */
         @media (min-width: 768px) and (max-width: 1199px) {
             .cafe-title {
                 font-size: 2.5rem;
@@ -459,7 +474,7 @@
     </div>
 
     <script>
-        // Load background image dynamically to handle Laravel asset paths
+        // Load background image dynamically
         document.addEventListener('DOMContentLoaded', function() {
             const mainContent = document.getElementById('mainContent');
             const img = new Image();
@@ -471,76 +486,141 @@
             
             img.onerror = function() {
                 console.log('Background image not found, using fallback');
-                // Keep the fallback background color
             };
             
-            // Try to load the background image
             img.src = '/assets/bg1_sandwich.png';
         });
 
-        // Enhanced form submission with loading states
-        function handleFormSubmission(formId, buttonId) {
-            const form = document.getElementById(formId);
-            const button = document.getElementById(buttonId);
+        // TABLET-SPECIFIC FIXES FOR TOUCH EVENTS
+        document.querySelectorAll('.action-btn').forEach(button => {
+            let touchStarted = false;
+            let formSubmitted = false;
             
-            form.addEventListener('submit', function(e) {
-                // Prevent double submission
-                if (button.disabled) {
+            // Touch start event
+            button.addEventListener('touchstart', function(e) {
+                if (this.disabled || formSubmitted) {
                     e.preventDefault();
                     return;
                 }
                 
-                // Show loading state
-                button.disabled = true;
-                button.classList.add('loading');
+                console.log('Touch started on:', this.textContent.trim());
+                touchStarted = true;
                 
-                // Optional: Add timeout to re-enable button if something goes wrong
-                setTimeout(() => {
-                    button.disabled = false;
-                    button.classList.remove('loading');
-                }, 5000);
-            });
-        }
-
-        // Initialize form handlers
-        handleFormSubmission('dineInForm', 'dineInBtn');
-        handleFormSubmission('takeOutForm', 'takeOutBtn');
-
-        // Enhanced touch feedback for Lenovo tablet
-        document.querySelectorAll('.action-btn').forEach(button => {
-            button.addEventListener('touchstart', function(e) {
-                // Prevent double-tap zoom
-                e.preventDefault();
+                // Visual feedback
+                this.classList.add('touched');
                 
-                // Don't trigger feedback for disabled buttons
-                if (this.disabled) return;
-                
-                // Enhanced haptic feedback
+                // Haptic feedback if available
                 if (navigator.vibrate) {
-                    navigator.vibrate([50, 30, 50]); // Pattern vibration
+                    navigator.vibrate(50);
                 }
                 
-                // Visual feedback with scale
-                this.style.transform = 'scale(0.96)';
-                this.style.transition = 'transform 0.1s ease';
-            });
+                // Prevent default to avoid issues
+                e.preventDefault();
+            }, { passive: false });
             
-            button.addEventListener('touchend', function() {
-                if (this.disabled) return;
-                this.style.transform = 'scale(1)';
-                this.style.transition = 'transform 0.3s ease';
-            });
+            // Touch end event - this is where we submit the form
+            button.addEventListener('touchend', function(e) {
+                if (this.disabled || formSubmitted || !touchStarted) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                console.log('Touch ended on:', this.textContent.trim());
+                
+                // Remove visual feedback
+                this.classList.remove('touched');
+                
+                // Prevent double submission
+                formSubmitted = true;
+                this.disabled = true;
+                this.classList.add('loading');
+                
+                // Submit the form
+                const form = this.closest('form');
+                if (form) {
+                    console.log('Submitting form:', form.action);
+                    form.submit();
+                } else {
+                    console.error('Form not found!');
+                    // Re-enable if form not found
+                    this.disabled = false;
+                    this.classList.remove('loading');
+                    formSubmitted = false;
+                }
+                
+                touchStarted = false;
+                e.preventDefault();
+            }, { passive: false });
             
-            // Mouse events for testing on desktop
-            button.addEventListener('mousedown', function() {
-                if (this.disabled) return;
-                this.style.transform = 'scale(0.96)';
-            });
+            // Touch cancel event
+            button.addEventListener('touchcancel', function(e) {
+                console.log('Touch cancelled on:', this.textContent.trim());
+                this.classList.remove('touched');
+                touchStarted = false;
+                e.preventDefault();
+            }, { passive: false });
             
-            button.addEventListener('mouseup', function() {
-                if (this.disabled) return;
-                this.style.transform = 'scale(1)';
+            // Click event as fallback for desktop/laptop
+            button.addEventListener('click', function(e) {
+                if (this.disabled || formSubmitted) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Only process click if not already handled by touch
+                if (!touchStarted) {
+                    console.log('Click event on:', this.textContent.trim());
+                    
+                    formSubmitted = true;
+                    this.disabled = true;
+                    this.classList.add('loading');
+                    
+                    const form = this.closest('form');
+                    if (form) {
+                        console.log('Submitting form via click:', form.action);
+                        setTimeout(() => form.submit(), 100);
+                    }
+                }
+                
+                e.preventDefault();
             });
+        });
+
+        // Additional tablet optimizations
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // Prevent double-tap zoom
+        let lastTouchTime = 0;
+        document.addEventListener('touchstart', function(event) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTouchTime;
+            if (tapLength < 500 && tapLength > 0) {
+                event.preventDefault();
+            }
+            lastTouchTime = currentTime;
+        }, { passive: false });
+
+        // Enhanced error logging for debugging
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.error);
+            console.error('Error details:', {
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                colno: e.colno
+            });
+        });
+
+        // Monitor form submission attempts
+        document.addEventListener('submit', function(e) {
+            console.log('Form submission detected:', e.target.action);
         });
 
         // Auto-hide cursor after inactivity (kiosk mode)
@@ -558,14 +638,7 @@
         document.addEventListener('selectstart', e => e.preventDefault());
         document.addEventListener('dragstart', e => e.preventDefault());
 
-        // Prevent accidental zoom
-        document.addEventListener('touchmove', function(e) {
-            if (e.touches.length > 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        // Screen wake lock for kiosk mode (if supported)
+        // Screen wake lock for kiosk mode
         let wakeLock = null;
         async function requestWakeLock() {
             try {
@@ -576,17 +649,9 @@
             }
         }
 
-        // Request wake lock when page loads
         if ('wakeLock' in navigator) {
             requestWakeLock();
         }
-
-        // Optimize for tablet battery life
-        window.addEventListener('beforeunload', function() {
-            if (wakeLock !== null) {
-                wakeLock.release();
-            }
-        });
 
         // Auto-dismiss alerts after 5 seconds
         document.querySelectorAll('.alert').forEach(alert => {
@@ -599,20 +664,13 @@
             }, 5000);
         });
 
-        // Error handling for navigation
-        window.addEventListener('error', function(e) {
-            console.error('Navigation error:', e.error);
-            // Could show a user-friendly error message here
-        });
-
-        // Connection status monitoring (for kiosk reliability)
+        // Connection status monitoring
         window.addEventListener('online', function() {
             console.log('Connection restored');
         });
 
         window.addEventListener('offline', function() {
             console.log('Connection lost');
-            // Could show offline message to user
         });
     </script>
 </body>

@@ -136,7 +136,7 @@
             .bottom-nav {
                 flex-direction: row;
                 gap: 0;
-                margin-top: 3rem;
+                margin-top: 9rem;
                 padding: 0;
                 background: none;
                 border-radius: 0;
@@ -747,23 +747,29 @@
                 <div class="export-modal-content">
                     <h2 class="export-modal-title">📊 DAILY SALES REPORT</h2>
                     <div class="report-date" id="reportDate"></div>
-                    
+
                     <!-- Sales Summary Section -->
                     <div class="report-section">
                         <h3>📈 Sales Summary</h3>
                         <div class="report-data">
                             <div class="report-item">
                                 <div class="report-item-label">Today's Total</div>
-                                <div class="report-item-value" id="reportTotalSales">PHP 10,520.00</div>
+                                <div class="report-item-value" id="reportTotalSales">PHP
+                                    {{ number_format($todaysSales->total_sales, 2) }}
+                                </div>
                             </div>
                             <div class="report-item">
                                 <div class="report-item-label">Orders Completed</div>
-                                <div class="report-item-value" id="reportOrdersCompleted">30</div>
+                                <div class="report-item-value" id="reportOrdersCompleted">
+                                    {{ $todaysSales->total_orders }}
+                                </div>
                             </div>
                         </div>
                         <div class="report-item" style="margin: 0 auto; max-width: 300px;">
                             <div class="report-item-label">Average Order</div>
-                            <div class="report-item-value" id="reportAverageOrder">PHP 350.67</div>
+                            <div class="report-item-value" id="reportAverageOrder">PHP
+                                {{ number_format($averageOrder, 2) }}
+                            </div>
                         </div>
                     </div>
 
@@ -816,21 +822,21 @@
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Today's Total:</h4>
-                        <p class="text-2xl font-bold">PHP 10,520.00</p>
+                        <p class="text-2xl font-bold">PHP {{ number_format($todaysSales->total_sales, 2) }}</p>
                     </div>
                 </div>
 
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Orders Completed:</h4>
-                        <p class="text-2xl font-bold">30</p>
+                        <p class="text-2xl font-bold">{{ $todaysSales->total_orders }}</p>
                     </div>
                 </div>
 
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Average Order:</h4>
-                        <p class="text-2xl font-bold">PHP 350.67</p>
+                        <p class="text-2xl font-bold">PHP {{ number_format($averageOrder, 2) }}</p>
                     </div>
                 </div>
             </div>
@@ -851,48 +857,23 @@
                 </div>
             </div>
 
-            <!-- Top Selling Items -->
-            <div class="sales-card mb-6">
-                <h4 class="font-semibold text-lg mb-4 text-center">Top Selling Items:</h4>
-                <div class="top-items">
-                    <div class="item-card">
-                        <div class="item-image bg-amber-100 flex items-center justify-center">
-                            <span class="text-2xl">☕</span>
-                        </div>
-                        <div class="item-info">
-                            <h5 class="font-semibold">Espresso</h5>
-                            <p class="text-sm text-gray-600">15 sold</p>
-                        </div>
-                    </div>
-                    <div class="item-card">
-                        <div class="item-image bg-green-100 flex items-center justify-center">
-                            <span class="text-2xl">🍛</span>
-                        </div>
-                        <div class="item-info">
-                            <h5 class="font-semibold">Pad Thai</h5>
-                            <p class="text-sm text-gray-600">12 sold</p>
-                        </div>
-                    </div>
-                    <div class="item-card">
-                        <div class="item-image bg-blue-100 flex items-center justify-center">
-                            <span class="text-2xl">🥤</span>
-                        </div>
-                        <div class="item-info">
-                            <h5 class="font-semibold">Iced Coffee</h5>
-                            <p class="text-sm text-gray-600">10 sold</p>
-                        </div>
-                    </div>
-                    <div class="item-card">
-                        <div class="item-image bg-red-100 flex items-center justify-center">
-                            <span class="text-2xl">🥪</span>
-                        </div>
-                        <div class="item-info">
-                            <h5 class="font-semibold">Club Sandwich</h5>
-                            <p class="text-sm text-gray-600">8 sold</p>
-                        </div>
-                    </div>
-                </div>
+            <!-- Top Selling Items Section in Export Modal -->
+            <div class="report-section">
+                <h3>🏆 Top Selling Items</h3>
+                <ul class="top-items-list">
+                    @foreach($formattedTopItems as $index => $item)
+                        <li>
+                            <div class="item-rank">{{ $index + 1 }}</div>
+                            <div class="item-details">
+                                <span class="item-name">{{ $item->name }}</span>
+                                <span class="item-sales">{{ $item->quantity }} sold - PHP
+                                    {{ number_format($item->revenue, 2) }}</span>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
             </div>
+            
 
             <!-- Bottom Navigation -->
             <div class="bottom-nav flex justify-between items-center">
@@ -914,15 +895,15 @@
         function openExportModal() {
             // Set current date
             const today = new Date();
-            const options = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             };
-            document.getElementById('reportDate').textContent = 
+            document.getElementById('reportDate').textContent =
                 `Report generated on ${today.toLocaleDateString('en-US', options)}`;
-            
+
             document.getElementById('exportReportModal').classList.add('show');
         }
 
@@ -933,11 +914,11 @@
         function printReport() {
             const printWindow = window.open('', '_blank');
             const reportContent = document.querySelector('.export-modal-content').cloneNode(true);
-            
+
             // Remove the action buttons from print version
             const actions = reportContent.querySelector('.export-modal-actions');
             if (actions) actions.remove();
-            
+
             printWindow.document.write(`
                 <html>
                 <head>
@@ -1054,7 +1035,7 @@
                 </body>
                 </html>
             `);
-            
+
             printWindow.document.close();
             setTimeout(() => {
                 printWindow.print();
@@ -1099,8 +1080,8 @@
         });
 
         // Close export modal when clicking outside
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('exportReportModal').addEventListener('click', function(e) {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('exportReportModal').addEventListener('click', function (e) {
                 if (e.target === this) {
                     closeExportModal();
                 }
