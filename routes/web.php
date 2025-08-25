@@ -8,6 +8,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\PaymongoWebhookController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\SalesController;
@@ -106,6 +108,8 @@ Route::get('/printer-info', function () {
         'connection_info' => $thermalPrinterService->getConnectionInfo()
     ]);
 });
+
+Route::post('/kiosk/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('payment.processCash');
 
 Route::get('/test-receipt/{orderId}', function ($orderId) {
     $order = App\Models\Order::with(['orderItems.menuItem'])->find($orderId);
@@ -212,6 +216,14 @@ Route::prefix('kitchen')->name('kitchen.')->group(function () {
 
     
 });
+
+Route::post('/orders/{id}/complete', [OrderController::class, 'markCompleted'])->name('orders.complete');
+Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
+Route::post('/orders/{id}/complete', [OrderController::class, 'markCompleted'])->name('orders.complete');
+Route::get('/api/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
+Route::post('/ingredients/update', [InventoryController::class, 'updateIngredient'])->name('ingredients.update');
+// Add inventory API routes  
+Route::get('/api/inventory', [IngredientController::class, 'getInventoryData'])->name('api.inventory');
 
 // Public API routes
 Route::get('/category/{categoryId}/items', [KioskController::class, 'getCategoryItems'])->name('getCategoryItems');

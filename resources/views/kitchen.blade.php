@@ -372,6 +372,7 @@
                     No recently completed orders
                 </div>
             @endforelse
+            
         </div>
 
         <script>
@@ -455,15 +456,14 @@
             // Initial timer update
             updateTimers();
 
-            // Play notification sound when new order arrives
+            // Play notification when new order arrives
             let lastOrderCount = {{ ($pendingOrders->count() + $processingOrders->count()) ?? 0 }};
 
             function checkForNewOrders() {
                 const currentOrderCount = document.querySelectorAll('.order-card').length;
                 if (currentOrderCount > lastOrderCount) {
                     console.log('New order received!');
-                    // Add notification sound here if needed
-                    // new Audio('/sounds/notification.mp3').play();
+        
                 }
                 lastOrderCount = currentOrderCount;
             }

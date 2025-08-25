@@ -420,6 +420,7 @@
             items: [
                 {
                     id: 1,
+                    menu_item_id: 1,
                     name: "Coffee Item",
                     unitPrice: 95.00,
                     quantity: 1,

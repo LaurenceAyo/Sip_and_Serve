@@ -46,7 +46,7 @@ class KioskController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Your cart is empty. Please add items before proceeding.'
-                ], 400); // Bad Request
+                ], 400);
             }
 
             $subtotal = 0;
@@ -63,12 +63,11 @@ class KioskController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Insufficient cash amount provided.'
-                ], 400); // Bad Request
+                ], 400);
             }
 
             $actualChange = $cashAmount - $total;
-
-            $order = null; // Initialize order variable
+            $order = null;
 
             DB::transaction(function () use ($cart, $orderType, $subtotal, $tax, $total, $cashAmount, $actualChange, &$order) {
                 // Create the order
@@ -78,49 +77,45 @@ class KioskController extends Controller
                     'discount_amount' => 0.00,
                     'total_amount' => $total,
                     'payment_method' => 'cash',
-                    'payment_status' => 'pending', // Will be marked 'paid' by cashier
-                    'status' => 'pending', // Initial status
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
                     'cash_amount' => $cashAmount,
                     'change_amount' => $actualChange,
                     'order_type' => $orderType,
                     'notes' => "Kiosk order - Type: {$orderType}",
                 ]);
 
-                // Create order items
+                // Create order items AND deduct ingredients
                 foreach ($cart as $id => $item) {
                     $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
-                    OrderItem::create([
+                    $orderItem = OrderItem::create([
                         'order_id' => $order->id,
                         'menu_item_id' => $item['menu_item_id'] ?? null,
-                        // Remove this line: 'name' => $item['name'] ?? 'N/A',
                         'quantity' => $item['quantity'],
                         'unit_price' => $itemPrice,
                         'total_price' => $itemPrice * $item['quantity'],
-                        'special_instructions' => isset($item['addons']) ? json_encode($item['addons']) : null,
+                        'special_instructions' => isset($item['modifiers']) && is_array($item['modifiers']) ? implode(', ', $item['modifiers']) : null,
                         'status' => 'pending'
                     ]);
+
+                    // Deduct ingredients for each item
+                    $this->deductIngredients($orderItem->id, $orderItem->quantity);
                 }
             });
 
-            // Generate a user-friendly order number
+            // Clear the cart and store the last order ID for the confirmation page
+            Session::forget('cart');
             if ($order) {
+                Session::put('last_order_id', $order->id);
+                Log::info('Cash payment processed successfully for Order ID: ' . $order->id);
                 $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
-                $order->order_number = $orderNumber;
-                $order->save();
             } else {
                 Log::error('Order object is null after transaction.');
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create order. Please try again.'
+                    'message' => 'Order could not be created. Please try again.'
                 ], 500);
             }
-
-
-            // Clear the cart and store the last order ID for the confirmation page
-            Session::forget('cart');
-            Session::put('last_order_id', $order->id);
-
-            Log::info('Cash payment processed successfully for Order ID: ' . $order->id);
 
             return response()->json([
                 'success' => true,
@@ -132,18 +127,72 @@ class KioskController extends Controller
                 'message' => 'Cash order processed successfully. Please proceed to the cashier.'
             ]);
         } catch (Exception $e) {
-            // Log the detailed error for debugging
             Log::error('Cash payment failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
 
-            // Return a generic error message to the user
             return response()->json([
                 'success' => false,
                 'message' => 'An unexpected error occurred. Please contact staff for assistance.'
-            ], 500); // Internal Server Error
+            ], 500);
         }
     }
+
+    /**
+     * Deduct ingredients for an order item
+     */
+    private function deductIngredients($orderItemId, $quantity)
+    {
+        // Get all ingredients needed for this order item
+        $ingredientsNeeded = DB::select("
+            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
+            FROM menu_item_ingredients mii
+            INNER JOIN order_items oi ON oi.menu_item_id = mii.menu_item_id
+            INNER JOIN ingredients i ON i.id = mii.ingredient_id
+            WHERE oi.id = ?
+        ", [$quantity, $orderItemId]);
+        
+        foreach ($ingredientsNeeded as $ingredient) {
+            $remainingNeeded = $ingredient->total_needed;
+            
+            // Deduct using FIFO (First In, First Out)
+            while ($remainingNeeded > 0) {
+                $availableIngredient = DB::table('ingredients')
+                    ->where('name', $ingredient->ingredient_name)
+                    ->where('stock_quantity', '>', 0)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
+                
+                if (!$availableIngredient) {
+                    // No more stock available
+                    break;
+                }
+                
+                if ($availableIngredient->stock_quantity >= $remainingNeeded) {
+                    // This ingredient has enough stock
+                    DB::table('ingredients')
+                        ->where('id', $availableIngredient->id)
+                        ->update([
+                            'stock_quantity' => $availableIngredient->stock_quantity - $remainingNeeded,
+                            'updated_at' => now()
+                        ]);
+                    
+                    $remainingNeeded = 0;
+                } else {
+                    // Use all of this ingredient and continue
+                    DB::table('ingredients')
+                        ->where('id', $availableIngredient->id)
+                        ->update([
+                            'stock_quantity' => 0,
+                            'updated_at' => now()
+                        ]);
+                    
+                    $remainingNeeded -= $availableIngredient->stock_quantity;
+                }
+            }
+        }
+    }
+
 
     /**
      * Process GCash payment via PayMongo - KEEPS 10% TAX FOR ONLINE PAYMENTS
@@ -201,7 +250,7 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
-                    'name' => $item['name'] ?? 'Custom Item',
+
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
@@ -248,6 +297,7 @@ class KioskController extends Controller
         $menu_items = MenuItem::all();
         return view('profile.product', compact('menu_items'));
     }
+
 
     /**
      * Store a new menu item via AJAX
@@ -510,7 +560,7 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
-                    'name' => $item['name'] ?? 'Custom Item',
+
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
