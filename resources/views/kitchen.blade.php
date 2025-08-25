@@ -325,9 +325,7 @@
                         <div class="order-number">
                             Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                         </div>
-                        <div class="completed-time">
-                            ✓ {{ $order->total_prep_time_calculated ?? 'N/A' }}min
-                        </div>
+                        
                     </div>
 
                     <div class="order-info">

@@ -27,6 +27,46 @@ class KioskController extends Controller
         return view('dashboard', compact('ingredients'));
     }
 
+    private function checkStockAvailability($cart)
+    {
+        $insufficientItems = [];
+
+        foreach ($cart as $item) {
+            $menuItemId = $item['menu_item_id'];
+            $quantity = $item['quantity'];
+
+            // Get ingredients needed
+            $ingredientsNeeded = DB::select("
+            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
+            FROM menu_item_ingredients mii
+            INNER JOIN ingredients i ON i.id = mii.ingredient_id
+            WHERE mii.menu_item_id = ?
+        ", [$quantity, $menuItemId]);
+
+            foreach ($ingredientsNeeded as $ingredient) {
+                // Check total available stock
+                $totalAvailable = DB::table('ingredients')
+                    ->where('name', $ingredient->ingredient_name)
+                    ->where('stock_quantity', '>', 0)
+                    ->sum('stock_quantity');
+
+                if ($totalAvailable < $ingredient->total_needed) {
+                    $insufficientItems[] = [
+                        'menu_item' => $item['name'] ?? 'Menu Item #' . $menuItemId,
+                        'ingredient' => $ingredient->ingredient_name,
+                        'needed' => $ingredient->total_needed,
+                        'available' => $totalAvailable,
+                        'shortage' => $ingredient->total_needed - $totalAvailable
+                    ];
+                }
+            }
+        }
+
+        return $insufficientItems;
+    }
+
+
+
     /**
      * Process cash payment - TAX-INCLUSIVE PRICING
      */
@@ -68,6 +108,20 @@ class KioskController extends Controller
 
             $actualChange = $cashAmount - $total;
             $order = null;
+
+
+            $stockCheck = $this->checkStockAvailability($cart);
+            if (!empty($stockCheck)) {
+                $shortageMessage = "Insufficient stock for:\n";
+                foreach ($stockCheck as $shortage) {
+                    $shortageMessage .= "• {$shortage['menu_item']}: {$shortage['ingredient']} (need {$shortage['needed']}, have {$shortage['available']})\n";
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sorry, this item is currently unavailable due to ingredient shortage. Please select a different item or contact staff for assistance.'
+                ], 400);
+            }
 
             DB::transaction(function () use ($cart, $orderType, $subtotal, $tax, $total, $cashAmount, $actualChange, &$order) {
                 // Create the order
@@ -151,10 +205,10 @@ class KioskController extends Controller
             INNER JOIN ingredients i ON i.id = mii.ingredient_id
             WHERE oi.id = ?
         ", [$quantity, $orderItemId]);
-        
+
         foreach ($ingredientsNeeded as $ingredient) {
             $remainingNeeded = $ingredient->total_needed;
-            
+
             // Deduct using FIFO (First In, First Out)
             while ($remainingNeeded > 0) {
                 $availableIngredient = DB::table('ingredients')
@@ -162,12 +216,12 @@ class KioskController extends Controller
                     ->where('stock_quantity', '>', 0)
                     ->orderBy('created_at', 'asc')
                     ->first();
-                
+
                 if (!$availableIngredient) {
                     // No more stock available
                     break;
                 }
-                
+
                 if ($availableIngredient->stock_quantity >= $remainingNeeded) {
                     // This ingredient has enough stock
                     DB::table('ingredients')
@@ -176,7 +230,7 @@ class KioskController extends Controller
                             'stock_quantity' => $availableIngredient->stock_quantity - $remainingNeeded,
                             'updated_at' => now()
                         ]);
-                    
+
                     $remainingNeeded = 0;
                 } else {
                     // Use all of this ingredient and continue
@@ -186,7 +240,7 @@ class KioskController extends Controller
                             'stock_quantity' => 0,
                             'updated_at' => now()
                         ]);
-                    
+
                     $remainingNeeded -= $availableIngredient->stock_quantity;
                 }
             }
