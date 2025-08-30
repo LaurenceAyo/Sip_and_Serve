@@ -7,6 +7,8 @@ use Illuminate\View\View;
 use App\Models\{Order, OrderItem, MenuItem, Category, Inventory, Ingredient};
 use Illuminate\Support\Facades\{DB, Session, Log};
 use Exception;
+use App\Services\PaymongoService;
+
 
 class KioskController extends Controller
 {
@@ -65,7 +67,189 @@ class KioskController extends Controller
         return $insufficientItems;
     }
 
+    /**
+     * Deduct packaging supplies for takeout orders
+     */
+    private function deductPackagingSupplies($orderItems, $orderType)
+    {
+        if ($orderType !== 'take-out') {
+            return;
+        }
 
+        Log::info('Starting packaging supplies deduction', [
+            'order_type' => $orderType,
+            'cart_items' => count($orderItems),
+        ]);
+
+        // Calculate total items
+        $totalItemsCount = 0;
+        foreach ($orderItems as $item) {
+            $totalItemsCount += $item['quantity'];
+        }
+
+        // Check if packaging supplies exist first
+        $packagingItems = DB::table('ingredients')
+            ->where('category', 'packaging-supplies')
+            ->pluck('name', 'id');
+
+        Log::info('Available packaging supplies:', $packagingItems->toArray());
+
+        if ($packagingItems->isEmpty()) {
+            Log::warning('No packaging supplies found in inventory');
+            return;
+        }
+
+
+        // Only deduct packaging supplies for takeout orders
+        if ($orderType !== 'take-out') {
+            return;
+        }
+
+        Log::info('Deducting packaging supplies for takeout order', [
+            'order_type' => $orderType,
+            'items_count' => count($orderItems)
+        ]);
+
+        // Define packaging supplies mapping
+        $packagingSupplies = [
+            'Disposable Food Containers' => 1, // 1 container per order item
+            'Plastic Bags' => 1, // 1 bag per order (not per item)
+            'Napkins' => 2, // 2 napkins per order item
+            'Disposable Utensils' => 1, // 1 set of utensils per order item
+        ];
+
+        // Calculate total quantities needed
+        $totalItemsCount = array_sum(array_column($orderItems, 'quantity'));
+        $packagingNeeded = [];
+
+        foreach ($packagingSupplies as $itemName => $qtyPerItem) {
+            if ($itemName === 'Plastic Bags') {
+                // Only 1 bag per order regardless of items
+                $packagingNeeded[$itemName] = 1;
+            } else {
+                // Multiply by total item count
+                $packagingNeeded[$itemName] = $qtyPerItem * $totalItemsCount;
+            }
+        }
+
+        Log::info('Packaging supplies needed:', $packagingNeeded);
+
+        // Deduct each packaging supply using FIFO method
+        foreach ($packagingNeeded as $itemName => $quantityNeeded) {
+            $this->deductPackagingItem($itemName, $quantityNeeded);
+        }
+    }
+
+
+    /**
+     * Deduct ingredients for an order item
+     */
+    private function deductIngredients($orderItemId, $quantity)
+    {
+        // Get all ingredients needed for this order item
+        $ingredientsNeeded = DB::select("
+            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
+            FROM menu_item_ingredients mii
+            INNER JOIN order_items oi ON oi.menu_item_id = mii.menu_item_id
+            INNER JOIN ingredients i ON i.id = mii.ingredient_id
+            WHERE oi.id = ?
+        ", [$quantity, $orderItemId]);
+
+        foreach ($ingredientsNeeded as $ingredient) {
+            $remainingNeeded = $ingredient->total_needed;
+
+            // Deduct using FIFO (First In, First Out)
+            while ($remainingNeeded > 0) {
+                $availableIngredient = DB::table('ingredients')
+                    ->where('name', $ingredient->ingredient_name)
+                    ->where('stock_quantity', '>', 0)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
+
+                if (!$availableIngredient) {
+                    // No more stock available
+                    break;
+                }
+
+                if ($availableIngredient->stock_quantity >= $remainingNeeded) {
+                    // This ingredient has enough stock
+                    DB::table('ingredients')
+                        ->where('id', $availableIngredient->id)
+                        ->update([
+                            'stock_quantity' => $availableIngredient->stock_quantity - $remainingNeeded,
+                            'updated_at' => now()
+                        ]);
+
+                    $remainingNeeded = 0;
+                } else {
+                    // Use all of this ingredient and continue
+                    DB::table('ingredients')
+                        ->where('id', $availableIngredient->id)
+                        ->update([
+                            'stock_quantity' => 0,
+                            'updated_at' => now()
+                        ]);
+
+                    $remainingNeeded -= $availableIngredient->stock_quantity;
+                }
+            }
+        }
+    }
+
+    /**
+     * Deduct a specific packaging item using FIFO method
+     */
+    private function deductPackagingItem($itemName, $quantityNeeded)
+    {
+        $remainingNeeded = $quantityNeeded;
+
+        Log::info("Deducting packaging item: {$itemName}", [
+            'quantity_needed' => $quantityNeeded
+        ]);
+
+        // Use FIFO (First In, First Out) method similar to ingredient deduction
+        while ($remainingNeeded > 0) {
+            $availableItem = DB::table('ingredients')
+                ->where('name', $itemName)
+                ->where('category', 'packaging-supplies')
+                ->where('stock_quantity', '>', 0)
+                ->orderBy('created_at', 'asc')
+                ->first();
+
+            if (!$availableItem) {
+                // Log warning if packaging supply is out of stock
+                Log::warning("Packaging supply out of stock: {$itemName}", [
+                    'quantity_still_needed' => $remainingNeeded,
+                    'original_quantity_needed' => $quantityNeeded
+                ]);
+                break;
+            }
+
+            if ($availableItem->stock_quantity >= $remainingNeeded) {
+                // This batch has enough stock
+                DB::table('ingredients')
+                    ->where('id', $availableItem->id)
+                    ->update([
+                        'stock_quantity' => $availableItem->stock_quantity - $remainingNeeded,
+                        'updated_at' => now()
+                    ]);
+
+                Log::info("Deducted {$remainingNeeded} {$itemName} from batch {$availableItem->id}");
+                $remainingNeeded = 0;
+            } else {
+                // Use all of this batch and continue
+                DB::table('ingredients')
+                    ->where('id', $availableItem->id)
+                    ->update([
+                        'stock_quantity' => 0,
+                        'updated_at' => now()
+                    ]);
+
+                Log::info("Used all {$availableItem->stock_quantity} {$itemName} from batch {$availableItem->id}");
+                $remainingNeeded -= $availableItem->stock_quantity;
+            }
+        }
+    }
 
     /**
      * Process cash payment - TAX-INCLUSIVE PRICING
@@ -154,6 +338,7 @@ class KioskController extends Controller
 
                     // Deduct ingredients for each item
                     $this->deductIngredients($orderItem->id, $orderItem->quantity);
+                    $this->deductPackagingSupplies($orderItem->id, $orderItem->quantity);
                 }
             });
 
@@ -192,66 +377,11 @@ class KioskController extends Controller
         }
     }
 
-    /**
-     * Deduct ingredients for an order item
-     */
-    private function deductIngredients($orderItemId, $quantity)
-    {
-        // Get all ingredients needed for this order item
-        $ingredientsNeeded = DB::select("
-            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
-            FROM menu_item_ingredients mii
-            INNER JOIN order_items oi ON oi.menu_item_id = mii.menu_item_id
-            INNER JOIN ingredients i ON i.id = mii.ingredient_id
-            WHERE oi.id = ?
-        ", [$quantity, $orderItemId]);
-
-        foreach ($ingredientsNeeded as $ingredient) {
-            $remainingNeeded = $ingredient->total_needed;
-
-            // Deduct using FIFO (First In, First Out)
-            while ($remainingNeeded > 0) {
-                $availableIngredient = DB::table('ingredients')
-                    ->where('name', $ingredient->ingredient_name)
-                    ->where('stock_quantity', '>', 0)
-                    ->orderBy('created_at', 'asc')
-                    ->first();
-
-                if (!$availableIngredient) {
-                    // No more stock available
-                    break;
-                }
-
-                if ($availableIngredient->stock_quantity >= $remainingNeeded) {
-                    // This ingredient has enough stock
-                    DB::table('ingredients')
-                        ->where('id', $availableIngredient->id)
-                        ->update([
-                            'stock_quantity' => $availableIngredient->stock_quantity - $remainingNeeded,
-                            'updated_at' => now()
-                        ]);
-
-                    $remainingNeeded = 0;
-                } else {
-                    // Use all of this ingredient and continue
-                    DB::table('ingredients')
-                        ->where('id', $availableIngredient->id)
-                        ->update([
-                            'stock_quantity' => 0,
-                            'updated_at' => now()
-                        ]);
-
-                    $remainingNeeded -= $availableIngredient->stock_quantity;
-                }
-            }
-        }
-    }
-
 
     /**
      * Process GCash payment via PayMongo - KEEPS 10% TAX FOR ONLINE PAYMENTS
      */
-    private function processGCashPayment(Request $request)
+    public function processGCashPayment(Request $request)
     {
         try {
             $cart = Session::get('cart', []);
@@ -281,7 +411,7 @@ class KioskController extends Controller
                 'payment_method' => 'gcash'
             ]);
 
-            // Save order to database first
+            // STEP 1: Save order to database FIRST
             DB::beginTransaction();
 
             $order = Order::create([
@@ -304,7 +434,6 @@ class KioskController extends Controller
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'] ?? null,
-
                     'quantity' => $item['quantity'],
                     'unit_price' => $itemPrice,
                     'total_price' => $itemPrice * $item['quantity'],
@@ -313,35 +442,129 @@ class KioskController extends Controller
                 ]);
             }
 
+            // Generate order number
+            $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
+            // COMMIT ORDER TO DATABASE - This ensures order exists before PayMongo
             DB::commit();
+
+            Log::info('Order committed to database before PayMongo', [
+                'order_id' => $order->id,
+                'order_number' => $orderNumber
+            ]);
+
+            // STEP 2: NOW CREATE PAYMONGO PAYMENT INTENT (outside transaction)
+            $paymongoService = new PaymongoService();
+
+            $paymentIntent = $paymongoService->createPaymentIntent(
+                $total,
+                'PHP',
+                "Order #{$orderNumber} - Sip & Serve Kiosk"
+            );
+
+            if (!$paymentIntent || !isset($paymentIntent['data'])) {
+                Log::error('PayMongo payment intent creation failed', [
+                    'order_id' => $order->id,
+                    'total' => $total
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payment with PayMongo'
+                ]);
+            }
+
+            $paymentIntentId = $paymentIntent['data']['id'];
+
+            // STEP 3: Update order with payment intent ID (separate update)
+            Order::where('id', $order->id)->update([
+                'payment_intent_id' => $paymentIntentId
+            ]);
+
+            Log::info('Order updated with payment intent ID via direct query', [
+                'order_id' => $order->id,
+                'payment_intent_id' => $paymentIntentId
+            ]);
+
+            // STEP 4: Create payment method (GCash)
+            $paymentMethod = $paymongoService->createPaymentMethod($paymentIntentId, 'gcash');
+
+            if (!$paymentMethod || !isset($paymentMethod['data'])) {
+                Log::error('PayMongo payment method creation failed', [
+                    'payment_intent_id' => $paymentIntentId
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create GCash payment method'
+                ]);
+            }
+
+            $paymentMethodId = $paymentMethod['data']['id'];
+
+            // STEP 5: Attach payment method to payment intent
+            $attachResult = $paymongoService->attachPaymentMethod($paymentIntentId, $paymentMethodId);
+
+            if (!$attachResult || !isset($attachResult['data'])) {
+                Log::error('PayMongo payment method attachment failed', [
+                    'payment_intent_id' => $paymentIntentId,
+                    'payment_method_id' => $paymentMethodId
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to attach payment method'
+                ]);
+            }
+
+            // STEP 6: Update order with payment method ID
+            $order->update([
+                'payment_method_id' => $paymentMethodId
+            ]);
 
             // Clear cart session
             Session::forget('cart');
             Session::put('last_order_id', $order->id);
 
-            // Generate order number
-            $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+            // Get the redirect URL for GCash payment
+            $redirectUrl = null;
+            if (isset($attachResult['data']['attributes']['next_action']['redirect']['url'])) {
+                $redirectUrl = $attachResult['data']['attributes']['next_action']['redirect']['url'];
+            }
 
-            // For now, simulate PayMongo checkout URL
-            $checkoutUrl = route('kiosk.orderConfirmation', $order->id) . '?payment=gcash';
+            Log::info('GCash payment processing completed successfully', [
+                'order_id' => $order->id,
+                'payment_intent_id' => $paymentIntentId,
+                'redirect_url' => $redirectUrl ? 'present' : 'missing'
+            ]);
 
             return response()->json([
                 'success' => true,
-                'checkout_url' => $checkoutUrl,
-                'order_id' => $order->id,
-                'order_number' => $orderNumber,
-                'total_amount' => $total, // Includes 10% tax
-                'message' => 'GCash payment initiated'
+                'data' => [
+                    'payment_intent_id' => $paymentIntentId,
+                    'payment_method_id' => $paymentMethodId,
+                    'redirect_url' => $redirectUrl,
+                    'order_id' => $order->id,
+                    'order_number' => $orderNumber,
+                    'total_amount' => $total,
+                    'status' => $attachResult['data']['attributes']['status']
+                ],
+                'message' => 'PayMongo GCash payment created successfully'
             ]);
         } catch (Exception $e) {
-            DB::rollback();
-            Log::error('GCash payment failed: ' . $e->getMessage());
+            Log::error('GCash payment failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'GCash payment failed: ' . $e->getMessage()
             ]);
         }
     }
+
+
+
+    /**
+     * Handle payment success redirect - redirect to order confirmation success
+     */
+
 
     /**
      * Display the products page
@@ -352,6 +575,82 @@ class KioskController extends Controller
         return view('profile.product', compact('menu_items'));
     }
 
+    /**
+     * Handle payment success redirect - redirect to order confirmation success
+     */
+
+
+    /**
+     * Handle payment failure redirect
+     */
+
+    /**
+     * Handle payment success redirect - redirect to order confirmation success
+     */
+    public function paymentSuccess(Request $request)
+    {
+        $paymentIntentId = $request->query('payment_intent_id');
+
+        Log::info('Payment success called', [
+            'payment_intent_id' => $paymentIntentId,
+            'all_params' => $request->all()
+        ]);
+
+        if ($paymentIntentId) {
+            // LOOK UP BY payment_intent_id (this line was correct)
+            $order = Order::where('payment_intent_id', $paymentIntentId)->first();
+
+            Log::info('Order lookup result', [
+                'order_found' => $order ? true : false,
+                'order_id' => $order ? $order->id : null
+            ]);
+
+            if ($order) {
+                $order->update([
+                    'payment_status' => 'completed',  // Change this to 'paid'
+                    'status' => 'confirmed'
+                ]);
+
+                Session::put('last_order_id', $order->id);
+                return redirect()->route('kiosk.orderConfirmationSuccess');
+            }
+        }
+
+        Log::error('Payment success failed - no order found', [
+            'payment_intent_id' => $paymentIntentId
+        ]);
+
+        return redirect()->route('kiosk.index')->with('error', 'Order not found');
+    }
+
+    /**
+     * Handle payment failure redirect
+     */
+    public function paymentFailed(Request $request)
+    {
+        $paymentIntentId = $request->query('payment_intent_id');
+
+        if ($paymentIntentId) {
+            // Find the order by payment_intent_id and update status
+            $order = Order::where('payment_intent_id', $paymentIntentId)->first();
+
+            if ($order) {
+                // Update order status to failed
+                $order->update([
+                    'payment_status' => 'failed',
+                    'status' => 'cancelled'
+                ]);
+
+                // Redirect back to order confirmation with the order ID and error message
+                return redirect()->route('kiosk.orderConfirmation', ['id' => $order->id])
+                    ->with('payment_error', 'Payment was not completed. Please try again or choose a different payment method.');
+            }
+        }
+
+        // If no order found, redirect to main kiosk with error
+        return redirect()->route('kiosk.index')
+            ->with('error', 'Payment failed. Please try again.');
+    }
 
     /**
      * Store a new menu item via AJAX
@@ -1121,6 +1420,23 @@ class KioskController extends Controller
             return redirect()->route('kiosk.index')->with('error', 'Order not found');
         }
     }
+
+    public function orderConfirmationSuccess()
+    {
+        $orderId = session('last_order_id');
+
+        if ($orderId) {
+            $order = Order::with('orderItems.menuItem')->find($orderId);
+
+            if ($order) {
+                return view('orderConfirmationSuccess', compact('order'));
+            }
+        }
+
+        // If no order found, redirect to main kiosk
+        return redirect()->route('kiosk.index')->with('error', 'Order not found');
+    }
+
 
     /**
      * Get cart contents (for AJAX)

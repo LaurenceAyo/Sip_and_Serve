@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Http\Controllers\POSPaymentController;
+
 
 //Remove me If you don't need QR code generation or will be Deployed on Hostinger
 Route::get('generate-qr', function () {
@@ -111,6 +113,31 @@ Route::get('/printer-info', function () {
 
 Route::post('/kiosk/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('payment.processCash');
 
+Route::post('/kiosk/process-gcash-payment', [KioskController::class, 'processGCashPayment'])->name('kiosk.processGCashPayment');
+Route::get('/kiosk/payment-success', [KioskController::class, 'paymentSuccess'])->name('kiosk.paymentSuccess');
+Route::get('/kiosk/payment-failed', [KioskController::class, 'paymentFailed'])->name('kiosk.paymentFailed');
+
+// Payment redirect routes
+Route::prefix('kiosk/payment')->name('kiosk.payment.')->group(function () {
+    Route::get('/success', [POSPaymentController::class, 'paymentSuccess'])->name('success');
+    Route::get('/failed', [POSPaymentController::class, 'paymentFailed'])->name('failed');
+});
+Route::post('/kiosk/process-gcash-payment', [KioskController::class, 'processGCashPayment']);
+Route::get('/kiosk/order-confirmation-success', [KioskController::class, 'orderConfirmationSuccess'])
+    ->name('kiosk.orderConfirmationSuccess');
+Route::get('/kiosk/review-order', [KioskController::class, 'reviewOrder'])
+    ->name('kiosk.reviewOrder');
+    Route::get('/kiosk/payment/failed', [KioskController::class, 'paymentFailed'])->name('kiosk.payment.failed');
+
+// API Routes for POS Payment
+Route::prefix('api/pos/payment')->group(function () {
+    Route::post('/process', [POSPaymentController::class, 'processPayment']);
+    Route::get('/status/{paymentIntentId}', [POSPaymentController::class, 'checkPaymentStatus']);
+});
+
+// Webhook route (should be excluded from CSRF verification)
+Route::post('/paymongo/webhook', [POSPaymentController::class, 'handleWebhook']);
+
 Route::get('/test-receipt/{orderId}', function ($orderId) {
     $order = App\Models\Order::with(['orderItems.menuItem'])->find($orderId);
 
@@ -128,6 +155,24 @@ Route::get('/test-receipt/{orderId}', function ($orderId) {
         'connection_info' => $thermalPrinterService->getConnectionInfo()
     ]);
 });
+
+
+// API Routes for POS Payment
+Route::prefix('api/pos/payment')->group(function () {
+    Route::post('/process', [POSPaymentController::class, 'processPayment']);
+    Route::get('/status/{paymentIntentId}', [POSPaymentController::class, 'checkPaymentStatus']);
+});
+
+// Web Routes for redirects
+Route::prefix('kiosk/payment')->name('kiosk.payment.')->group(function () {
+    Route::get('/success', [POSPaymentController::class, 'paymentSuccess'])->name('success');
+    Route::get('/failed', [POSPaymentController::class, 'paymentFailed'])->name('failed');
+});
+
+// Webhook route (should be excluded from CSRF verification)
+Route::post('/paymongo/webhook', [POSPaymentController::class, 'handleWebhook']);
+
+
 
 // Debug routes for troubleshooting (remove in production)
 Route::get('/debug-cashier', function () {
@@ -153,6 +198,12 @@ Route::get('/debug-cashier', function () {
         ]);
     }
 });
+
+
+Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook'])
+    ->name('paymongo.webhook');
+
+    Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook']);
 
 // Test route to verify POST is working
 Route::post('/test-cashier-post', function (Request $request) {

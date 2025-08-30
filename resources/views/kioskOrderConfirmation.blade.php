@@ -330,6 +330,40 @@
             box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
         }
 
+        /* Payment Error Modal Styles */
+        .payment-error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .payment-error-suggestions {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            border: 1px solid #ffeaa7;
+        }
+
+        .payment-error-suggestions h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .payment-error-suggestions ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #856404;
+        }
+
+        .payment-error-suggestions li {
+            margin-bottom: 5px;
+        }
+
         .payment-modal-btn:disabled {
             background: #e9ecef;
             color: #6c757d;
@@ -1043,6 +1077,113 @@
                 gap: 15px;
             }
         }
+
+        /* GCash Payment Modal Styles */
+        .gcash-payment-section {
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .gcash-qr-container {
+            margin: 20px 0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gcash-payment-button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gcash-payment-button {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .gcash-payment-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .gcash-icon {
+            font-size: 24px;
+        }
+
+        .gcash-button-note {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .gcash-status-message {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .status-icon {
+            font-size: 24px;
+        }
+
+        .status-text {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .gcash-instructions {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .instruction-title {
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .instruction-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .step {
+            padding-left: 15px;
+            color: #424242;
+        }
+
+        /* Animation for modals */
+        .payment-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .payment-modal-overlay.show .payment-modal-container {
+            transform: translateY(0);
+        }
     </style>
 </head>
 
@@ -1211,6 +1352,57 @@
         </div>
     </div>
 
+    <!-- GCash Payment Modal -->
+    <div class="payment-modal-overlay" id="gcashPaymentModal">
+        <div class="payment-modal-container">
+            <div class="payment-modal-header">
+                <div class="payment-modal-icon">📱</div>
+                <h2 class="payment-modal-title">Pay with GCash</h2>
+                <p class="payment-modal-subtitle">Complete your payment using GCash</p>
+            </div>
+
+            <div class="payment-modal-content">
+                <div class="payment-amount-display">
+                    <div class="payment-amount-label">Amount to Pay:</div>
+                    <div class="payment-amount-value" id="gcashPaymentAmount">
+                        PHP {{ number_format($total ?? 0, 2) }}
+                    </div>
+                </div>
+
+                <!-- GCash QR Code and Instructions -->
+                <div class="gcash-payment-section">
+                    <div class="gcash-qr-container" id="gcashQrContainer">
+                        <!-- QR code or payment button will be inserted here -->
+                    </div>
+
+                    <div class="gcash-status-message" id="gcashStatusMessage">
+                        <div class="status-icon">⏳</div>
+                        <div class="status-text">Preparing payment...</div>
+                    </div>
+
+                    <div class="gcash-instructions">
+                        <div class="instruction-title">📱 <strong>How to pay:</strong></div>
+                        <div class="instruction-steps">
+                            <div class="step">1. Click the "Pay with GCash" button below</div>
+                            <div class="step">2. You'll be redirected to GCash</div>
+                            <div class="step">3. Complete the payment</div>
+                            <div class="step">4. Return to this page to confirm</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-modal-actions">
+                    <button class="payment-modal-btn payment-modal-btn-cancel" onclick="hideGCashModal()">
+                        Cancel Payment
+                    </button>
+                    <button class="payment-modal-btn payment-modal-btn-proceed" id="gcashProceedBtn" disabled>
+                        Pay with GCash
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Cash Payment Confirmation Modal -->
     <div class="cash-confirmation-modal" id="cashConfirmationModal">
         <div class="cash-confirmation-container">
@@ -1288,6 +1480,55 @@
         </div>
     </div>
 
+    <!-- GCash Payment Success Modal -->
+    <div class="cash-confirmation-modal" id="gcashSuccessModal">
+        <div class="cash-confirmation-container">
+            <div class="cash-confirmation-header">
+                <div class="payment-modal-icon">✅</div>
+                <h2 class="payment-modal-title">Payment Successful!</h2>
+                <p class="payment-modal-subtitle">Your GCash payment has been processed successfully</p>
+            </div>
+
+            <div class="cash-confirmation-content">
+                <!-- Order Number Display -->
+                <div class="order-number-display">
+                    <div class="order-number-label">Your Order Number</div>
+                    <div class="order-number-value" id="gcashOrderNumberDisplay">G001</div>
+                    <div class="order-number-subtitle">Your order is being prepared</div>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="payment-details-box">
+                    <div class="payment-detail-row">
+                        <span>Payment Method:</span>
+                        <span>GCash</span>
+                    </div>
+                    <div class="payment-detail-row">
+                        <span>Amount Paid:</span>
+                        <span id="gcashAmountPaid">PHP 0.00</span>
+                    </div>
+                    <div class="payment-detail-row">
+                        <span>Payment ID:</span>
+                        <span id="gcashPaymentId">---</span>
+                    </div>
+                </div>
+
+                <div class="confirmation-actions">
+                    <button class="confirmation-btn confirmation-btn-primary" onclick="completeOrder()">
+                        Complete Order
+                    </button>
+                    <button class="confirmation-btn confirmation-btn-secondary" onclick="orderMore()">
+                        Order More Items
+                    </button>
+                </div>
+
+                <div class="footer-note">
+                    Thank you for choosing Sip & Serve! 🍽️
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Cancel Order Modal -->
     <div class="cancel-modal-overlay" id="cancelModal">
         <div class="cancel-modal-container">
@@ -1308,11 +1549,50 @@
         </div>
     </div>
 
+    <!-- Payment Error Modal -->
+    <div class="payment-modal-overlay" id="paymentErrorModal">
+        <div class="payment-modal-container">
+            <div class="payment-modal-header">
+                <div class="payment-modal-icon" style="color: #dc3545;">❌</div>
+                <h2 class="payment-modal-title">Payment Failed</h2>
+                <p class="payment-modal-subtitle">Your payment could not be processed</p>
+            </div>
+
+            <div class="payment-modal-content">
+                <div class="payment-error-message" id="paymentErrorMessage">
+                    Payment was not completed. Please try again or choose a different payment method.
+                </div>
+
+                <div class="payment-error-suggestions">
+                    <h4>What you can do:</h4>
+                    <ul>
+                        <li>Try the GCash payment again</li>
+                        <li>Switch to Cash payment instead</li>
+                        <li>Check your GCash app for any issues</li>
+                        <li>Contact our staff for assistance</li>
+                    </ul>
+                </div>
+
+                <div class="payment-modal-actions">
+                    <button class="payment-modal-btn payment-modal-btn-cancel" onclick="hidePaymentErrorModal()">
+                        Close
+                    </button>
+                    <button class="payment-modal-btn payment-modal-btn-proceed"
+                        onclick="hidePaymentErrorModal(); showPaymentModal();">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let cart = [];
         let selectedPaymentMethod = null;
         let totalAmount = {{ $total ?? 0 }};
+        let gcashPaymentIntentId = null;
+        let gcashPollInterval = null;
 
         // Safely parse cart data
         try {
@@ -1504,10 +1784,217 @@
             if (selectedPaymentMethod === 'cash') {
                 processCashPayment();
             } else if (selectedPaymentMethod === 'gcash') {
-                alert('GCash payment not implemented yet');
+                processGCashPayment();
             }
         }
 
+        // GCash Payment Functions
+        function processGCashPayment() {
+            hidePaymentModal();
+            showGCashModal();
+
+            // Show processing status
+            updateGCashStatus('⏳', 'Creating payment...');
+
+            // Call your existing GCash payment method
+            fetch('/kiosk/process-gcash-payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    // Any additional data needed
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        gcashPaymentIntentId = data.data.payment_intent_id;
+
+                        if (data.data.redirect_url) {
+                            showGCashPaymentButton(data.data.redirect_url);
+                            updateGCashStatus('📱', 'Ready to pay with GCash');
+                            startGCashStatusPolling(data.data.payment_intent_id);
+                        } else {
+                            updateGCashStatus('❌', 'Payment setup failed');
+                        }
+                    } else {
+                        updateGCashStatus('❌', data.message || 'Payment failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('GCash payment error:', error);
+                    updateGCashStatus('❌', 'Network error occurred');
+                });
+        }
+
+        function showGCashModal() {
+            const modal = document.getElementById('gcashPaymentModal');
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideGCashModal() {
+            const modal = document.getElementById('gcashPaymentModal');
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+
+            // Stop polling
+            if (gcashPollInterval) {
+                clearInterval(gcashPollInterval);
+                gcashPollInterval = null;
+            }
+        }
+
+        function showGCashPaymentButton(redirectUrl) {
+            const qrContainer = document.getElementById('gcashQrContainer');
+            const proceedBtn = document.getElementById('gcashProceedBtn');
+
+            if (qrContainer) {
+                qrContainer.innerHTML = `
+                    <div class="gcash-payment-button-container">
+                        <button class="gcash-payment-button" onclick="openGCashPayment('${redirectUrl}')">
+                            <span class="gcash-icon">📱</span>
+                            <span class="gcash-text">Pay with GCash</span>
+                        </button>
+                        <p class="gcash-button-note">Click to open GCash payment</p>
+                    </div>
+                `;
+            }
+
+            if (proceedBtn) {
+                proceedBtn.disabled = false;
+                proceedBtn.textContent = 'Pay with GCash';
+                proceedBtn.onclick = () => openGCashPayment(redirectUrl);
+            }
+        }
+
+        function openGCashPayment(url) {
+            // Open payment in new tab/window
+            window.location.href = url;
+
+            updateGCashStatus('⏳', 'Payment opened in new window. Please complete the payment...');
+
+            // Listen for window close (optional)
+            const checkClosed = setInterval(() => {
+                if (paymentWindow.closed) {
+                    clearInterval(checkClosed);
+                    updateGCashStatus('🔄', 'Checking payment status...');
+                }
+            }, 1000);
+        }
+
+        function startGCashStatusPolling(paymentIntentId) {
+            gcashPollInterval = setInterval(() => {
+                checkGCashPaymentStatus(paymentIntentId);
+            }, 3000); // Poll every 3 seconds
+        }
+
+        function checkGCashPaymentStatus(paymentIntentId) {
+            fetch(`/api/pos/payment/status/${paymentIntentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const status = data.status;
+
+                        switch (status) {
+                            case 'succeeded':
+                                onGCashPaymentSuccess(paymentIntentId, data.data);
+                                break;
+                            case 'failed':
+                            case 'cancelled':
+                                onGCashPaymentFailed(status);
+                                break;
+                            case 'processing':
+                                updateGCashStatus('⏳', 'Processing payment...');
+                                break;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Status check error:', error);
+                });
+        }
+
+        function onGCashPaymentSuccess(paymentIntentId, paymentData) {
+            // Stop polling
+            if (gcashPollInterval) {
+                clearInterval(gcashPollInterval);
+                gcashPollInterval = null;
+            }
+
+            // Clear cart and redirect to your order confirmation success page
+            fetch('/kiosk/process-gcash-payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    payment_intent_id: paymentIntentId,
+                    payment_data: paymentData
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Redirect to your order confirmation success page
+                        window.location.href = data.redirect_url || '{{ route("kiosk.orderConfirmationSuccess") }}';
+                    } else {
+                        hideGCashModal();
+                        alert('Payment was successful but there was an error processing your order. Please contact support.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Order processing error:', error);
+                    hideGCashModal();
+                    alert('Payment was successful but there was an error processing your order. Please contact support.');
+                });
+        }
+
+        function onGCashPaymentFailed(status) {
+            // Stop polling
+            if (gcashPollInterval) {
+                clearInterval(gcashPollInterval);
+                gcashPollInterval = null;
+            }
+
+            updateGCashStatus('❌', `Payment ${status}. Please try again.`);
+        }
+
+        function updateGCashStatus(icon, message) {
+            const statusIcon = document.querySelector('#gcashStatusMessage .status-icon');
+            const statusText = document.querySelector('#gcashStatusMessage .status-text');
+
+            if (statusIcon) statusIcon.textContent = icon;
+            if (statusText) statusText.textContent = message;
+        }
+
+        function showGCashSuccessModal(paymentIntentId, paymentData) {
+            const modal = document.getElementById('gcashSuccessModal');
+            if (!modal) return;
+
+            // Update order number and payment details
+            const orderNumber = paymentData.attributes?.metadata?.order_id || 'G' + Date.now().toString().slice(-3);
+
+            const orderNumberDisplay = document.getElementById('gcashOrderNumberDisplay');
+            const amountPaid = document.getElementById('gcashAmountPaid');
+            const paymentId = document.getElementById('gcashPaymentId');
+
+            if (orderNumberDisplay) orderNumberDisplay.textContent = orderNumber;
+            if (amountPaid) amountPaid.textContent = `PHP ${totalAmount.toFixed(2)}`;
+            if (paymentId) paymentId.textContent = paymentIntentId.substring(0, 20) + '...';
+
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Cash payment functions (existing code)
         function processCashPayment() {
             const cashAmountInput = document.getElementById('cashAmountInput');
             if (!cashAmountInput) {
@@ -1673,9 +2160,38 @@
                 });
         }
 
+        // Payment Error Modal Functions
+        function showPaymentErrorModal(message) {
+            const modal = document.getElementById('paymentErrorModal');
+            const messageElement = document.getElementById('paymentErrorMessage');
+
+            if (messageElement && message) {
+                messageElement.textContent = message;
+            }
+
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hidePaymentErrorModal() {
+            const modal = document.getElementById('paymentErrorModal');
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
         // Initialize event listeners
         document.addEventListener('DOMContentLoaded', function () {
             console.log('DOM loaded, initializing...');
+
+            // Check for payment error from Laravel session
+            @if(session('payment_error'))
+                showPaymentErrorModal('{{ session("payment_error") }}');
+            @endif
+            
             const cashInput = document.getElementById('cashAmountInput');
             if (cashInput) {
                 cashInput.addEventListener('keypress', function (e) {

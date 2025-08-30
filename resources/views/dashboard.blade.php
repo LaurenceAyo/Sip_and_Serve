@@ -891,7 +891,7 @@
                         <h2 class="text-3xl font-light header-title">CAFE DASHBOARD</h2>
                     </div>
                     <div class="manager-info">
-                        <p class="text-sm font-medium">Manager ID: 10023</p>
+                        <p class="text-sm font-medium">Manager ID: {{ Auth::user()->manager_id ?? 'N/A' }}</p>
                     </div>
                 </div>
             </div>

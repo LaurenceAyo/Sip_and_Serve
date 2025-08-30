@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +19,8 @@
             background: linear-gradient(135deg, #2c1810 0%, #4a3228 100%);
             min-height: 100vh;
             overflow: hidden;
-            touch-action: manipulation; /* Optimize touch events */
+            touch-action: manipulation;
+            /* Optimize touch events */
         }
 
         .kiosk-container {
@@ -126,6 +128,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -138,11 +141,11 @@
             flex-direction: column;
             gap: 30px;
             align-items: center;
-            position: absolute;
+            position: fixed;
             top: 50%;
-            left: 40%;
-            transform: translate(-50%, -50%);
-            margin-left: 0;
+            transform: translate(-60%, -50%);
+            /* Changed from -50% to -60% */
+            right: 150px;
         }
 
         .button-form {
@@ -166,7 +169,7 @@
             overflow: hidden;
             min-height: 80px;
             width: 100%;
-            
+
             /* Critical tablet fixes */
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
@@ -214,7 +217,7 @@
             background: linear-gradient(135deg, #e67e22, #f39c12);
             color: white;
         }
-        
+
         .take-out-btn:hover,
         .take-out-btn:active {
             background: linear-gradient(135deg, #d35400, #e67e22);
@@ -254,7 +257,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* Decorative Elements */
@@ -294,8 +299,15 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
         }
 
         /* Lenovo Xiaoxin Pad 2024 Optimizations */
@@ -303,18 +315,18 @@
             .cafe-title {
                 font-size: 3rem;
             }
-            
+
             .action-btn {
                 width: 380px;
                 font-size: 2.2rem;
                 padding: 30px 60px;
                 min-height: 90px;
             }
-            
+
             .action-buttons {
                 gap: 40px;
             }
-            
+
             .nav-text {
                 font-size: 3rem;
             }
@@ -326,19 +338,19 @@
                 left: 50%;
                 margin-left: 0;
             }
-            
+
             .main-content {
                 padding-left: 60px;
             }
-            
+
             .side-nav {
                 width: 60px;
             }
-            
+
             .nav-text {
                 font-size: 2.2rem;
             }
-            
+
             .action-btn {
                 width: 280px;
                 font-size: 1.8rem;
@@ -351,14 +363,14 @@
             .cafe-title {
                 font-size: 2.5rem;
             }
-            
+
             .action-btn {
                 width: 300px;
                 font-size: 1.9rem;
                 padding: 22px 45px;
                 min-height: 75px;
             }
-            
+
             .action-buttons {
                 gap: 25px;
             }
@@ -369,34 +381,35 @@
             .cafe-title {
                 font-size: 2rem;
             }
-            
+
             .action-btn {
                 width: 250px;
                 font-size: 1.6rem;
                 padding: 18px 35px;
                 min-height: 70px;
             }
-            
+
             .action-buttons {
                 margin-left: 20px;
                 gap: 20px;
             }
-            
+
             .main-content {
                 padding-left: 60px;
             }
-            
+
             .side-nav {
                 width: 60px;
             }
-            
+
             .nav-text {
                 font-size: 2rem;
             }
         }
 
         /* High DPI display optimization */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        @media (-webkit-min-device-pixel-ratio: 2),
+        (min-resolution: 192dpi) {
             .action-btn {
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
@@ -404,16 +417,20 @@
 
         /* Battery saving for long kiosk sessions */
         @media (prefers-reduced-motion: reduce) {
-            .decoration-1, .decoration-2, .decoration-3 {
+
+            .decoration-1,
+            .decoration-2,
+            .decoration-3 {
                 animation: none;
             }
-            
+
             .action-btn::before {
                 transition: none;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="kiosk-container">
         <!-- Header -->
@@ -447,7 +464,7 @@
                         {{ session('message') }}
                     </div>
                 @endif
-                
+
                 <!-- Action Buttons -->
                 <div class="action-buttons">
                     <form method="POST" action="{{ route('kiosk.dineIn') }}" class="button-form" id="dineInForm">
@@ -475,19 +492,19 @@
 
     <script>
         // Load background image dynamically
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const mainContent = document.getElementById('mainContent');
             const img = new Image();
-            
-            img.onload = function() {
+
+            img.onload = function () {
                 mainContent.style.backgroundImage = `url('${this.src}')`;
                 mainContent.classList.add('bg-loaded');
             };
-            
-            img.onerror = function() {
+
+            img.onerror = function () {
                 console.log('Background image not found, using fallback');
             };
-            
+
             img.src = '/assets/bg1_sandwich.png';
         });
 
@@ -495,46 +512,46 @@
         document.querySelectorAll('.action-btn').forEach(button => {
             let touchStarted = false;
             let formSubmitted = false;
-            
+
             // Touch start event
-            button.addEventListener('touchstart', function(e) {
+            button.addEventListener('touchstart', function (e) {
                 if (this.disabled || formSubmitted) {
                     e.preventDefault();
                     return;
                 }
-                
+
                 console.log('Touch started on:', this.textContent.trim());
                 touchStarted = true;
-                
+
                 // Visual feedback
                 this.classList.add('touched');
-                
+
                 // Haptic feedback if available
                 if (navigator.vibrate) {
                     navigator.vibrate(50);
                 }
-                
+
                 // Prevent default to avoid issues
                 e.preventDefault();
             }, { passive: false });
-            
+
             // Touch end event - this is where we submit the form
-            button.addEventListener('touchend', function(e) {
+            button.addEventListener('touchend', function (e) {
                 if (this.disabled || formSubmitted || !touchStarted) {
                     e.preventDefault();
                     return;
                 }
-                
+
                 console.log('Touch ended on:', this.textContent.trim());
-                
+
                 // Remove visual feedback
                 this.classList.remove('touched');
-                
+
                 // Prevent double submission
                 formSubmitted = true;
                 this.disabled = true;
                 this.classList.add('loading');
-                
+
                 // Submit the form
                 const form = this.closest('form');
                 if (form) {
@@ -547,48 +564,48 @@
                     this.classList.remove('loading');
                     formSubmitted = false;
                 }
-                
+
                 touchStarted = false;
                 e.preventDefault();
             }, { passive: false });
-            
+
             // Touch cancel event
-            button.addEventListener('touchcancel', function(e) {
+            button.addEventListener('touchcancel', function (e) {
                 console.log('Touch cancelled on:', this.textContent.trim());
                 this.classList.remove('touched');
                 touchStarted = false;
                 e.preventDefault();
             }, { passive: false });
-            
+
             // Click event as fallback for desktop/laptop
-            button.addEventListener('click', function(e) {
+            button.addEventListener('click', function (e) {
                 if (this.disabled || formSubmitted) {
                     e.preventDefault();
                     return;
                 }
-                
+
                 // Only process click if not already handled by touch
                 if (!touchStarted) {
                     console.log('Click event on:', this.textContent.trim());
-                    
+
                     formSubmitted = true;
                     this.disabled = true;
                     this.classList.add('loading');
-                    
+
                     const form = this.closest('form');
                     if (form) {
                         console.log('Submitting form via click:', form.action);
                         setTimeout(() => form.submit(), 100);
                     }
                 }
-                
+
                 e.preventDefault();
             });
         });
 
         // Additional tablet optimizations
         let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
+        document.addEventListener('touchend', function (event) {
             const now = (new Date()).getTime();
             if (now - lastTouchEnd <= 300) {
                 event.preventDefault();
@@ -598,7 +615,7 @@
 
         // Prevent double-tap zoom
         let lastTouchTime = 0;
-        document.addEventListener('touchstart', function(event) {
+        document.addEventListener('touchstart', function (event) {
             const currentTime = new Date().getTime();
             const tapLength = currentTime - lastTouchTime;
             if (tapLength < 500 && tapLength > 0) {
@@ -608,7 +625,7 @@
         }, { passive: false });
 
         // Enhanced error logging for debugging
-        window.addEventListener('error', function(e) {
+        window.addEventListener('error', function (e) {
             console.error('JavaScript error:', e.error);
             console.error('Error details:', {
                 message: e.message,
@@ -619,13 +636,13 @@
         });
 
         // Monitor form submission attempts
-        document.addEventListener('submit', function(e) {
+        document.addEventListener('submit', function (e) {
             console.log('Form submission detected:', e.target.action);
         });
 
         // Auto-hide cursor after inactivity (kiosk mode)
         let cursorTimeout;
-        document.addEventListener('mousemove', function() {
+        document.addEventListener('mousemove', function () {
             document.body.style.cursor = 'default';
             clearTimeout(cursorTimeout);
             cursorTimeout = setTimeout(() => {
@@ -665,13 +682,14 @@
         });
 
         // Connection status monitoring
-        window.addEventListener('online', function() {
+        window.addEventListener('online', function () {
             console.log('Connection restored');
         });
 
-        window.addEventListener('offline', function() {
+        window.addEventListener('offline', function () {
             console.log('Connection lost');
         });
     </script>
 </body>
+
 </html>

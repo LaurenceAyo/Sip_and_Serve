@@ -59,15 +59,22 @@ class PaymongoService
     public function createPaymentMethod($paymentIntentId, $type = 'gcash')
     {
         try {
-            $response = Http::withBasicAuth($this->secretKey, '')
-                ->post($this->baseUrl . '/payment_methods', [
-                    'data' => [
-                        'attributes' => [
-                            'type' => $type,
-                            'details' => []
-                        ]
+            $data = [
+                'data' => [
+                    'attributes' => [
+                        'type' => $type
                     ]
-                ]);
+                ]
+            ];
+
+            // Add proper details based on payment method type
+            $data['data']['attributes']['redirect'] = [
+                'success_url' => route('kiosk.paymentSuccess') . '?payment_intent_id=' . $paymentIntentId,
+                'failed_url' => route('kiosk.paymentFailed') . '?payment_intent_id=' . $paymentIntentId
+            ];
+
+            $response = Http::withBasicAuth($this->secretKey, '')
+                ->post($this->baseUrl . '/payment_methods', $data);
 
             if ($response->successful()) {
                 return $response->json();
@@ -96,7 +103,7 @@ class PaymongoService
                     'data' => [
                         'attributes' => [
                             'payment_method' => $paymentMethodId,
-                            'return_url' => route('kiosk.payment.success')
+                            'return_url' => route('kiosk.payment.success') . '?payment_intent_id=' . $paymentIntentId
                         ]
                     ]
                 ]);

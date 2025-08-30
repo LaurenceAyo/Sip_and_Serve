@@ -924,7 +924,7 @@
         </div>
     </div>
 
-    <script>
+    <script src="{{ asset('js/pos-payment.js') }}">
         let countdownTimer;
         let countdownSeconds = 30;
 
