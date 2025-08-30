@@ -744,28 +744,6 @@
                             </div>
                         </div>
                     @endforeach
-                @else
-                    <!-- Sample order items for demonstration -->
-                    <div class="order-item">
-                        <div>
-                            <strong>Americano</strong>
-                            <br>
-                            <small>PHP 120.00 x 1</small>
-                        </div>
-                        <div>
-                            <strong>PHP 120.00</strong>
-                        </div>
-                    </div>
-                    <div class="order-item">
-                        <div>
-                            <strong>Chicken Sandwich</strong>
-                            <br>
-                            <small>PHP 180.00 x 1</small>
-                        </div>
-                        <div>
-                            <strong>PHP 180.00</strong>
-                        </div>
-                    </div>
                 @endif
             </div>
 
@@ -798,7 +776,7 @@
 
             <div class="action-buttons">
                 <a href="{{ route('kiosk.index') }}" class="btn btn-primary">Place Another Order</a>
-                <button onclick="showEmailModal()" class="btn btn-secondary">📧 Get Receipt</button>
+                <button onclick="showEmailModal()" class="btn btn-secondary">Get Receipt</button>
             </div>
         </div>
     </div>
@@ -924,7 +902,7 @@
         </div>
     </div>
 
-    <script src="{{ asset('js/pos-payment.js') }}">
+    <script>
         let countdownTimer;
         let countdownSeconds = 30;
 
@@ -932,7 +910,6 @@
             document.getElementById('emailModal').classList.add('show');
             document.body.style.overflow = 'hidden';
             
-            // Focus on email input
             setTimeout(() => {
                 document.getElementById('customerEmail').focus();
             }, 300);
@@ -1004,24 +981,17 @@
             sendBtnText.textContent = 'Sending...';
             loadingSpinner.style.display = 'inline-block';
             
-            // Prepare order data
-            const orderData = {
-                email: email,
-                order_id: '{{ $order->id ?? "001" }}',
-                order_number: '#{{ $order->id ?? "001" }}',
-                order_date: '{{ isset($order) ? $order->created_at->format("M d, Y h:i A") : date("M d, Y h:i A") }}',
-                total_amount: '{{ isset($order) ? $order->total_amount : "300.00" }}',
-                // Add more order details as needed
-            };
-            
             // Send receipt via AJAX
-            fetch('/send-receipt', {
+            fetch('{{ route("send.receipt") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
-                body: JSON.stringify(orderData)
+                body: JSON.stringify({
+                    email: email,
+                    order_id: {{ $order->id ?? 1 }}
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -1039,7 +1009,9 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to send receipt. Please try again or contact support.');
+                emailInput.classList.add('error');
+                emailError.textContent = 'Failed to send receipt. Please try again.';
+                emailError.style.display = 'block';
             })
             .finally(() => {
                 resetSendButton();
@@ -1090,7 +1062,6 @@
             const display = document.getElementById('countdownDisplay');
             display.textContent = countdownSeconds;
             
-            // Add urgency styling when countdown gets low
             if (countdownSeconds <= 10) {
                 display.style.color = '#e74c3c';
                 display.style.animation = 'pulse 1s infinite';
@@ -1105,7 +1076,6 @@
             const percentage = (countdownSeconds / 30) * 100;
             progressBar.style.width = percentage + '%';
             
-            // Change color as time runs out
             if (percentage <= 33) {
                 progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
             } else if (percentage <= 66) {
@@ -1144,10 +1114,10 @@
             }
         });
 
-        // Auto-redirect with custom modal after 30 seconds
+        // Auto-redirect with custom modal after 2 minutes
         setTimeout(function() {
             showRedirectModal();
-        }, 30000);
+        }, 120000);
     </script>
 </body>
 </html>
