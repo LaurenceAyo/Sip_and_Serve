@@ -21,7 +21,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'manager_id',  // Added this
+        'manager_id',
+        'role',                    // Added for admin system
+        'status',                  // Added for admin system
+        'permissions',             // Added for admin system
+        'last_login_at',           // Added for admin system
+        'created_by',              // Added for admin system
+        'password_reset_required', // Added for admin system
     ];
 
     /**
@@ -44,6 +50,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',           // Added for admin system
+            'permissions' => 'array',                // Added for admin system
+            'password_reset_required' => 'boolean',  // Added for admin system
         ];
     }
 
@@ -57,6 +66,15 @@ class User extends Authenticatable
         static::creating(function ($user) {
             if (!$user->manager_id) {
                 $user->manager_id = self::generateUniqueManagerId();
+            }
+            
+            // Set default values for admin fields if not provided
+            if (!$user->role) {
+                $user->role = 'cashier';
+            }
+            
+            if (!$user->status) {
+                $user->status = 'active';
             }
         });
     }
@@ -78,6 +96,27 @@ class User extends Authenticatable
      */
     public function isAdmin()
     {
-        return $this->email === 'admin@example.com' || $this->name === 'Alice Admin';
+        return $this->email === 'laurenceayo7@gmail.com' || $this->role === 'admin';
+    }
+
+    /**
+     * Check if user has specific permission
+     */
+    public function hasPermission($permission)
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $userPermissions = $this->permissions ?? [];
+        return in_array($permission, $userPermissions) || in_array('all', $userPermissions);
+    }
+
+    /**
+     * Update last login timestamp
+     */
+    public function updateLastLogin()
+    {
+        $this->update(['last_login_at' => now()]);
     }
 }

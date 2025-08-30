@@ -14,12 +14,14 @@ use App\Http\Controllers\CashierController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Http\Controllers\POSPaymentController;
+use Illuminate\Support\Facades\Auth;
 
 
 //Remove me If you don't need QR code generation or will be Deployed on Hostinger
@@ -127,7 +129,7 @@ Route::get('/kiosk/order-confirmation-success', [KioskController::class, 'orderC
     ->name('kiosk.orderConfirmationSuccess');
 Route::get('/kiosk/review-order', [KioskController::class, 'reviewOrder'])
     ->name('kiosk.reviewOrder');
-    Route::get('/kiosk/payment/failed', [KioskController::class, 'paymentFailed'])->name('kiosk.payment.failed');
+Route::get('/kiosk/payment/failed', [KioskController::class, 'paymentFailed'])->name('kiosk.payment.failed');
 
 // API Routes for POS Payment
 Route::prefix('api/pos/payment')->group(function () {
@@ -203,7 +205,7 @@ Route::get('/debug-cashier', function () {
 Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook'])
     ->name('paymongo.webhook');
 
-    Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook']);
+Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook']);
 
 // Test route to verify POST is working
 Route::post('/test-cashier-post', function (Request $request) {
@@ -264,8 +266,6 @@ Route::prefix('kitchen')->name('kitchen.')->group(function () {
 
     // Add this to your routes/web.php file
     Route::get('/kitchen/data', [KitchenController::class, 'getData'])->name('kitchen.data');
-
-    
 });
 
 Route::post('/orders/{id}/complete', [OrderController::class, 'markCompleted'])->name('orders.complete');
@@ -365,6 +365,17 @@ Route::get('/test-bluetooth-printer', function () {
             'error' => $e->getMessage()
         ]);
     }
+});
+
+// Admin routes
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [AdminController::class, 'userManagement'])->name('users');
+    Route::get('/users/data', [AdminController::class, 'getUsersData'])->name('users.data');
+    Route::post('/users', [AdminController::class, 'createUser'])->name('users.create');
+    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+    Route::post('/users/{id}/reset-password', [AdminController::class, 'resetPassword'])->name('users.reset-password');
+    Route::get('/users/{id}', [AdminController::class, 'getUserDetails'])->name('users.details');
 });
 
 // Authenticated routes (admin panel)

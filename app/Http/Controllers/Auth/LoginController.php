@@ -28,12 +28,19 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
+
             // Set success flag for JavaScript redirect
             session()->flash('login_success', true);
-            
-            // Redirect to dashboard
-            return redirect()->route('dashboard');
+
+            // Check if user is admin
+            $user = Auth::user();
+            if ($user->email === 'laurenceayo7@gmail.com') {
+                // Admin goes to dashboard
+                return redirect()->route('dashboard');
+            } else {
+                // Regular users go to kiosk main
+                return redirect()->route('kiosk.main');
+            }
         }
 
         return back()->withErrors([
@@ -57,7 +64,7 @@ class LoginController extends Controller
     public function update(Request $request)
     {
         $user = $request->user();
-        
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],

@@ -121,7 +121,7 @@
             }
 
             .bottom-nav {
-                display: flex; 
+                display: flex;
                 flex-direction: row;
                 gap: 0;
                 margin-top: 14rem;
@@ -250,7 +250,7 @@
                 height: 20px;
             }
 
-           
+
             /* Fix for tablet layout - replace the existing controls-section CSS */
             .controls-section {
                 display: grid;
@@ -831,51 +831,54 @@
             font-weight: 500;
             display: none;
         }
-        
 
-    .btn-primary,
-    .btn-secondary {
-        padding: 16px 18px; /* Slightly reduced padding */
-        font-size: 1.1rem;
-        min-width: 150px; /* Slightly reduced width */
-        min-height: 60px;
-        white-space: nowrap;
-    }
 
-    .filter-dropdown {
-        width: 160px; /* Fixed width to prevent overflow */
-        padding: 16px 12px;
-        font-size: 1rem;
-        justify-self: end;
-    }
-}
+        .btn-primary,
+        .btn-secondary {
+            padding: 16px 18px;
+            /* Slightly reduced padding */
+            font-size: 1.1rem;
+            min-width: 150px;
+            /* Slightly reduced width */
+            min-height: 60px;
+            white-space: nowrap;
+        }
 
-/* For smaller screens */
-@media (max-width: 1100px) {
-    .controls-section {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-        text-align: center;
-    }
+        .filter-dropdown {
+            width: 160px;
+            /* Fixed width to prevent overflow */
+            padding: 16px 12px;
+            font-size: 1rem;
+            justify-self: end;
+        }
+        }
 
-    .button-group {
-        justify-content: center;
-        gap: 0.8rem;
-    }
+        /* For smaller screens */
+        @media (max-width: 1100px) {
+            .controls-section {
+                grid-template-columns: 1fr;
+                gap: 0.8rem;
+                text-align: center;
+            }
 
-    .btn-primary,
-    .btn-secondary {
-        min-width: 130px;
-        font-size: 1rem;
-        padding: 14px 16px;
-    }
+            .button-group {
+                justify-content: center;
+                gap: 0.8rem;
+            }
 
-    .filter-dropdown {
-        width: 180px;
-        margin: 0 auto;
-        justify-self: center;
-    }
-}
+            .btn-primary,
+            .btn-secondary {
+                min-width: 130px;
+                font-size: 1rem;
+                padding: 14px 16px;
+            }
+
+            .filter-dropdown {
+                width: 180px;
+                margin: 0 auto;
+                justify-self: center;
+            }
+        }
     </style>
 </head>
 
@@ -1141,6 +1144,72 @@
             </form>
         </div>
     </div>
+    <!-- Admin Panel Access (only for laurenceayo7@gmail.com) -->
+    @if(auth()->user()->email === 'laurenceayo7@gmail.com')
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Administrator Panel
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <a href="{{ route('admin.users') }}" class="text-decoration-none">
+                                    <div class="card h-100 border-0 shadow-sm admin-card">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                            <h6>User Management</h6>
+                                            <p class="text-muted small mb-0">Manage system users, roles & permissions</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <a href="#" class="text-decoration-none">
+                                    <div class="card h-100 border-0 shadow-sm admin-card">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-cogs fa-3x text-info mb-3"></i>
+                                            <h6>System Settings</h6>
+                                            <p class="text-muted small mb-0">Configure POS system settings</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <a href="#" class="text-decoration-none">
+                                    <div class="card h-100 border-0 shadow-sm admin-card">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                                            <h6>Security Logs</h6>
+                                            <p class="text-muted small mb-0">View system access logs</p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .admin-card {
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }
+
+            .admin-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+            }
+        </style>
+    @endif
+
+
 
     <script>
 
@@ -1162,7 +1231,7 @@
         // Search functionality for edit modal
         let ingredientsData = [
             @foreach($ingredients as $ingredient)
-                        {
+                            {
                     name: "{{ $ingredient->name }}",
                     unit: "{{ $ingredient->unit }}",
                     stock_quantity: {{ $ingredient->stock_quantity }},
