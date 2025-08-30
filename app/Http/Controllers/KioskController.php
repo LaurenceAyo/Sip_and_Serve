@@ -597,7 +597,6 @@ class KioskController extends Controller
         ]);
 
         if ($paymentIntentId) {
-            // LOOK UP BY payment_intent_id (this line was correct)
             $order = Order::where('payment_intent_id', $paymentIntentId)->first();
 
             Log::info('Order lookup result', [
@@ -607,11 +606,29 @@ class KioskController extends Controller
 
             if ($order) {
                 $order->update([
-                    'payment_status' => 'completed',  // Change this to 'paid'
-                    'status' => 'confirmed'
+                    'payment_status' => 'paid',        // Changed from 'completed'
+                    'status' => 'pending',             // Keep as 'pending' so kitchen sees it
+                    'paid_at' => now()
                 ]);
 
+                // Now deduct ingredients since payment is confirmed
+                foreach ($order->orderItems as $orderItem) {
+                    $this->deductIngredients($orderItem->id, $orderItem->quantity);
+                }
+
+                // Deduct packaging for takeout orders
+                if ($order->order_type === 'take-out') {
+                    $this->deductPackagingSupplies($order->orderItems->toArray(), $order->order_type);
+                }
+
                 Session::put('last_order_id', $order->id);
+
+                Log::info('Order updated for kitchen processing', [
+                    'order_id' => $order->id,
+                    'status' => 'pending',
+                    'payment_status' => 'paid'
+                ]);
+
                 return redirect()->route('kiosk.orderConfirmationSuccess');
             }
         }
