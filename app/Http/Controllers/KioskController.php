@@ -785,14 +785,8 @@ class KioskController extends Controller
      */
     public function reviewOrder()
     {
-        // Get cart from session
         $cart = Session::get('cart', []);
         $orderType = Session::get('orderType', 'dine-in');
-
-        Log::info('Review order page accessed:', [
-            'cart_items' => count($cart),
-            'order_type' => $orderType
-        ]);
 
         return view('kioskOrderConfirmation', compact('cart', 'orderType'));
     }

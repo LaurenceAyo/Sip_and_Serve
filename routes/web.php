@@ -10,6 +10,7 @@ use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\PaymongoWebhookController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\QRPaymentController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\SalesController;
@@ -22,13 +23,8 @@ use Illuminate\Support\Facades\Log;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Http\Controllers\POSPaymentController;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Order;
 
-
-//Remove me If you don't need QR code generation or will be Deployed on Hostinger
-Route::get('generate-qr', function () {
-    $url = url('http://192.168.0.124:8000'); // Replace with your actual local IP and port
-    return QrCode::size(300)->generate($url);
-});
 
 // Home route
 Route::get('/', function () {
@@ -112,6 +108,8 @@ Route::get('/printer-info', function () {
         'connection_info' => $thermalPrinterService->getConnectionInfo()
     ]);
 });
+
+Route::get('/kiosk/order-confirmation/{id?}', [KioskController::class, 'orderConfirmation'])->name('kiosk.orderConfirmation');
 
 Route::post('/kiosk/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('payment.processCash');
 
@@ -200,12 +198,14 @@ Route::get('/debug-cashier', function () {
         ]);
     }
 });
+// QR Payment routes
+Route::prefix('qr')->name('qr.')->group(function () {
+    Route::get('/payment/{orderId}', [QRPaymentController::class, 'showQRPaymentPage'])->name('payment.show');
+    Route::get('/payment/{orderId}/generate', [QRPaymentController::class, 'generateOrderQR'])->name('payment.generate');
+    Route::get('/payment/{orderId}/status', [QRPaymentController::class, 'checkPaymentStatus'])->name('payment.status');
+    Route::get('/payment/process/{orderId}/{paymentIntentId}', [QRPaymentController::class, 'processQRPayment'])->name('payment.process');
+});
 
-
-Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook'])
-    ->name('paymongo.webhook');
-
-Route::post('/webhooks/paymongo', [PayMongoWebhookController::class, 'handleWebhook']);
 
 // Test route to verify POST is working
 Route::post('/test-cashier-post', function (Request $request) {
@@ -396,5 +396,6 @@ Route::middleware('auth')->group(function () {
     // Development/Testing routes (remove in production)
     Route::get('/webhooks/paymongo/test', [PaymongoWebhookController::class, 'testWebhook'])->name('paymongo.webhook.test');
 });
+
 
 require __DIR__ . '/auth.php';

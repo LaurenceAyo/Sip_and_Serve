@@ -180,7 +180,6 @@
         }
 
         .order-summary {
-            margin-top: -900px;
             background: #f5f1e8;
             padding: 20px;
         }
@@ -320,7 +319,7 @@
             margin-bottom: 15px;
             font-size: 12px;
             color: #856404;
-            display: none; /* Hidden by default, can be shown for debugging */
+            display: none;
         }
 
         @media (max-width: 600px) {
@@ -367,11 +366,11 @@
 
         <div class="order-meta" id="orderMeta">
             <div class="order-meta-row">
-                <span><strong>Order Type:</strong> <span id="orderType">Dine In</span></span>
-                <span><strong>Items:</strong> <span id="itemCount">0</span></span>
+                <span><strong>Order Type:</strong> <span id="orderType">{{ $orderType ?? 'Dine In' }}</span></span>
+                <span><strong>Items:</strong> <span id="itemCount">{{ count($cart ?? []) }}</span></span>
             </div>
             <div class="order-meta-row">
-                <span><strong>Order Time:</strong> <span id="orderTime"></span></span>
+                <span><strong>Order Time:</strong> <span id="orderTime">{{ now()->format('h:i A') }}</span></span>
                 <span><strong>Table:</strong> <span id="tableNumber">-</span></span>
             </div>
         </div>
@@ -415,41 +414,28 @@
     </div>
 
     <script>
-        // Sample order data - replace with actual data from your backend
+        // Use real cart data from controller
         let orderData = {
-            items: [
-                {
-                    id: 1,
-                    menu_item_id: 1,
-                    name: "Coffee Item",
-                    unitPrice: 95.00,
-                    quantity: 1,
-                    modifiers: [],
-                    image: "https://images.unsplash.com/photo-1580933073521-dc49ac0d4e6a?w=60&h=60&fit=crop"
-                }
-            ],
-            orderType: "Dine In",
+            items: @json($cart ?? []),
+            orderType: "{{ $orderType ?? 'Dine In' }}",
             tableNumber: "A5",
-            serviceChargeRate: 0, // 0% service charge - NO HIDDEN FEES
-            taxRate: 0, // 0% tax - NO HIDDEN FEES
+            serviceChargeRate: 0,
+            taxRate: 0,
             discountAmount: 0,
-            // Additional fee controls
             deliveryFee: 0,
             processingFee: 0,
             convenienceFee: 0
         };
 
-        // Configuration
         const config = {
-            enableDebug: true, // Set to true to show calculation debug info
+            enableDebug: false,
             minQuantity: 1,
             maxQuantity: 99,
             currency: 'PHP',
-            // STRICT PRICING CONTROLS
-            enforceExactPricing: true, // Prevents any price modifications
-            allowTax: false, // Explicitly disable tax
-            allowServiceCharge: false, // Explicitly disable service charge
-            allowProcessingFees: false // Explicitly disable processing fees
+            enforceExactPricing: true,
+            allowTax: false,
+            allowServiceCharge: false,
+            allowProcessingFees: false
         };
 
         function initializePage() {
@@ -505,38 +491,44 @@
         function createOrderItemElement(item) {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'order-item';
-            itemDiv.setAttribute('data-item-id', item.id);
+            itemDiv.setAttribute('data-item-id', item.id || item.menu_item_id);
 
-            const totalPrice = item.unitPrice * item.quantity;
+            const unitPrice = parseFloat(item.price || item.unitPrice || 0);
+            const quantity = parseInt(item.quantity || 1);
+            const totalPrice = unitPrice * quantity;
+            
             const modifiersText = item.modifiers && item.modifiers.length > 0 
                 ? `*${item.modifiers.join(', ')}` 
                 : '';
 
+            const defaultImage = "https://images.unsplash.com/photo-1580933073521-dc49ac0d4e6a?w=60&h=60&fit=crop";
+            const itemImage = item.image || defaultImage;
+
             itemDiv.innerHTML = `
-                <img src="${item.image}" alt="${item.name}" class="item-image">
+                <img src="${itemImage}" alt="${item.name}" class="item-image">
                 <div class="item-details">
                     <div class="item-name">${item.name}</div>
                     ${modifiersText ? `<div class="item-modifier">${modifiersText}</div>` : ''}
-                    <div class="item-unit-price">${config.currency} ${item.unitPrice.toFixed(2)} each</div>
+                    <div class="item-unit-price">${config.currency} ${unitPrice.toFixed(2)} each</div>
                 </div>
                 <div class="quantity-controls">
-                    <button class="quantity-btn" onclick="decreaseQuantity(${item.id})" ${item.quantity <= config.minQuantity ? 'disabled' : ''}>−</button>
-                    <span class="quantity-display">${item.quantity}</span>
-                    <button class="quantity-btn" onclick="increaseQuantity(${item.id})" ${item.quantity >= config.maxQuantity ? 'disabled' : ''}>+</button>
+                    <button class="quantity-btn" onclick="decreaseQuantity(${item.id || item.menu_item_id})" ${quantity <= config.minQuantity ? 'disabled' : ''}>−</button>
+                    <span class="quantity-display">${quantity}</span>
+                    <button class="quantity-btn" onclick="increaseQuantity(${item.id || item.menu_item_id})" ${quantity >= config.maxQuantity ? 'disabled' : ''}>+</button>
                 </div>
                 <div class="item-price">${config.currency} ${totalPrice.toFixed(2)}</div>
-                <button class="delete-btn" onclick="removeItem(${item.id})" title="Remove item">🗑</button>
+                <button class="delete-btn" onclick="removeItem(${item.id || item.menu_item_id})" title="Remove item">🗑</button>
             `;
 
             return itemDiv;
         }
 
         function findItemById(itemId) {
-            return orderData.items.find(item => item.id === itemId);
+            return orderData.items.find(item => (item.id || item.menu_item_id) === itemId);
         }
 
         function findItemIndexById(itemId) {
-            return orderData.items.findIndex(item => item.id === itemId);
+            return orderData.items.findIndex(item => (item.id || item.menu_item_id) === itemId);
         }
 
         function decreaseQuantity(itemId) {
@@ -545,7 +537,6 @@
 
             item.quantity--;
             
-            // Re-render the specific item
             const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
             if (itemElement) {
                 const newElement = createOrderItemElement(item);
@@ -554,7 +545,6 @@
 
             updateItemCount();
             calculateAndUpdateTotals();
-            console.log(`Decreased quantity for item ${itemId}. New quantity: ${item.quantity}`);
         }
 
         function increaseQuantity(itemId) {
@@ -563,7 +553,6 @@
 
             item.quantity++;
             
-            // Re-render the specific item
             const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
             if (itemElement) {
                 const newElement = createOrderItemElement(item);
@@ -572,7 +561,6 @@
 
             updateItemCount();
             calculateAndUpdateTotals();
-            console.log(`Increased quantity for item ${itemId}. New quantity: ${item.quantity}`);
         }
 
         function removeItem(itemId) {
@@ -582,7 +570,6 @@
             const item = orderData.items[itemIndex];
             
             if (confirm(`Remove "${item.name}" from your order?`)) {
-                // Remove item with animation
                 const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
                 if (itemElement) {
                     itemElement.style.transition = 'all 0.3s ease';
@@ -594,10 +581,8 @@
                         renderOrderItems();
                         updateItemCount();
                         calculateAndUpdateTotals();
-                        console.log(`Removed item ${itemId} from order`);
                     }, 300);
                 } else {
-                    // Fallback if element not found
                     orderData.items.splice(itemIndex, 1);
                     renderOrderItems();
                     updateItemCount();
@@ -607,32 +592,23 @@
         }
 
         function calculateAndUpdateTotals() {
-            // Calculate subtotal (sum of all item totals) - THIS IS THE EXACT AMOUNT CUSTOMER PAYS
             const subtotal = orderData.items.reduce((sum, item) => {
-                return sum + (item.unitPrice * item.quantity);
+                const unitPrice = parseFloat(item.price || item.unitPrice || 0);
+                const quantity = parseInt(item.quantity || 1);
+                return sum + (unitPrice * quantity);
             }, 0);
 
-            // IMPORTANT: Set all additional fees to ZERO to prevent price inflation
-            const serviceCharge = 0; // Force to 0 - no service charge
-            const tax = 0; // Force to 0 - no tax
-            const deliveryFee = 0; // Force to 0 - no delivery fee
-            const processingFee = 0; // Force to 0 - no processing fee
-            const convenienceFee = 0; // Force to 0 - no convenience fee
-
-            // Total should EXACTLY equal subtotal (sum of item prices)
+            const serviceCharge = 0;
+            const tax = 0;
             const total = subtotal - orderData.discountAmount;
-
-            // Ensure total never goes below 0
             const finalTotal = Math.max(0, total);
 
-            // Update display
             document.getElementById('subtotal').textContent = `${config.currency} ${subtotal.toFixed(2)}`;
             document.getElementById('serviceCharge').textContent = `${config.currency} ${serviceCharge.toFixed(2)}`;
             document.getElementById('tax').textContent = `${config.currency} ${tax.toFixed(2)}`;
             document.getElementById('discounts').textContent = `${config.currency} ${orderData.discountAmount.toFixed(2)}`;
             document.getElementById('total').textContent = `${config.currency} ${finalTotal.toFixed(2)}`;
 
-            // Update pay button with EXACT amount
             const payButton = document.getElementById('payButton');
             if (orderData.items.length === 0) {
                 payButton.textContent = 'Add Items';
@@ -644,65 +620,28 @@
                 payButton.className = 'btn btn-primary';
             }
 
-            // Show debug information if enabled
-            if (config.enableDebug) {
-                showCalculationDebug(subtotal, serviceCharge, tax, finalTotal);
-            }
-
-            // Log exact calculation for verification
-            console.log('EXACT TOTAL CALCULATION:', {
-                itemTotals: orderData.items.map(item => `${item.name}: ${item.quantity} × ${config.currency}${item.unitPrice} = ${config.currency}${(item.unitPrice * item.quantity).toFixed(2)}`),
-                subtotal: `${config.currency}${subtotal.toFixed(2)}`,
-                serviceCharge: `${config.currency}${serviceCharge.toFixed(2)} (FORCED TO 0)`,
-                tax: `${config.currency}${tax.toFixed(2)} (FORCED TO 0)`,
-                discounts: `${config.currency}${orderData.discountAmount.toFixed(2)}`,
-                finalTotal: `${config.currency}${finalTotal.toFixed(2)}`,
-                verification: `${finalTotal.toFixed(2)} should equal sum of item prices minus discounts`
-            });
-
-            // Store the exact total for payment processing
             orderData.calculatedTotal = finalTotal;
         }
 
-        function showCalculationDebug(subtotal, serviceCharge, tax, total) {
-            const debugElement = document.getElementById('calculationDebug');
-            debugElement.style.display = 'block';
-            debugElement.innerHTML = `
-                <strong>Calculation Debug:</strong><br>
-                Items: ${orderData.items.map(item => `${item.name} (${item.quantity} × ${item.unitPrice})`).join(', ')}<br>
-                Subtotal: ${subtotal.toFixed(2)}<br>
-                Service (${orderData.serviceChargeRate}%): ${serviceCharge.toFixed(2)}<br>
-                Tax (${orderData.taxRate}%): ${tax.toFixed(2)}<br>
-                Discount: ${orderData.discountAmount.toFixed(2)}<br>
-                <strong>Total: ${total.toFixed(2)}</strong>
-            `;
-        }
-
         function backToMenu() {
-            // Navigate back to menu
             if (orderData.items.length > 0) {
                 if (confirm('Go back to menu? Your current order will be saved.')) {
-                    window.location.href = '/menu';
+                    window.location.href = '{{ route("kiosk.main") }}';
                 }
             } else {
-                window.location.href = '/menu';
+                window.location.href = '{{ route("kiosk.main") }}';
             }
         }
 
         function cancelOrder() {
-            // Cancel order logic
             const itemCount = orderData.items.length;
             const message = itemCount > 0 
                 ? `Cancel your order with ${itemCount} item${itemCount > 1 ? 's' : ''}? This action cannot be undone.`
                 : 'Cancel your order?';
                 
             if (confirm(message)) {
-                // Clear order data
                 orderData.items = [];
-                localStorage.removeItem('currentOrder'); // Clear any saved order
-                
-                // Redirect to menu or home
-                window.location.href = '/menu';
+                window.location.href = '{{ route("kiosk.main") }}';
             }
         }
 
@@ -712,115 +651,32 @@
                 return;
             }
 
-            // Calculate EXACT final total - NO HIDDEN FEES
-            const subtotal = orderData.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+            const subtotal = orderData.items.reduce((sum, item) => {
+                const unitPrice = parseFloat(item.price || item.unitPrice || 0);
+                const quantity = parseInt(item.quantity || 1);
+                return sum + (unitPrice * quantity);
+            }, 0);
+            
             const finalTotal = Math.max(0, subtotal - orderData.discountAmount);
 
-            // Create order summary with EXACT amounts
-            const orderSummary = {
-                ...orderData,
-                calculations: {
-                    subtotal: subtotal,
-                    serviceCharge: 0, // EXPLICITLY 0
-                    tax: 0, // EXPLICITLY 0
-                    discounts: orderData.discountAmount,
-                    total: finalTotal, // EXACT AMOUNT TO CHARGE
-                    // Additional verification
-                    itemBreakdown: orderData.items.map(item => ({
-                        name: item.name,
-                        unitPrice: item.unitPrice,
-                        quantity: item.quantity,
-                        lineTotal: item.unitPrice * item.quantity
-                    }))
-                },
-                timestamp: new Date().toISOString(),
-                // CRITICAL: Store exact total for payment processing
-                exactPaymentAmount: finalTotal,
-                // Flag to prevent any additional fees being added later
-                noAdditionalFees: true,
-                paymentInstructions: {
-                    exactAmount: finalTotal,
-                    currency: config.currency,
-                    noTax: true,
-                    noServiceCharge: true,
-                    noProcessingFee: true
-                }
-            };
-
-            // Save to localStorage
-            localStorage.setItem('orderForPayment', JSON.stringify(orderSummary));
-            
-            // Log for verification
-            console.log('🔥 PROCEEDING TO PAYMENT - EXACT AMOUNT:', {
-                displayedTotal: `${config.currency} ${finalTotal.toFixed(2)}`,
-                itemsTotal: `${config.currency} ${subtotal.toFixed(2)}`,
-                discounts: `${config.currency} ${orderData.discountAmount.toFixed(2)}`,
-                exactPaymentAmount: `${config.currency} ${finalTotal.toFixed(2)}`,
-                warning: 'Payment system MUST charge exactly this amount - NO additional fees!'
-            });
-            
-            // Alert to confirm exact amount before proceeding
             const confirmMessage = `Proceed to payment for exactly ${config.currency} ${finalTotal.toFixed(2)}?\n\nThis is the final amount with no additional fees.`;
             
             if (confirm(confirmMessage)) {
-                // Navigate to payment with exact amount
-                window.location.href = `/payment?amount=${finalTotal.toFixed(2)}&currency=${config.currency}&no_fees=true`;
+                // Navigate to QR payment
+                const itemsParam = encodeURIComponent(JSON.stringify(orderData.items.map(item => ({
+                    menu_item_id: item.menu_item_id || item.id,
+                    quantity: item.quantity,
+                    special_instructions: item.modifiers?.join(', ') || null
+                }))));
+                
+                window.location.href = `/qr/payment/new?type=${orderData.orderType.toLowerCase().replace(' ', '-')}&items=${itemsParam}`;
             }
         }
 
-        // Auto-save order data periodically
-        function saveOrderData() {
-            if (orderData.items.length > 0) {
-                localStorage.setItem('currentOrder', JSON.stringify(orderData));
-            } else {
-                localStorage.removeItem('currentOrder');
-            }
-        }
-
-        // Load order data from localStorage if available
-        function loadOrderData() {
-            const savedOrder = localStorage.getItem('currentOrder');
-            if (savedOrder) {
-                try {
-                    const parsedOrder = JSON.parse(savedOrder);
-                    // Merge with default structure
-                    orderData = {
-                        ...orderData,
-                        ...parsedOrder
-                    };
-                } catch (error) {
-                    console.error('Error loading saved order:', error);
-                }
-            }
-        }
-
-        // Initialize page when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            loadOrderData();
+            console.log('Cart data received:', orderData);
             initializePage();
-            
-            // Auto-save every 30 seconds
-            setInterval(saveOrderData, 30000);
         });
-
-        // Save order data before page unload
-        window.addEventListener('beforeunload', saveOrderData);
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                backToMenu();
-            } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                proceedToPay();
-            }
-        });
-
-        // Debug function - can be called from browser console
-        window.debugOrder = function() {
-            config.enableDebug = !config.enableDebug;
-            calculateAndUpdateTotals();
-            console.log('Debug mode:', config.enableDebug ? 'enabled' : 'disabled');
-        };
     </script>
 </body>
 </html>
