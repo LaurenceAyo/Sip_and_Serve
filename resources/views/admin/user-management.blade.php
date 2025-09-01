@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>User Management - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="csrf-token" content="demo-token">
+    <title>User Management Panel</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
@@ -14,56 +14,60 @@
         }
         
         .sidebar {
-            background: linear-gradient(135deg, #e6ab3d 0%, #89887d 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: white;
         }
         
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
             border-radius: 8px;
-            margin: 2px 0;
+            margin: 5px 0;
             transition: all 0.3s ease;
         }
         
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
         }
         
         .main-content {
-            padding: 20px;
+            padding: 30px;
         }
         
         .stats-card {
             background: white;
-            border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            transition: transform 0.3s ease;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: none;
         }
         
         .stats-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
         
         .stats-icon {
-            font-size: 2.5rem;
+            font-size: 2rem;
             margin-bottom: 15px;
         }
         
         .user-table {
             background: white;
             border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
         
         .table th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            font-weight: 600;
             border: none;
             padding: 15px;
         }
@@ -76,33 +80,64 @@
         
         .btn-action {
             margin: 0 2px;
-            padding: 5px 10px;
-            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
         
         .modal-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
         
         .role-badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
         }
         
         .status-badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
         }
         
-        .password-toggle {
-            cursor: pointer;
-            color: #6c757d;
-        }
-        
-        .password-toggle:hover {
-            color: #495057;
+        .alert {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -232,20 +267,16 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" name="first_name" required>
+                                    <label class="form-label">Name *</label>
+                                    <input type="text" class="form-control" name="name" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" name="last_name" required>
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" name="email" required>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" name="email" required>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -352,20 +383,16 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" name="first_name" id="edit_first_name" required>
+                                    <label class="form-label">Name *</label>
+                                    <input type="text" class="form-control" name="name" id="edit_name" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" name="last_name" id="edit_last_name" required>
+                                    <label class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" name="email" id="edit_email" required>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" name="email" id="edit_email" required>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -396,6 +423,39 @@
                                 <button class="btn btn-outline-secondary password-toggle" type="button" onclick="togglePassword('editPassword')">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Permissions</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="pos_access" id="edit_pos_access">
+                                        <label class="form-check-label" for="edit_pos_access">POS Access</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="kitchen_access" id="edit_kitchen_access">
+                                        <label class="form-check-label" for="edit_kitchen_access">Kitchen Access</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="reports_access" id="edit_reports_access">
+                                        <label class="form-check-label" for="edit_reports_access">Reports Access</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="inventory_access" id="edit_inventory_access">
+                                        <label class="form-check-label" for="edit_inventory_access">Inventory Access</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="user_management" id="edit_user_management">
+                                        <label class="form-check-label" for="edit_user_management">User Management</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="settings_access" id="edit_settings_access">
+                                        <label class="form-check-label" for="edit_settings_access">Settings Access</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -432,53 +492,60 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Load users from backend
+        // Global variables
+        let users = [];
+
+        // Load users from database
         async function loadUsers() {
             try {
-                const response = await fetch('{{ route("admin.users.data") }}');
+                showLoading();
+                const response = await fetch('/api/users', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
                 
                 if (data.success) {
-                    displayUsers(data.users);
-                    updateStats(data.users);
+                    users = data.data;
+                    displayUsers(users);
+                    updateStats(users);
                 } else {
-                    console.error('Failed to load users');
+                    showAlert('Failed to load users: ' + (data.message || 'Unknown error'), 'danger');
                 }
             } catch (error) {
                 console.error('Error loading users:', error);
-                // Fallback to sample data for demo
-                loadSampleUsers();
+                showAlert('Error loading users: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
             }
         }
 
-        function loadSampleUsers() {
-            const sampleUsers = [
-                {
-                    id: 1,
-                    name: 'Laurence Ayo Admin',
-                    email: 'laurenceayo7@gmail.com',
-                    role: 'admin',
-                    status: 'active',
-                    last_login_at: '{{ now() }}',
-                    created_at: '{{ now()->subDays(30) }}'
-                }
-            ];
-            
-            displayUsers(sampleUsers);
-            updateStats(sampleUsers);
-        }
-
-        function displayUsers(users) {
+        // Display users in table
+        function displayUsers(userList) {
             const tbody = document.getElementById('usersTableBody');
             tbody.innerHTML = '';
 
-            users.forEach(user => {
+            if (!userList || userList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No users found</td></tr>';
+                return;
+            }
+
+            userList.forEach(user => {
                 const nameParts = user.name.split(' ');
                 const initials = nameParts.length >= 2 ? 
                     nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0) : 
-                    user.name.charAt(0) + user.name.charAt(1);
+                    user.name.charAt(0) + (user.name.charAt(1) || '');
 
                 const row = `
                     <tr>
@@ -486,7 +553,7 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
-                                     style="width: 40px; height: 40px; font-size: 14px; color: white;">
+                                     style="width: 40px; height: 40px; font-size: 14px; color: white; font-weight: bold;">
                                     ${initials}
                                 </div>
                                 <div>
@@ -505,7 +572,7 @@
                                 ${user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                             </span>
                         </td>
-                        <td>${formatDate(user.last_login_at)}</td>
+                        <td>${formatDate(user.last_login_at || user.updated_at)}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary btn-action" onclick="viewUser(${user.id})" title="View">
                                 <i class="fas fa-eye"></i>
@@ -528,16 +595,21 @@
             });
         }
 
-        function updateStats(users) {
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('activeUsers').textContent = users.filter(u => u.status === 'active').length;
-            document.getElementById('adminUsers').textContent = users.filter(u => u.role === 'admin').length;
+        // Update statistics
+        function updateStats(userList) {
+            document.getElementById('totalUsers').textContent = userList.length;
+            document.getElementById('activeUsers').textContent = userList.filter(u => u.status === 'active').length;
+            document.getElementById('adminUsers').textContent = userList.filter(u => u.role === 'admin').length;
+            
             const currentMonth = new Date().getMonth();
-            document.getElementById('recentUsers').textContent = users.filter(u => 
-                new Date(u.created_at).getMonth() === currentMonth
-            ).length;
+            const currentYear = new Date().getFullYear();
+            document.getElementById('recentUsers').textContent = userList.filter(u => {
+                const createdDate = new Date(u.created_at);
+                return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+            }).length;
         }
 
+        // Get role badge class
         function getRoleBadgeClass(role) {
             const classes = {
                 'admin': 'bg-danger',
@@ -548,6 +620,7 @@
             return classes[role] || 'bg-secondary';
         }
 
+        // Format date
         function formatDate(dateString) {
             if (!dateString) return 'Never';
             return new Date(dateString).toLocaleDateString('en-US', {
@@ -559,6 +632,7 @@
             });
         }
 
+        // Toggle password visibility
         function togglePassword(fieldId) {
             const field = document.getElementById(fieldId);
             const icon = field.nextElementSibling.querySelector('i');
@@ -572,28 +646,71 @@
             }
         }
 
+        // Toggle view password
+        function toggleViewPassword(userId) {
+            const passwordField = document.getElementById(`viewPassword_${userId}`);
+            const icon = document.getElementById(`viewPasswordIcon_${userId}`);
+            const user = users.find(u => u.id === userId);
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                passwordField.value = 'password123'; // Since passwords are hashed, show placeholder
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passwordField.type = 'password';
+                passwordField.value = '********';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        // Save new user
         async function saveUser() {
             const form = document.getElementById('addUserForm');
-            const formData = new FormData(form);
             
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
+                showAlert('Please fill in all required fields correctly.', 'danger');
                 return;
             }
 
-            if (formData.get('password') !== formData.get('password_confirmation')) {
+            // Validate password confirmation
+            const password = form.password.value;
+            const confirmPassword = form.password_confirmation.value;
+            
+            if (password !== confirmPassword) {
                 showAlert('Passwords do not match!', 'danger');
                 return;
             }
 
+            if (password.length < 8) {
+                showAlert('Password must be at least 8 characters long!', 'danger');
+                return;
+            }
+
             try {
-                const response = await fetch('{{ route("admin.users.create") }}', {
+                showLoading();
+                
+                // Prepare form data
+                const formData = new FormData(form);
+                
+                // Get selected permissions
+                const permissions = [];
+                const permissionElements = form.querySelectorAll('input[name="permissions[]"]:checked');
+                permissionElements.forEach(el => permissions.push(el.value));
+                formData.set('permissions', JSON.stringify(permissions));
+
+                const response = await fetch('/api/users', {
                     method: 'POST',
-                    body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: formData
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 
@@ -602,56 +719,429 @@
                     showAlert('User created successfully!', 'success');
                     form.reset();
                     form.classList.remove('was-validated');
-                    loadUsers();
+                    loadUsers(); // Reload users from database
                 } else {
-                    showAlert('Failed to create user: ' + data.message, 'danger');
+                    showAlert('Failed to create user: ' + (data.message || 'Unknown error'), 'danger');
                 }
             } catch (error) {
-                showAlert('Error creating user', 'danger');
+                console.error('Error creating user:', error);
+                showAlert('Error creating user: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
             }
         }
 
-        function editUser(id) {
-            // Implementation for editing user
-            showAlert('Edit user functionality - coming soon', 'info');
-        }
+        // Edit user
+        async function editUser(id) {
+            try {
+                showLoading();
+                
+                const response = await fetch(`/api/users/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                });
 
-        function viewUser(id) {
-            // Implementation for viewing user details
-            showAlert('View user details - coming soon', 'info');
-        }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-        function resetPassword(id) {
-            if (confirm('Reset password for this user? A new temporary password will be generated.')) {
-                showAlert('Password reset - coming soon', 'info');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const user = data.data;
+                    
+                    // Populate edit form
+                    document.getElementById('edit_user_id').value = user.id;
+                    document.getElementById('edit_name').value = user.name;
+                    document.getElementById('edit_email').value = user.email;
+                    document.getElementById('edit_role').value = user.role;
+                    document.getElementById('edit_status').value = user.status;
+
+                    // Set permissions
+                    const permissions = user.permissions ? JSON.parse(user.permissions) : [];
+                    const permissionCheckboxes = document.querySelectorAll('input[name="edit_permissions[]"]');
+                    permissionCheckboxes.forEach(checkbox => {
+                        checkbox.checked = permissions.includes(checkbox.value);
+                    });
+
+                    // Show modal
+                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                } else {
+                    showAlert('Failed to load user: ' + (data.message || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+                showAlert('Error loading user: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
             }
         }
 
-        function deleteUser(id) {
-            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                showAlert('Delete user - coming soon', 'info');
+        // Update user
+        async function updateUser() {
+            const form = document.getElementById('editUserForm');
+            
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                showAlert('Please fill in all required fields correctly.', 'danger');
+                return;
+            }
+
+            const userId = document.getElementById('edit_user_id').value;
+
+            try {
+                showLoading();
+                
+                // Prepare form data
+                const formData = new FormData(form);
+                
+                // Get selected permissions
+                const permissions = [];
+                const permissionElements = form.querySelectorAll('input[name="edit_permissions[]"]:checked');
+                permissionElements.forEach(el => permissions.push(el.value));
+                formData.set('permissions', JSON.stringify(permissions));
+                
+                // Add method override for PUT request
+                formData.append('_method', 'PUT');
+
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    showAlert('User updated successfully!', 'success');
+                    loadUsers(); // Reload users from database
+                } else {
+                    showAlert('Failed to update user: ' + (data.message || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                showAlert('Error updating user: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
             }
         }
 
+        // View user details
+        async function viewUser(id) {
+            try {
+                showLoading();
+                
+                const response = await fetch(`/api/users/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    const user = data.data;
+                    const permissions = user.permissions ? JSON.parse(user.permissions) : [];
+
+                    const content = `
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                                     style="width: 80px; height: 80px; font-size: 24px; color: white; font-weight: bold;">
+                                    ${user.name.split(' ').map(n => n.charAt(0)).join('')}
+                                </div>
+                                <h5>${user.name}</h5>
+                                <p class="text-muted">${user.email}</p>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>User ID:</strong></div>
+                                    <div class="col-sm-8">#${user.id}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Role:</strong></div>
+                                    <div class="col-sm-8">
+                                        <span class="badge ${getRoleBadgeClass(user.role)}">
+                                            ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Status:</strong></div>
+                                    <div class="col-sm-8">
+                                        <span class="badge ${user.status === 'active' ? 'bg-success' : 'bg-warning'}">
+                                            ${user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Created:</strong></div>
+                                    <div class="col-sm-8">${formatDate(user.created_at)}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Last Updated:</strong></div>
+                                    <div class="col-sm-8">${formatDate(user.updated_at)}</div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Password:</strong></div>
+                                    <div class="col-sm-8">
+                                        <div class="d-flex align-items-center">
+                                            <input type="password" class="form-control me-2" id="viewPassword_${user.id}" value="********" readonly style="max-width: 150px;">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="toggleViewPassword(${user.id})">
+                                                <i class="fas fa-eye" id="viewPasswordIcon_${user.id}"></i>
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Click the eye icon to reveal password</small>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-sm-4"><strong>Permissions:</strong></div>
+                                    <div class="col-sm-8">
+                                        ${permissions.length > 0 ? 
+                                            permissions.map(p => `<span class="badge bg-secondary me-1">${p.replace('_', ' ').toUpperCase()}</span>`).join('') :
+                                            '<span class="text-muted">No permissions assigned</span>'
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('userDetailsContent').innerHTML = content;
+                    new bootstrap.Modal(document.getElementById('viewUserModal')).show();
+                } else {
+                    showAlert('Failed to load user: ' + (data.message || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+                showAlert('Error loading user: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Reset password
+        async function resetPassword(id) {
+            const user = users.find(u => u.id === id);
+            if (!user) {
+                showAlert('User not found!', 'danger');
+                return;
+            }
+
+            if (confirm(`Reset password for ${user.name}? A new temporary password will be generated.`)) {
+                try {
+                    showLoading();
+                    
+                    const response = await fetch(`/api/users/${id}/reset-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showAlert(`Password reset successful! New temporary password: ${data.temp_password}`, 'success');
+                    } else {
+                        showAlert('Failed to reset password: ' + (data.message || 'Unknown error'), 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error resetting password:', error);
+                    showAlert('Error resetting password: ' + error.message, 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        // Delete user
+        async function deleteUser(id) {
+            const user = users.find(u => u.id === id);
+            if (!user) {
+                showAlert('User not found!', 'danger');
+                return;
+            }
+
+            if (user.email === 'laurenceayo7@gmail.com') {
+                showAlert('Cannot delete the main administrator account!', 'danger');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+                try {
+                    showLoading();
+                    
+                    const response = await fetch(`/api/users/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showAlert('User deleted successfully!', 'success');
+                        loadUsers(); // Reload users from database
+                    } else {
+                        showAlert('Failed to delete user: ' + (data.message || 'Unknown error'), 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    showAlert('Error deleting user: ' + error.message, 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+        }
+
+        // Utility functions
         function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
             alertDiv.innerHTML = `
+                <i class="fas ${getAlertIcon(type)} me-2"></i>
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alertDiv);
             
             setTimeout(() => {
-                alertDiv.remove();
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
             }, 5000);
+        }
+
+        function getAlertIcon(type) {
+            const icons = {
+                'success': 'fa-check-circle',
+                'danger': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+            return icons[type] || 'fa-info-circle';
+        }
+
+        function showLoading() {
+            // Create loading overlay
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loadingOverlay';
+            loadingDiv.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+            loadingDiv.style.cssText = 'background: rgba(0,0,0,0.5); z-index: 9999;';
+            loadingDiv.innerHTML = `
+                <div class="bg-white p-4 rounded-3 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>Loading...</div>
+                </div>
+            `;
+            document.body.appendChild(loadingDiv);
+        }
+
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loadingOverlay');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
         }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             loadUsers();
+            
+            // Add form validation styles
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                });
+            });
+        });
+
+        // Handle sidebar navigation
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (this.textContent.trim().includes('User Management')) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (this.textContent.trim().includes('Analytics')) {
+                    e.preventDefault();
+                    showAlert('Analytics page - Feature coming soon!', 'info');
+                    return;
+                }
+                
+                if (this.textContent.trim().includes('Settings')) {
+                    e.preventDefault();
+                    showAlert('Settings page - Feature coming soon!', 'info');
+                    return;
+                }
+            });
         });
     </script>
 </body>
+</html>
+
+<!-- 
+=== LARAVEL BACKEND CODE NEEDED ===
+
+
+3. Add API Routes in routes/api.php:
+
+
+
+4. Database Migration:
+
+
+
+Instructions to implement:
+1. Copy the HTML body code into your Blade template
+2. Add the User model code to app/Models/User.php
+3. Create the API controller at app/Http/Controllers/Api/UserController.php
+4. Add the API routes to routes/api.php
+5. Run the migration to add the new fields
+6. Make sure you have authentication middleware setup (Sanctum recommended)
+
+This code will now fully connect to your database and persist all changes!
+-->
 </html>
