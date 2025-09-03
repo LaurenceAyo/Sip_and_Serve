@@ -26,49 +26,45 @@ class AdminController extends Controller
     /**
      * Get users data for AJAX
      */
-    public function getUsersData()
-    {
-        $users = User::select('id', 'name', 'email', 'role', 'status', 'last_login_at', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'users' => $users
-        ]);
-    }
 
     /**
      * Create a new user
      */
     public function createUser(Request $request)
     {
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'role' => 'required|in:admin,manager,cashier,kitchen',
-            'status' => 'required|in:active,inactive',
-            'password' => 'required|string|min:8|confirmed',
-            'permissions' => 'array'
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',  // Changed from first_name/last_name
+                'email' => 'required|email|unique:users,email',
+                'role' => 'required|in:admin,manager,cashier,kitchen',
+                'status' => 'required|in:active,inactive',
+                'password' => 'required|string|min:8',
+                'password_confirmation' => 'required|same:password',
+                'permissions' => 'nullable|string'  // Changed to string to match JS
+            ]);
 
-        $user = User::create([
-            'name' => $request->first_name . ' ' . $request->last_name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'status' => $request->status,
-            'password' => Hash::make($request->password),
-            'permissions' => $request->permissions ?? [],
-            'created_by' => Auth::id(),
-            'email_verified_at' => now()
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->role,
+                'status' => $request->status,
+                'password' => Hash::make($request->password),
+                'permissions' => $request->permissions,
+                'password_reset_required' => false,
+                'email_verified_at' => now()
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User created successfully',
-            'user' => $user
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'User created successfully',
+                'data' => $user  // Changed from 'user' to 'data'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create user: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -76,35 +72,43 @@ class AdminController extends Controller
      */
     public function updateUser(Request $request, $id)
     {
-        $user = User::findOrFail($id);
-        
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'role' => 'required|in:admin,manager,cashier,kitchen',
-            'status' => 'required|in:active,inactive',
-            'password' => 'nullable|string|min:8'
-        ]);
+        try {
+            $user = User::findOrFail($id);
 
-        $updateData = [
-            'name' => $request->first_name . ' ' . $request->last_name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'status' => $request->status,
-        ];
+            $request->validate([
+                'name' => 'required|string|max:255',  // Changed from first_name/last_name
+                'email' => 'required|email|unique:users,email,' . $id,
+                'role' => 'required|in:admin,manager,cashier,kitchen',
+                'status' => 'required|in:active,inactive',
+                'password' => 'nullable|string|min:8',
+                'permissions' => 'nullable|string'
+            ]);
 
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
+            $updateData = [
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->role,
+                'status' => $request->status,
+                'permissions' => $request->permissions,
+            ];
+
+            if ($request->filled('password')) {
+                $updateData['password'] = Hash::make($request->password);
+            }
+
+            $user->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User updated successfully',
+                'data' => $user  // Changed from 'user' to 'data'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user->update($updateData);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User updated successfully',
-            'user' => $user
-        ]);
     }
 
     /**
@@ -112,21 +116,28 @@ class AdminController extends Controller
      */
     public function deleteUser($id)
     {
-        $user = User::findOrFail($id);
-        
-        if ($user->email === 'laurenceayo7@gmail.com') {
+        try {
+            $user = User::findOrFail($id);
+
+            if ($user->email === 'laurenceayo7@gmail.com') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete main administrator account'
+                ], 403);
+            }
+
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User deleted successfully'
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete main administrator account'
-            ], 403);
+                'message' => 'Failed to delete user: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User deleted successfully'
-        ]);
     }
 
     /**
@@ -134,53 +145,57 @@ class AdminController extends Controller
      */
     public function resetPassword($id)
     {
-        $user = User::findOrFail($id);
-        
-        $newPassword = $this->generateRandomPassword();
-        
-        $user->update([
-            'password' => Hash::make($newPassword),
-            'password_reset_required' => true
-        ]);
+        try {
+            $user = User::findOrFail($id);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Password reset successfully',
-            'new_password' => $newPassword
-        ]);
+            $newPassword = $this->generateRandomPassword();
+
+            $user->update([
+                'password' => Hash::make($newPassword),
+                'password_reset_required' => true
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully',
+                'temp_password' => $newPassword  // Changed from 'new_password' to match JS
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset password: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
      * Get user details
      */
-    public function getUserDetails($id)
+    public function getUsersData()
     {
-        $user = User::findOrFail($id);
-        
-        return response()->json([
-            'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'status' => $user->status,
-                'created_at' => $user->created_at,
-                'last_login_at' => $user->last_login_at,
-                'permissions' => $user->permissions ?? []
-            ]
-        ]);
+        try {
+            $users = User::select('id', 'name', 'email', 'role', 'status', 'permissions', 'last_login_at', 'created_at', 'updated_at')
+                ->get(); // Remove orderBy for now to test
+
+            // Debug: Log the actual count
+            Log::info('getUsersData: Found ' . $users->count() . ' users');
+
+            return response()->json([
+                'success' => true,
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            Log::error('getUsersData error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load users: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    private function generateRandomPassword($length = 12)
+    private function generateRandomPassword($length = 8)
     {
-        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-        $password = '';
-        
-        for ($i = 0; $i < $length; $i++) {
-            $password .= $characters[rand(0, strlen($characters) - 1)];
-        }
-        
-        return $password;
+        return 'temp' . rand(1000, 9999);  // Simple temporary password format
     }
 }

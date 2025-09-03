@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,13 +13,13 @@
             background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         .sidebar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: white;
         }
-        
+
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
             padding: 12px 20px;
@@ -26,18 +27,18 @@
             margin: 5px 0;
             transition: all 0.3s ease;
         }
-        
+
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
             background: rgba(255, 255, 255, 0.2);
             color: white;
             transform: translateX(5px);
         }
-        
+
         .main-content {
             padding: 30px;
         }
-        
+
         .stats-card {
             background: white;
             padding: 25px;
@@ -46,24 +47,24 @@
             transition: all 0.3s ease;
             border: none;
         }
-        
+
         .stats-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
-        
+
         .stats-icon {
             font-size: 2rem;
             margin-bottom: 15px;
         }
-        
+
         .user-table {
             background: white;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
-        
+
         .table th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -71,69 +72,71 @@
             border: none;
             padding: 15px;
         }
-        
+
         .table td {
             padding: 15px;
             vertical-align: middle;
             border-color: #f0f0f0;
         }
-        
+
         .btn-action {
             margin: 0 2px;
             transition: all 0.3s ease;
         }
-        
+
         .btn-action:hover {
             transform: translateY(-2px);
         }
-        
+
         .modal-content {
             border: none;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
         }
-        
+
         .modal-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px 15px 0 0;
         }
-        
-        .form-control, .form-select {
+
+        .form-control,
+        .form-select {
             border-radius: 8px;
             border: 2px solid #e9ecef;
             transition: border-color 0.3s ease;
         }
-        
-        .form-control:focus, .form-select:focus {
+
+        .form-control:focus,
+        .form-select:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 8px;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
-        
+
         .role-badge {
             font-size: 0.8rem;
             padding: 6px 12px;
             border-radius: 20px;
         }
-        
+
         .status-badge {
             font-size: 0.8rem;
             padding: 6px 12px;
             border-radius: 20px;
         }
-        
+
         .alert {
             border: none;
             border-radius: 10px;
@@ -141,6 +144,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -305,7 +309,8 @@
                             <label class="form-label">Password *</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" name="password" id="newPassword" required>
-                                <button class="btn btn-outline-secondary password-toggle" type="button" onclick="togglePassword('newPassword')">
+                                <button class="btn btn-outline-secondary password-toggle" type="button"
+                                    onclick="togglePassword('newPassword')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -314,8 +319,10 @@
                         <div class="mb-3">
                             <label class="form-label">Confirm Password *</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" name="password_confirmation" id="confirmPassword" required>
-                                <button class="btn btn-outline-secondary password-toggle" type="button" onclick="togglePassword('confirmPassword')">
+                                <input type="password" class="form-control" name="password_confirmation"
+                                    id="confirmPassword" required>
+                                <button class="btn btn-outline-secondary password-toggle" type="button"
+                                    onclick="togglePassword('confirmPassword')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -325,29 +332,35 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="pos_access" id="pos_access">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="pos_access" id="pos_access">
                                         <label class="form-check-label" for="pos_access">POS Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="kitchen_access" id="kitchen_access">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="kitchen_access" id="kitchen_access">
                                         <label class="form-check-label" for="kitchen_access">Kitchen Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="reports_access" id="reports_access">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="reports_access" id="reports_access">
                                         <label class="form-check-label" for="reports_access">Reports Access</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="inventory_access" id="inventory_access">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="inventory_access" id="inventory_access">
                                         <label class="form-check-label" for="inventory_access">Inventory Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="user_management" id="user_management">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="user_management" id="user_management">
                                         <label class="form-check-label" for="user_management">User Management</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="permissions[]" value="settings_access" id="settings_access">
+                                        <input class="form-check-input" type="checkbox" name="permissions[]"
+                                            value="settings_access" id="settings_access">
                                         <label class="form-check-label" for="settings_access">Settings Access</label>
                                     </div>
                                 </div>
@@ -420,7 +433,8 @@
                             <label class="form-label">New Password (leave blank to keep current)</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" name="password" id="editPassword">
-                                <button class="btn btn-outline-secondary password-toggle" type="button" onclick="togglePassword('editPassword')">
+                                <button class="btn btn-outline-secondary password-toggle" type="button"
+                                    onclick="togglePassword('editPassword')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -430,30 +444,39 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="pos_access" id="edit_pos_access">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="pos_access" id="edit_pos_access">
                                         <label class="form-check-label" for="edit_pos_access">POS Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="kitchen_access" id="edit_kitchen_access">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="kitchen_access" id="edit_kitchen_access">
                                         <label class="form-check-label" for="edit_kitchen_access">Kitchen Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="reports_access" id="edit_reports_access">
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="reports_access" id="edit_reports_access">
                                         <label class="form-check-label" for="edit_reports_access">Reports Access</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="inventory_access" id="edit_inventory_access">
-                                        <label class="form-check-label" for="edit_inventory_access">Inventory Access</label>
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="inventory_access" id="edit_inventory_access">
+                                        <label class="form-check-label" for="edit_inventory_access">Inventory
+                                            Access</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="user_management" id="edit_user_management">
-                                        <label class="form-check-label" for="edit_user_management">User Management</label>
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="user_management" id="edit_user_management">
+                                        <label class="form-check-label" for="edit_user_management">User
+                                            Management</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]" value="settings_access" id="edit_settings_access">
-                                        <label class="form-check-label" for="edit_settings_access">Settings Access</label>
+                                        <input class="form-check-input" type="checkbox" name="edit_permissions[]"
+                                            value="settings_access" id="edit_settings_access">
+                                        <label class="form-check-label" for="edit_settings_access">Settings
+                                            Access</label>
                                     </div>
                                 </div>
                             </div>
@@ -501,7 +524,7 @@
         async function loadUsers() {
             try {
                 showLoading();
-                const response = await fetch('/api/users', {
+                const response = await fetch('/admin/users/data', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -515,9 +538,9 @@
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    users = data.data;
+                    users = data.data; // Fixed: Change from data.users to data.data
                     displayUsers(users);
                     updateStats(users);
                 } else {
@@ -543,8 +566,8 @@
 
             userList.forEach(user => {
                 const nameParts = user.name.split(' ');
-                const initials = nameParts.length >= 2 ? 
-                    nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0) : 
+                const initials = nameParts.length >= 2 ?
+                    nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0) :
                     user.name.charAt(0) + (user.name.charAt(1) || '');
 
                 const row = `
@@ -600,7 +623,7 @@
             document.getElementById('totalUsers').textContent = userList.length;
             document.getElementById('activeUsers').textContent = userList.filter(u => u.status === 'active').length;
             document.getElementById('adminUsers').textContent = userList.filter(u => u.role === 'admin').length;
-            
+
             const currentMonth = new Date().getMonth();
             const currentYear = new Date().getFullYear();
             document.getElementById('recentUsers').textContent = userList.filter(u => {
@@ -636,7 +659,7 @@
         function togglePassword(fieldId) {
             const field = document.getElementById(fieldId);
             const icon = field.nextElementSibling.querySelector('i');
-            
+
             if (field.type === 'password') {
                 field.type = 'text';
                 icon.className = 'fas fa-eye-slash';
@@ -650,8 +673,7 @@
         function toggleViewPassword(userId) {
             const passwordField = document.getElementById(`viewPassword_${userId}`);
             const icon = document.getElementById(`viewPasswordIcon_${userId}`);
-            const user = users.find(u => u.id === userId);
-            
+
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';
                 passwordField.value = 'password123'; // Since passwords are hashed, show placeholder
@@ -666,7 +688,7 @@
         // Save new user
         async function saveUser() {
             const form = document.getElementById('addUserForm');
-            
+
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
                 showAlert('Please fill in all required fields correctly.', 'danger');
@@ -676,7 +698,7 @@
             // Validate password confirmation
             const password = form.password.value;
             const confirmPassword = form.password_confirmation.value;
-            
+
             if (password !== confirmPassword) {
                 showAlert('Passwords do not match!', 'danger');
                 return;
@@ -689,17 +711,17 @@
 
             try {
                 showLoading();
-                
+
                 // Prepare form data
                 const formData = new FormData(form);
-                
+
                 // Get selected permissions
                 const permissions = [];
                 const permissionElements = form.querySelectorAll('input[name="permissions[]"]:checked');
                 permissionElements.forEach(el => permissions.push(el.value));
                 formData.set('permissions', JSON.stringify(permissions));
 
-                const response = await fetch('/api/users', {
+                const response = await fetch('/admin/users', { // Fixed: Correct URL for creating user
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -713,7 +735,7 @@
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
                     showAlert('User created successfully!', 'success');
@@ -735,8 +757,8 @@
         async function editUser(id) {
             try {
                 showLoading();
-                
-                const response = await fetch(`/api/users/${id}`, {
+
+                const response = await fetch(`/admin/users/${id}`, { // Fixed: Correct URL
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -750,10 +772,10 @@
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    const user = data.data;
-                    
+                    const user = data.data; // Fixed: Change from data.user to data.data
+
                     // Populate edit form
                     document.getElementById('edit_user_id').value = user.id;
                     document.getElementById('edit_name').value = user.name;
@@ -762,7 +784,22 @@
                     document.getElementById('edit_status').value = user.status;
 
                     // Set permissions
-                    const permissions = user.permissions ? JSON.parse(user.permissions) : [];
+                    let permissions = [];
+                    if (user.permissions) {
+                        if (typeof user.permissions === 'string') {
+                            if (user.permissions === 'all') {
+                                permissions = ['pos_access', 'kitchen_access', 'reports_access', 'inventory_access', 'user_management', 'settings_access'];
+                            } else {
+                                try {
+                                    permissions = JSON.parse(user.permissions);
+                                } catch (e) {
+                                    permissions = [];
+                                }
+                            }
+                        } else if (Array.isArray(user.permissions)) {
+                            permissions = user.permissions;
+                        }
+                    }
                     const permissionCheckboxes = document.querySelectorAll('input[name="edit_permissions[]"]');
                     permissionCheckboxes.forEach(checkbox => {
                         checkbox.checked = permissions.includes(checkbox.value);
@@ -784,7 +821,7 @@
         // Update user
         async function updateUser() {
             const form = document.getElementById('editUserForm');
-            
+
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
                 showAlert('Please fill in all required fields correctly.', 'danger');
@@ -795,20 +832,20 @@
 
             try {
                 showLoading();
-                
+
                 // Prepare form data
                 const formData = new FormData(form);
-                
+
                 // Get selected permissions
                 const permissions = [];
                 const permissionElements = form.querySelectorAll('input[name="edit_permissions[]"]:checked');
                 permissionElements.forEach(el => permissions.push(el.value));
                 formData.set('permissions', JSON.stringify(permissions));
-                
+
                 // Add method override for PUT request
                 formData.append('_method', 'PUT');
 
-                const response = await fetch(`/api/users/${userId}`, {
+                const response = await fetch(`/admin/users/${userId}`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -822,7 +859,7 @@
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
                     bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
                     showAlert('User updated successfully!', 'success');
@@ -842,8 +879,8 @@
         async function viewUser(id) {
             try {
                 showLoading();
-                
-                const response = await fetch(`/api/users/${id}`, {
+
+                const response = await fetch(`/admin/users/${id}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -857,10 +894,25 @@
                 }
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    const user = data.data;
-                    const permissions = user.permissions ? JSON.parse(user.permissions) : [];
+                    const user = data.data; // Fixed: Change from data.user to data.data
+                    let permissions = [];
+                    if (user.permissions) {
+                        if (typeof user.permissions === 'string') {
+                            if (user.permissions === 'all') {
+                                permissions = ['pos_access', 'kitchen_access', 'reports_access', 'inventory_access', 'user_management', 'settings_access'];
+                            } else {
+                                try {
+                                    permissions = JSON.parse(user.permissions);
+                                } catch (e) {
+                                    permissions = [];
+                                }
+                            }
+                        } else if (Array.isArray(user.permissions)) {
+                            permissions = user.permissions;
+                        }
+                    }
 
                     const content = `
                         <div class="row">
@@ -916,10 +968,10 @@
                                 <div class="row mb-3">
                                     <div class="col-sm-4"><strong>Permissions:</strong></div>
                                     <div class="col-sm-8">
-                                        ${permissions.length > 0 ? 
-                                            permissions.map(p => `<span class="badge bg-secondary me-1">${p.replace('_', ' ').toUpperCase()}</span>`).join('') :
-                                            '<span class="text-muted">No permissions assigned</span>'
-                                        }
+                                        ${permissions.length > 0 ?
+                            permissions.map(p => `<span class="badge bg-secondary me-1">${p.replace('_', ' ').toUpperCase()}</span>`).join('') :
+                            '<span class="text-muted">No permissions assigned</span>'
+                        }
                                     </div>
                                 </div>
                             </div>
@@ -950,8 +1002,8 @@
             if (confirm(`Reset password for ${user.name}? A new temporary password will be generated.`)) {
                 try {
                     showLoading();
-                    
-                    const response = await fetch(`/api/users/${id}/reset-password`, {
+
+                    const response = await fetch(`/admin/users/${id}/reset-password`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -965,7 +1017,7 @@
                     }
 
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         showAlert(`Password reset successful! New temporary password: ${data.temp_password}`, 'success');
                     } else {
@@ -996,8 +1048,8 @@
             if (confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
                 try {
                     showLoading();
-                    
-                    const response = await fetch(`/api/users/${id}`, {
+
+                    const response = await fetch(`/admin/users/${id}`, { // Fixed: Correct URL
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1011,7 +1063,7 @@
                     }
 
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         showAlert('User deleted successfully!', 'success');
                         loadUsers(); // Reload users from database
@@ -1042,7 +1094,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alertDiv);
-            
+
             setTimeout(() => {
                 if (alertDiv.parentNode) {
                     alertDiv.remove();
@@ -1085,13 +1137,13 @@
         }
 
         // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadUsers();
-            
+
             // Add form validation styles
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', function (e) {
                     e.preventDefault();
                 });
             });
@@ -1099,18 +1151,18 @@
 
         // Handle sidebar navigation
         document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
+            link.addEventListener('click', function (e) {
                 if (this.textContent.trim().includes('User Management')) {
                     e.preventDefault();
                     return;
                 }
-                
+
                 if (this.textContent.trim().includes('Analytics')) {
                     e.preventDefault();
                     showAlert('Analytics page - Feature coming soon!', 'info');
                     return;
                 }
-                
+
                 if (this.textContent.trim().includes('Settings')) {
                     e.preventDefault();
                     showAlert('Settings page - Feature coming soon!', 'info');
@@ -1120,28 +1172,5 @@
         });
     </script>
 </body>
-</html>
 
-<!-- 
-=== LARAVEL BACKEND CODE NEEDED ===
-
-
-3. Add API Routes in routes/api.php:
-
-
-
-4. Database Migration:
-
-
-
-Instructions to implement:
-1. Copy the HTML body code into your Blade template
-2. Add the User model code to app/Models/User.php
-3. Create the API controller at app/Http/Controllers/Api/UserController.php
-4. Add the API routes to routes/api.php
-5. Run the migration to add the new fields
-6. Make sure you have authentication middleware setup (Sanctum recommended)
-
-This code will now fully connect to your database and persist all changes!
--->
 </html>

@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <title>Login - Sip & Serve</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <style>
         * {
             margin: 0;
@@ -206,15 +210,15 @@
 
         <form method="POST" action="{{ route('login') }}" id="loginForm">
             @csrf
-            <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required>
+            <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" autocomplete="off" required>
 
             <div class="password-container">
-                <input type="password" name="password" placeholder="Password" id="password-field" required>
+                <input type="password" name="password" placeholder="Password" id="password-field" autocomplete="off" required>
                 <span class="toggle-password" onclick="togglePassword()" id="toggle-icon">👁️‍🗨️</span>
             </div>
 
             <!-- <a href="{{ route('password.request') }}" class="forgot">Forgot Password?</a> -->
-            <div >
+            <div>
                 &nbsp;
             </div>
             <button type="submit" id="loginBtn">
@@ -258,22 +262,9 @@
             buttonText.style.opacity = '0';
             loadingSpinner.style.display = 'block';
 
-            // Optional: Reset loading state after a delay (in case of errors)
-            setTimeout(() => {
-                if (btn.disabled) {
-                    btn.disabled = false;
-                    buttonText.style.opacity = '1';
-                    loadingSpinner.style.display = 'none';
-                }
-            }, 5000);
         });
 
-        // Check if login was successful and redirect
-        @if(session('login_success'))
-            setTimeout(() => {
-                window.location.href = '{{ route('dashboard') }}';
-            }, 1500);
-        @endif
+
     </script>
 </body>
 

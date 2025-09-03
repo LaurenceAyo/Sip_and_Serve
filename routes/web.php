@@ -17,6 +17,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -25,11 +26,37 @@ use App\Http\Controllers\POSPaymentController;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 
+// Add this to your web.php temporarily
+Route::get('/test-db', function() {
+    $users = \App\Models\User::all(['id', 'name', 'email']);
+    return response()->json([
+        'total_users' => $users->count(),
+        'users' => $users,
+        'first_user_password_starts_with' => $users->first() ? substr($users->first()->password, 0, 10) : 'no_users'
+    ]);
+});
 
-// Home route
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
+
+//Login
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// Protected routes
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/kiosk', [KioskController::class, 'main'])->middleware('auth')->name('kiosk.main');
+
+Route::get('/debug-auth', function () {
+    return response()->json([
+        'authenticated' => Auth::check(),
+        'user' => Auth::user(),
+        'session_id' => session()->getId(),
+        'current_route' => request()->path()
+    ]);
+});
+Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+
 
 // PRIORITY: Thermal Printer Test Routes (for debugging)
 Route::get('/test-printer-connection', function () {
@@ -128,6 +155,9 @@ Route::get('/kiosk/order-confirmation-success', [KioskController::class, 'orderC
 Route::get('/kiosk/review-order', [KioskController::class, 'reviewOrder'])
     ->name('kiosk.reviewOrder');
 Route::get('/kiosk/payment/failed', [KioskController::class, 'paymentFailed'])->name('kiosk.payment.failed');
+
+
+Route::get('/admin/users/{id}', [AdminController::class, 'getUserDetails'])->name('admin.users.details');
 
 // API Routes for POS Payment
 Route::prefix('api/pos/payment')->group(function () {
@@ -367,15 +397,15 @@ Route::get('/test-bluetooth-printer', function () {
     }
 });
 
-// Admin routes
+// Admin routes - FIXED: Reordered to put specific routes before parameterized routes
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [AdminController::class, 'userManagement'])->name('users');
     Route::get('/users/data', [AdminController::class, 'getUsersData'])->name('users.data');
     Route::post('/users', [AdminController::class, 'createUser'])->name('users.create');
-    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
     Route::post('/users/{id}/reset-password', [AdminController::class, 'resetPassword'])->name('users.reset-password');
     Route::get('/users/{id}', [AdminController::class, 'getUserDetails'])->name('users.details');
+    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
 });
 
 // Authenticated routes (admin panel)
