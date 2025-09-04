@@ -82,7 +82,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::post('/process-payment', [KioskController::class, 'processPayment'])->name('processPayment');
     Route::post('/process-cash-payment', [KioskController::class, 'processCashPayment'])->name('processCashPayment');
     Route::post('/process-gcash-payment', [KioskController::class, 'processGCashPayment'])->name('processGCashPayment');
-
+    
     // Payment Result Pages
     Route::get('/payment-success', [KioskController::class, 'paymentSuccess'])->name('paymentSuccess');
     Route::get('/payment-failed', [KioskController::class, 'paymentFailed'])->name('paymentFailed');
@@ -109,7 +109,7 @@ Route::prefix('api')->group(function () {
         Route::post('/process', [POSPaymentController::class, 'processPayment']);
         Route::get('/status/{paymentIntentId}', [POSPaymentController::class, 'checkPaymentStatus']);
     });
-
+    
     // Inventory API
     Route::get('/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
 });
@@ -131,12 +131,11 @@ Route::get('/product', [KioskController::class, 'product'])->name('product');
 // AUTHENTICATED ROUTES
 // =============================================================================
 Route::middleware(['auth'])->group(function () {
-
+    
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/kiosk', [KioskController::class, 'main'])->name('kiosk.main');
-    Route::get('/admin/users/data', [AdminController::class, 'getUsersData'])->name('admin.users.data');
-    Route::get('/admin/users/{id}', [AdminController::class, 'getUserDetails'])->name('admin.users.details');
+
     // =============================================================================
     // CASHIER SYSTEM
     // =============================================================================
@@ -144,14 +143,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
         Route::get('/refresh', [CashierController::class, 'refreshOrders'])->name('refresh');
         Route::get('/stats', [CashierController::class, 'getDashboardStats'])->name('stats');
-
+        
         // Order Management
         Route::post('/accept-order', [CashierController::class, 'acceptOrder'])->name('accept');
         Route::post('/cancel-order', [CashierController::class, 'cancelOrder'])->name('cancel');
         Route::post('/complete-order', [CashierController::class, 'completeOrder'])->name('complete');
         Route::post('/update-order', [CashierController::class, 'updateOrder'])->name('update');
         Route::post('/create-manual-order', [CashierController::class, 'createManualOrder'])->name('createManual');
-
+        
         Route::get('/edit-order/{id}', function ($id) {
             return redirect('/cashier')->with('message', "Edit functionality for order #{$id} coming soon");
         })->name('edit');
@@ -201,18 +200,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/orders/{id}/complete', [OrderController::class, 'markCompleted'])->name('orders.complete');
     Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
 
-    Route::prefix('kiosk')->name('kiosk.')->group(function () {
-        Route::get('/', [KioskController::class, 'index'])->name('index');
-        Route::get('/main', [KioskController::class, 'main'])->name('main');
-        Route::get('/review-order', [KioskController::class, 'reviewOrder'])->name('reviewOrder');
-        Route::post('/checkout', [KioskController::class, 'checkout'])->name('checkout');
-        Route::post('/submit-order', [KioskController::class, 'submitOrder'])->name('submitOrder');
-        Route::get('/order-confirmation/{id?}', [KioskController::class, 'orderConfirmation'])->name('orderConfirmation');
-
-        // Add other kiosk routes you were using before
-        Route::post('/cart/add', [KioskController::class, 'addToCart'])->name('addToCart');
-        Route::post('/process-order', [KioskController::class, 'processOrder'])->name('processOrder');
-    });
     // =============================================================================
     // MENU & INGREDIENT MANAGEMENT
     // =============================================================================

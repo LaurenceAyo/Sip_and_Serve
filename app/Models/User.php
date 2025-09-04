@@ -21,13 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'manager_id',
-        'role',                    // Added for admin system
-        'status',                  // Added for admin system
-        'permissions',             // Added for admin system
-        'last_login_at',           // Added for admin system
-        'created_by',              // Added for admin system
-        'password_reset_required', // Added for admin system
+        'email_verified_at',
+        'created_by',
+        'manager_id'
     ];
 
     /**
@@ -67,12 +63,12 @@ class User extends Authenticatable
             if (!$user->manager_id) {
                 $user->manager_id = self::generateUniqueManagerId();
             }
-            
+
             // Set default values for admin fields if not provided
             if (!$user->role) {
                 $user->role = 'cashier';
             }
-            
+
             if (!$user->status) {
                 $user->status = 'active';
             }
@@ -87,7 +83,7 @@ class User extends Authenticatable
         do {
             $managerId = 'MNG' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         } while (self::where('manager_id', $managerId)->exists());
-        
+
         return $managerId;
     }
 

@@ -777,31 +777,20 @@
                         </div>
                     </div>
 
-                    <!-- Top Selling Items Section -->
+                    <!-- Top Selling Items Section in Export Modal -->
                     <div class="report-section">
-                        <h3>🏆 Top 3 Selling Items</h3>
+                        <h3>🏆 Top Selling Items</h3>
                         <ul class="top-items-list">
-                            <li>
-                                <div class="item-rank">1</div>
-                                <div class="item-details">
-                                    <span class="item-name">Espresso</span>
-                                    <span class="item-sales">15 sold</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="item-rank">2</div>
-                                <div class="item-details">
-                                    <span class="item-name">Pad Thai</span>
-                                    <span class="item-sales">12 sold</span>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="item-rank">3</div>
-                                <div class="item-details">
-                                    <span class="item-name">Iced Coffee</span>
-                                    <span class="item-sales">10 sold</span>
-                                </div>
-                            </li>
+                            @foreach($formattedTopItems as $index => $item)
+                                <li>
+                                    <div class="item-rank">{{ $index + 1 }}</div>
+                                    <div class="item-details">
+                                        <span class="item-name">{{ $item->name }}</span>
+                                        <span class="item-sales">{{ $item->quantity }} sold - PHP
+                                            {{ number_format($item->revenue, 2) }}</span>
+                                    </div>
+                                </li>
+                            @endforeach
                         </ul>
                     </div>
 
@@ -877,7 +866,7 @@
                     @endforeach
                 </ul>
             </div>
-            
+
 
             <!-- Bottom Navigation -->
             <div class="bottom-nav flex justify-between items-center">

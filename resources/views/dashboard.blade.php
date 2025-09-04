@@ -921,7 +921,6 @@
                 </select>
             </div>
 
-
             <!-- Stock Level Legend -->
             <div class="flex items-center space-x-6 mb-4">
                 <span class="font-semibold">CURRENT STOCK LEVEL</span>
@@ -958,21 +957,54 @@
                             @php
                                 $mergedIngredients = $ingredients->groupBy('name')->map(function ($group) {
                                     $first = $group->first();
-                                    $totalQuantity = $group->sum('stock_quantity');
+                                    $totalInitial = $group->sum('initial_stock') ?? $group->sum('stock_quantity'); // Fallback to stock_quantity if no initial_stock
+                                    $totalUsed = $group->sum('used_stock') ?? 0;
+                                    $currentStock = $totalInitial - $totalUsed; // This is the actual remaining stock
 
-                                    // Determine status based on total quantity
+                                    // Get critical level from database or calculate it
+                                    $criticalLevel = $first->critical_level ?? null;
+
+                                    // Improved status logic using CURRENT stock, not original stock
                                     $status = 'good';
-                                    if ($totalQuantity < 2)
-                                        $status = 'critical';
-                                    elseif ($totalQuantity < 5)
-                                        $status = 'low';
+                                    if ($criticalLevel && $criticalLevel > 0) {
+                                        // Use custom critical level if set
+                                        $lowLevel = $criticalLevel * 2; // Warning at 2x critical level
+
+                                        if ($currentStock <= $criticalLevel) {
+                                            $status = 'critical';
+                                        } elseif ($currentStock <= $lowLevel) {
+                                            $status = 'low';
+                                        }
+                                    } else {
+                                        // Dynamic logic based on current stock ranges
+                                        if ($currentStock >= 1000) {
+                                            if ($currentStock <= 100)
+                                                $status = 'critical'; // Less than 10%
+                                            elseif ($currentStock <= 250)
+                                                $status = 'low'; // Less than 25%
+                                        } elseif ($currentStock >= 100) {
+                                            if ($currentStock <= 15)
+                                                $status = 'critical'; // Less than 15%
+                                            elseif ($currentStock <= 30)
+                                                $status = 'low'; // Less than 30%
+                                        } else {
+                                            // For items with less than 100 units
+                                            if ($currentStock < 2)
+                                                $status = 'critical';
+                                            elseif ($currentStock < 10)
+                                                $status = 'low'; // Changed from 5 to 10 for better logic
+                                        }
+                                    }
 
                                     return (object) [
                                         'name' => $first->name,
                                         'category' => $first->category,
                                         'unit' => $first->unit,
-                                        'stock_quantity' => $totalQuantity,
-                                        'stock_status' => $status
+                                        'initial_stock' => $totalInitial,
+                                        'used_stock' => $totalUsed,
+                                        'current_stock' => $currentStock, // This is the key value
+                                        'stock_status' => $status,
+                                        'critical_level' => $criticalLevel
                                     ];
                                 })->sortBy('name');
                             @endphp
@@ -981,14 +1013,19 @@
                                     style="display: flex;">
                                     <td style="flex: 1; padding: 12px; text-align: center;">{{ $ingredient->name }}</td>
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($ingredient->stock_quantity, 2) }}
-                                    </td>
-                                    <td style="flex: 1; padding: 12px; text-align: center;">0</td>
-                                    <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($ingredient->stock_quantity, 2) }} {{ $ingredient->unit }}
+                                        {{ number_format($ingredient->current_stock, 2) }}
                                     </td>
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        <div class="status-indicator status-{{ $ingredient->stock_status }}"></div>
+                                        {{ number_format($ingredient->used_stock, 2) }}
+                                    </td>
+                                    <td style="flex: 1; padding: 12px; text-align: center;">
+                                        {{ number_format($ingredient->current_stock, 2) }} {{ $ingredient->unit }}
+                                    </td>
+                                    <td style="flex: 1; padding: 12px; text-align: center;">
+                                        <div class="status-indicator status-{{ $ingredient->stock_status }}"
+                                            title="Current: {{ $ingredient->current_stock }}@if($ingredient->critical_level) | Critical: {{ $ingredient->critical_level }}@endif">
+                                        </div>
+                                    </td>
                                     </td>
                                 </tr>
                             @endforeach
@@ -1106,6 +1143,7 @@
             </form>
         </div>
     </div>
+
     <div id="addItemModal" class="modal-overlay">
         <div class="add-modal-content">
             <h3 class="add-modal-title">ADD ITEM</h3>
@@ -1144,6 +1182,7 @@
             </form>
         </div>
     </div>
+
     <!-- Admin Panel Access (only for laurenceayo7@gmail.com) -->
     @if(auth()->user()->email === 'laurenceayo7@gmail.com')
         <div class="row mb-4">
@@ -1209,10 +1248,7 @@
         </style>
     @endif
 
-
-
     <script>
-
         //for filtering items
         document.querySelector('.filter-dropdown').addEventListener('change', function () {
             const filter = this.value.toLowerCase().replace(' ', '-');
@@ -1235,6 +1271,8 @@
                     name: "{{ $ingredient->name }}",
                     unit: "{{ $ingredient->unit }}",
                     stock_quantity: {{ $ingredient->stock_quantity }},
+                    used_stock: {{ $ingredient->used_stock ?? 0 }},
+                    critical_level: {{ $ingredient->critical_level ?? 0 }},
                     stock_status: "{{ $ingredient->stock_status }}"
                 },
             @endforeach
@@ -1258,18 +1296,19 @@
             }
 
             resultsContainer.innerHTML = filteredItems.map(item =>
-                `<div onclick="selectItem('${item.name}', '${item.unit}', ${item.stock_quantity})" 
-                      style="padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; hover:background-color: #f9fafb;">
-                    ${item.name} (${item.stock_quantity} ${item.unit})
-                </div>`
+                `<div onclick="selectItem('${item.name}', '${item.unit}', ${item.stock_quantity}, ${item.critical_level})" 
+          style="padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; hover:background-color: #f9fafb;">
+        ${item.name}${item.critical_level ? ' - Critical: ' + item.critical_level : ''}
+    </div>`
             ).join('');
 
             resultsContainer.style.display = 'block';
         }
 
-        function selectItem(name, unit, quantity) {
+        function selectItem(name, unit, quantity, criticalLevel = null) {
             document.getElementById('editItemName').value = name;
             document.getElementById('editQuantity').value = quantity;
+            document.getElementById('editAlertLevel').value = criticalLevel || '';
             document.getElementById('searchResults').style.display = 'none';
 
             // Auto-detect and set unit for edit modal
@@ -1289,6 +1328,7 @@
                 document.getElementById('searchResults').style.display = 'none';
             }
         });
+
         function openEditModal() {
             document.getElementById('editItemModal').classList.add('show');
         }
@@ -1319,8 +1359,6 @@
             const newQuantity = parseFloat(document.getElementById('editQuantity').value);
             const criticalLevel = document.getElementById('editAlertLevel').value ? parseFloat(document.getElementById('editAlertLevel').value) : null;
 
-            console.log('Submitting:', { itemName, newQuantity, criticalLevel }); // Debug log
-
             if (itemName.trim()) {
                 // Check if CSRF token exists
                 const csrfToken = document.querySelector('meta[name="csrf-token"]');
@@ -1343,12 +1381,8 @@
                         critical_level: criticalLevel
                     })
                 })
-                    .then(response => {
-                        console.log('Response status:', response.status); // Debug log
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('Response data:', data); // Debug log
                         if (data.success) {
                             // Update the table row with new values
                             updateTableRow(itemName, newQuantity, criticalLevel);
@@ -1379,11 +1413,12 @@
                     const updatedUnit = document.getElementById('editUnitDisplay').value || 'grams';
                     cells[3].textContent = `${newQuantity.toFixed(2)} ${updatedUnit}`; // CURRENT INVENTORY with updated unit
 
-                    // Update status indicator with new logic
+                    // Update status indicator with improved logic
                     const statusCell = cells[4].querySelector('.status-indicator');
                     statusCell.className = `status-indicator ${getStockLevel(newQuantity, criticalLevel)}`;
 
-                    console.log(`Updated ${itemName}: quantity=${newQuantity}, critical=${criticalLevel}, status=${getStockLevel(newQuantity, criticalLevel)}`);
+                    // Add tooltip
+                    statusCell.title = criticalLevel ? `Critical: ${criticalLevel}` : 'Auto-calculated';
                 }
             });
         }
@@ -1489,7 +1524,8 @@
 
                     // Check if item is low or critical stock
                     if (statusIndicator && (statusIndicator.classList.contains('status-low') || statusIndicator.classList.contains('status-critical'))) {
-                        const neededAmount = statusIndicator.classList.contains('status-critical') ? 10 : 5;
+                        const neededAmount = statusIndicator.classList.contains('status-critical') ?
+                            Math.max(currentStock * 3, 10) : Math.max(currentStock * 2, 5);
                         lowStockItems.push({
                             name: itemName,
                             current: currentStock,
@@ -1562,6 +1598,7 @@
                 closeShoppingListModal();
             }
         });
+
         function openAddModal() {
             document.getElementById('addItemModal').classList.add('show');
         }
@@ -1573,27 +1610,34 @@
         }
 
         function getStockLevel(quantity, criticalLevel = null) {
-            // If criticalLevel is provided, use the new logic
+            // If criticalLevel is provided, use the custom logic
             if (criticalLevel !== null && criticalLevel > 0) {
-                const warningLevel = criticalLevel * 0.25; // 1/4 of critical level
-
-                console.log(`Stock check: quantity=${quantity}, critical=${criticalLevel}, warning=${warningLevel}`);
+                const lowLevel = criticalLevel * 2; // Warning at 2x critical level
 
                 if (quantity <= criticalLevel) {
-                    console.log('Status: CRITICAL (red)');
                     return 'status-critical'; // Red when at or below critical
                 }
-                if (quantity <= warningLevel) {
-                    console.log('Status: LOW (orange)');
-                    return 'status-low'; // Orange when at or below 1/4 of critical
+                if (quantity <= lowLevel) {
+                    return 'status-low'; // Orange when at or below warning level
                 }
-                console.log('Status: GOOD (green)');
                 return 'status-good'; // Green otherwise
             }
 
-            // Fallback to original logic if no criticalLevel
-            if (quantity < 2) return 'status-critical';
-            if (quantity < 5) return 'status-low';
+            // Improved dynamic logic based on quantity ranges
+            if (quantity >= 1000) {
+                // For high-volume items (like meat, butter)
+                if (quantity <= 100) return 'status-critical'; // Less than 10% of 1000
+                if (quantity <= 250) return 'status-low'; // Less than 25% of 1000
+            } else if (quantity >= 100) {
+                // For medium-volume items
+                if (quantity <= 15) return 'status-critical'; // Less than 15% of 100
+                if (quantity <= 30) return 'status-low'; // Less than 30% of 100
+            } else {
+                // For low-volume items - use original fixed thresholds
+                if (quantity < 2) return 'status-critical';
+                if (quantity < 5) return 'status-low';
+            }
+
             return 'status-good';
         }
 
@@ -1652,8 +1696,20 @@
         }
 
         function confirmLogout() {
-            // Redirect to logout URL
-            window.location.href = 'http://127.0.0.1:8000';
+            // Create a form and submit it to the logout route
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/logout';
+
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            form.appendChild(csrfInput);
+            document.body.appendChild(form);
+            form.submit();
         }
 
         // Close modal when clicking outside

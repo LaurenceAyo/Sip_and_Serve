@@ -174,10 +174,20 @@ class AdminController extends Controller
     public function getUsersData()
     {
         try {
-            $users = User::select('id', 'name', 'email', 'role', 'status', 'permissions', 'last_login_at', 'created_at', 'updated_at')
-                ->get(); // Remove orderBy for now to test
+            $users = User::select([
+                'id',
+                'name',
+                'email',
+                'role',
+                'status',
+                'permissions',
+                'last_login_at',
+                'created_at',
+                'updated_at'
+            ])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-            // Debug: Log the actual count
             Log::info('getUsersData: Found ' . $users->count() . ' users');
 
             return response()->json([
@@ -189,13 +199,65 @@ class AdminController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load users: ' . $e->getMessage()
+                'message' => 'Failed to load users: ' . $e->getMessage(),
+                'data' => []
             ], 500);
         }
+    }
+
+    /**
+     * Determine user role based on business logic
+     */
+    private function getUserRole($user)
+    {
+        // Add your logic here to determine role
+        // For example, based on email, manager_id, or created_by
+
+        if ($user->email === 'laurenceayo7@gmail.com') {
+            return 'admin';
+        }
+
+        if ($user->manager_id) {
+            return 'manager';
+        }
+
+        // Default role
+        return 'cashier';
     }
 
     private function generateRandomPassword($length = 8)
     {
         return 'temp' . rand(1000, 9999);  // Simple temporary password format
+    }
+
+    /**
+     * Get single user details
+     */
+    public function getUserDetails($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $this->getUserRole($user),
+                    'status' => $user->email_verified_at ? 'active' : 'inactive',
+                    'permissions' => '',
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
+                    'created_by' => $user->created_by,
+                    'manager_id' => $user->manager_id,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found: ' . $e->getMessage()
+            ], 404);
+        }
     }
 }
