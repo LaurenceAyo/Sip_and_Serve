@@ -1168,15 +1168,6 @@
                                     </a>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <a href="#" class="text-decoration-none">
-                                        <div class="card h-100 border-0 shadow-sm admin-card">
-                                            <div class="card-body text-center">
-                                                <i class="fas fa-cogs fa-3x text-info mb-3"></i>
-                                                <h6>System Settings</h6>
-                                                <p class="text-muted small mb-0">Configure POS system settings</p>
-                                            </div>
-                                        </div>
-                                    </a>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <a href="#" class="text-decoration-none">

@@ -146,7 +146,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="mb-1">User Management</h2>
-                        <p class="text-muted">Manage system users and their permissions</p>
+                        <p class="text-muted">Manage system users and their permissions </p>
                     </div>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                         <i class="fas fa-user-plus me-2"></i>

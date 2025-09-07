@@ -86,7 +86,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     // Payment Processing
     Route::get('/payment', [KioskController::class, 'payment'])->name('payment');
     Route::post('/process-payment', [KioskController::class, 'processPayment'])->name('processPayment');
-    Route::post('/process-cash-payment', [KioskController::class, 'processCashPayment'])->name('processCashPayment');
+    Route::post('/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('processCashPayment');
     Route::post('/process-gcash-payment', [KioskController::class, 'processGCashPayment'])->name('processGCashPayment');
 
     // Payment Result Pages

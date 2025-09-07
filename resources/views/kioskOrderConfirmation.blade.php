@@ -2017,6 +2017,7 @@
             }
 
             const orderData = {
+                exactPaymentAmount: totalAmount,
                 cash_amount: cashAmount,
                 change_amount: cashAmount - totalAmount
             };
