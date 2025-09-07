@@ -26,9 +26,15 @@ use App\Http\Controllers\POSPaymentController;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 
+// USE METO HOST ON DEVICE: php artisan serve --host=localhost --port=8000
 // =============================================================================
 // PUBLIC ROUTES (No Authentication Required)
 // =============================================================================
+
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->name('dashboard');
+Route::get('/dashboard', [KioskController::class, 'dashboard'])->name('dashboard');
 
 // Home and Login Routes
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
@@ -111,7 +117,7 @@ Route::prefix('api')->group(function () {
     });
 
     // Inventory API
-    Route::get('/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
+       Route::get('/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
 });
 
 // =============================================================================
@@ -187,8 +193,10 @@ Route::middleware(['auth'])->group(function () {
     // =============================================================================
     Route::get('/sales', [SalesController::class, 'index'])->name('sales');
     Route::get('/inventory', [KioskController::class, 'dashboard'])->name('inventory');
-
-    // =============================================================================
+    Route::get('/product', [ProductController::class, 'index'])->name('product');
+    Route::get('/sales', [App\Http\Controllers\SalesController::class, 'index'])->name('sales');
+    Route::get('/product', [App\Http\Controllers\ProductController::class, 'index'])->name('product');
+    // =============================================================================    
     // PROFILE MANAGEMENT
     // =============================================================================
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -954,609 +954,588 @@
                 <div style="max-height: 400px; overflow-y: auto;">
                     <table class="inventory-table" style="width: 100%;">
                         <tbody id="inventoryBody">
-                            @php
-                                $mergedIngredients = $ingredients->groupBy('name')->map(function ($group) {
-                                    $first = $group->first();
-                                    $totalInitial = $group->sum('initial_stock') ?? $group->sum('stock_quantity'); // Fallback to stock_quantity if no initial_stock
-                                    $totalUsed = $group->sum('used_stock') ?? 0;
-                                    $currentStock = $totalInitial - $totalUsed; // This is the actual remaining stock
+                            @foreach($inventory as $item)
 
-                                    // Get critical level from database or calculate it
-                                    $criticalLevel = $first->critical_level ?? null;
-
-                                    // Improved status logic using CURRENT stock, not original stock
-                                    $status = 'good';
-                                    if ($criticalLevel && $criticalLevel > 0) {
-                                        // Use custom critical level if set
-                                        $lowLevel = $criticalLevel * 2; // Warning at 2x critical level
-
-                                        if ($currentStock <= $criticalLevel) {
-                                            $status = 'critical';
-                                        } elseif ($currentStock <= $lowLevel) {
-                                            $status = 'low';
-                                        }
-                                    } else {
-                                        // Dynamic logic based on current stock ranges
-                                        if ($currentStock >= 1000) {
-                                            if ($currentStock <= 100)
-                                                $status = 'critical'; // Less than 10%
-                                            elseif ($currentStock <= 250)
-                                                $status = 'low'; // Less than 25%
-                                        } elseif ($currentStock >= 100) {
-                                            if ($currentStock <= 15)
-                                                $status = 'critical'; // Less than 15%
-                                            elseif ($currentStock <= 30)
-                                                $status = 'low'; // Less than 30%
-                                        } else {
-                                            // For items with less than 100 units
-                                            if ($currentStock < 2)
-                                                $status = 'critical';
-                                            elseif ($currentStock < 10)
-                                                $status = 'low'; // Changed from 5 to 10 for better logic
-                                        }
-                                    }
-
-                                    return (object) [
-                                        'name' => $first->name,
-                                        'category' => $first->category,
-                                        'unit' => $first->unit,
-                                        'initial_stock' => $totalInitial,
-                                        'used_stock' => $totalUsed,
-                                        'current_stock' => $currentStock, // This is the key value
-                                        'stock_status' => $status,
-                                        'critical_level' => $criticalLevel
-                                    ];
-                                })->sortBy('name');
-                            @endphp
-                            @foreach($mergedIngredients as $ingredient)
-                                <tr data-category="{{ strtolower(str_replace(' ', '-', $ingredient->category)) }}"
-                                    style="display: flex;">
-                                    <td style="flex: 1; padding: 12px; text-align: center;">{{ $ingredient->name }}</td>
+                                <tr data-category="{{ $item->ingredient->category ?? 'ingredients' }}" style="display: flex;">
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($ingredient->current_stock, 2) }}
+                                        {{ $item->ingredient->name ?? 'Item ' . $item->menu_item_id }}
                                     </td>
+
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($ingredient->used_stock, 2) }}
+                                        {{ number_format($item->maximum_stock, 2) }}
                                     </td>
+
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($ingredient->current_stock, 2) }} {{ $ingredient->unit }}
+                                        {{ number_format($item->maximum_stock - $item->current_stock, 2) }}
                                     </td>
+
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        <div class="status-indicator status-{{ $ingredient->stock_status }}"
-                                            title="Current: {{ $ingredient->current_stock }}@if($ingredient->critical_level) | Critical: {{ $ingredient->critical_level }}@endif">
+                                        {{ number_format($item->current_stock, 2) }} {{ $item->unit }}
+                                    </td>
+
+                                    <td style="flex: 1; padding: 12px; text-align: center;">
+                                        <div class="status-indicator status-{{ $item->status }}"
+                                            title="Current: {{ number_format($item->current_stock, 2) }} | Min: {{ number_format($item->minimum_stock, 2) }} | Max: {{ number_format($item->maximum_stock, 2) }}">
                                         </div>
-                                    </td>
                                     </td>
                                 </tr>
                             @endforeach
+
+                            @if($inventory->isEmpty())
+                                <tr style="display: flex;">
+                                    <td colspan="5" style="flex: 1; padding: 20px; text-align: center; color: #6b7280;">
+                                        No inventory items found
+                                    </td>
+                                </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            <!-- Bottom Navigation -->
-            <div class="bottom-nav flex justify-between items-center">
-                <div class="tab-section flex space-x-5">
-                    <button class="tab-button active">INVENTORY</button>
-                    <button class="tab-button">SALES</button>
-                    <button class="tab-button">PRODUCT</button>
+                <!-- Bottom Navigation -->
+                <div class="bottom-nav flex justify-between items-center">
+                    <div class="tab-section flex space-x-5">
+                        <button class="tab-button active">INVENTORY</button>
+                        <button class="tab-button">SALES</button>
+                        <button class="tab-button">PRODUCT</button>
+                    </div>
+
+                    <button class="logout-btn" onclick="openLogoutModal()">
+                        🚪 LOG OUT
+                    </button>
                 </div>
-
-                <button class="logout-btn" onclick="openLogoutModal()">
-                    🚪 LOG OUT
-                </button>
             </div>
         </div>
-    </div>
 
-    <!-- Logout Modal -->
-    <div id="logoutModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-title">Logout Account?</div>
-            <button class="modal-btn modal-btn-logout" onclick="confirmLogout()">Logout</button>
-            <button class="modal-btn modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Success Popup -->
-    <div id="successPopup" class="success-popup">
-        ITEM ADDED TO INVENTORY
-    </div>
-
-    <!-- Shopping List Modal -->
-    <div id="shoppingListModal" class="modal-overlay">
-        <div class="add-modal-content" style="max-width: 500px;">
-            <h3 class="add-modal-title">SHOPPING LIST</h3>
-            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f3f4f6;">
-                            <th style="padding: 0.5rem; text-align: left; border: 1px solid #d1d5db;">Item</th>
-                            <th style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">Current</th>
-                            <th style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">Needed</th>
-                        </tr>
-                    </thead>
-                    <tbody id="shoppingListBody">
-                        <!-- Items will be populated here -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="add-modal-actions">
-                <button type="button" class="btn-cancel-add" onclick="closeShoppingListModal()">CANCEL</button>
-                <button type="button" class="btn-save-add" onclick="printShoppingList()">PRINT</button>
+        <!-- Logout Modal -->
+        <div id="logoutModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-title">Logout Account?</div>
+                <button class="modal-btn modal-btn-logout" onclick="confirmLogout()">Logout</button>
+                <button class="modal-btn modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
             </div>
         </div>
-    </div>
 
-    <!-- Edit Item Modal -->
-    <div id="editItemModal" class="modal-overlay">
-        <div class="add-modal-content">
-            <h3 class="add-modal-title">EDIT ITEM DETAILS</h3>
-            <form id="editItemForm">
-                <div class="form-group">
-                    <label>Item Name:</label>
-                    <div style="position: relative;">
-                        <input type="text" id="editItemName" placeholder="Search item..."
-                            oninput="searchItems(this.value)">
-                        <div id="searchResults"
-                            style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1000; display: none;">
-                        </div>
-                    </div>
+        <!-- Success Popup -->
+        <div id="successPopup" class="success-popup">
+            ITEM ADDED TO INVENTORY
+        </div>
+
+        <!-- Shopping List Modal -->
+        <div id="shoppingListModal" class="modal-overlay">
+            <div class="add-modal-content" style="max-width: 500px;">
+                <h3 class="add-modal-title">SHOPPING LIST</h3>
+                <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f3f4f6;">
+                                <th style="padding: 0.5rem; text-align: left; border: 1px solid #d1d5db;">Item</th>
+                                <th style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">Current</th>
+                                <th style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">Needed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shoppingListBody">
+                            <!-- Items will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
-
-                <div class="form-group">
-                    <label>New Item Name: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
-                    <input type="text" id="editNewItemName" placeholder="product name">
-                </div>
-
-                <div class="form-group">
-                    <label>Modify Unit Type:</label>
-                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
-                        <input type="text" id="editUnitDisplay" value="" readonly
-                            style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
-                        <span style="color: #9ca3af; font-size: 0.8rem;">Smart Unit Detection</span>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Modify Quantity:</label>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <button type="button" class="quantity-btn" onclick="decreaseQuantity()"
-                            style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">-</button>
-                        <input type="number" id="editQuantity" value="0" min="0" step="0.1"
-                            style="width: 80px; text-align: center; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
-                        <button type="button" class="quantity-btn" onclick="increaseQuantity()"
-                            style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">+</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Critical Level: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
-                    <input type="number" id="editAlertLevel" placeholder="enter critical stock number" min="1"
-                        step="0.1">
-                </div>
-
                 <div class="add-modal-actions">
-                    <button type="button" class="btn-cancel-add" onclick="closeEditModal()">CANCEL</button>
-                    <button type="submit" class="btn-save-add">SAVE</button>
+                    <button type="button" class="btn-cancel-add" onclick="closeShoppingListModal()">CANCEL</button>
+                    <button type="button" class="btn-save-add" onclick="printShoppingList()">PRINT</button>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
 
-    <div id="addItemModal" class="modal-overlay">
-        <div class="add-modal-content">
-            <h3 class="add-modal-title">ADD ITEM</h3>
-            <form id="addItemForm">
-                <div class="form-group">
-                    <label>Item Name:</label>
-                    <input type="text" id="itemName" placeholder="product name" required>
-                </div>
-
-                <div class="quantity-group">
-                    <div class="quantity-input">
-                        <div class="form-group">
-                            <label>Add Quantity:</label>
-                            <input type="number" id="quantity" value="1" min="0" step="0.1" required>
+        <!-- Edit Item Modal -->
+        <div id="editItemModal" class="modal-overlay">
+            <div class="add-modal-content">
+                <h3 class="add-modal-title">EDIT ITEM DETAILS</h3>
+                <form id="editItemForm">
+                    <div class="form-group">
+                        <label>Item Name:</label>
+                        <div style="position: relative;">
+                            <input type="text" id="editItemName" placeholder="Search item..."
+                                oninput="searchItems(this.value)">
+                            <div id="searchResults"
+                                style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 200px; overflow-y: auto; z-index: 1000; display: none;">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="unit-selector">
-                        <div class="form-group">
-                            <label>Unit:</label>
-                            <input type="text" id="unitDisplay" value="kg" readonly
-                                style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280;">
+                    <div class="form-group">
+                        <label>New Item Name: <span style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
+                        <input type="text" id="editNewItemName" placeholder="product name">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Modify Unit Type:</label>
+                        <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                            <input type="text" id="editUnitDisplay" value="" readonly
+                                style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
+                            <span style="color: #9ca3af; font-size: 0.8rem;">Smart Unit Detection</span>
                         </div>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label>Date Added:</label>
-                    <input type="text" class="date-field" id="currentDate" readonly>
-                </div>
-
-                <div class="add-modal-actions">
-                    <button type="button" class="btn-cancel-add" onclick="closeAddModal()">CANCEL</button>
-                    <button type="submit" class="btn-save-add">SAVE</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Admin Panel Access (only for laurenceayo7@gmail.com) -->
-    @if(auth()->user()->email === 'laurenceayo7@gmail.com')
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-shield-alt me-2"></i>
-                            Administrator Panel
-                        </h5>
+                    <div class="form-group">
+                        <label>Modify Quantity:</label>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <button type="button" class="quantity-btn" onclick="decreaseQuantity()"
+                                style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">-</button>
+                            <input type="number" id="editQuantity" value="0" min="0" step="0.1"
+                                style="width: 80px; text-align: center; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem;">
+                            <button type="button" class="quantity-btn" onclick="increaseQuantity()"
+                                style="background: #d1d5db; border: none; width: 30px; height: 30px; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">+</button>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <a href="{{ route('admin.users') }}" class="text-decoration-none">
-                                    <div class="card h-100 border-0 shadow-sm admin-card">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
-                                            <h6>User Management</h6>
-                                            <p class="text-muted small mb-0">Manage system users, roles & permissions</p>
-                                        </div>
-                                    </div>
-                                </a>
+
+                    <div class="form-group">
+                        <label>Critical Level: <span
+                                style="color: #9ca3af; font-size: 0.8rem;">(optional)</span></label>
+                        <input type="number" id="editAlertLevel" placeholder="enter critical stock number" min="1"
+                            step="0.1">
+                    </div>
+
+                    <div class="add-modal-actions">
+                        <button type="button" class="btn-cancel-add" onclick="closeEditModal()">CANCEL</button>
+                        <button type="submit" class="btn-save-add">SAVE</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="addItemModal" class="modal-overlay">
+            <div class="add-modal-content">
+                <h3 class="add-modal-title">ADD ITEM</h3>
+                <form id="addItemForm">
+                    <div class="form-group">
+                        <label>Item Name:</label>
+                        <input type="text" id="itemName" placeholder="product name" required>
+                    </div>
+
+                    <div class="quantity-group">
+                        <div class="quantity-input">
+                            <div class="form-group">
+                                <label>Add Quantity:</label>
+                                <input type="number" id="quantity" value="1" min="0" step="0.1" required>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <a href="#" class="text-decoration-none">
-                                    <div class="card h-100 border-0 shadow-sm admin-card">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-cogs fa-3x text-info mb-3"></i>
-                                            <h6>System Settings</h6>
-                                            <p class="text-muted small mb-0">Configure POS system settings</p>
-                                        </div>
-                                    </div>
-                                </a>
+                        </div>
+
+                        <div class="unit-selector">
+                            <div class="form-group">
+                                <label>Unit:</label>
+                                <input type="text" id="unitDisplay" value="kg" readonly
+                                    style="width: 80px; text-align: center; background: #f3f4f6; color: #6b7280;">
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <a href="#" class="text-decoration-none">
-                                    <div class="card h-100 border-0 shadow-sm admin-card">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
-                                            <h6>Security Logs</h6>
-                                            <p class="text-muted small mb-0">View system access logs</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date Added:</label>
+                        <input type="text" class="date-field" id="currentDate" readonly>
+                    </div>
+
+                    <div class="add-modal-actions">
+                        <button type="button" class="btn-cancel-add" onclick="closeAddModal()">CANCEL</button>
+                        <button type="submit" class="btn-save-add">SAVE</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Panel Access (only for laurenceayo7@gmail.com) -->
+        @if(auth()->user()->email === 'laurenceayo7@gmail.com')
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Administrator Panel
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <a href="{{ route('admin.users') }}" class="text-decoration-none">
+                                        <div class="card h-100 border-0 shadow-sm admin-card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                                <h6>User Management</h6>
+                                                <p class="text-muted small mb-0">Manage system users, roles & permissions
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </a>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="#" class="text-decoration-none">
+                                        <div class="card h-100 border-0 shadow-sm admin-card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-cogs fa-3x text-info mb-3"></i>
+                                                <h6>System Settings</h6>
+                                                <p class="text-muted small mb-0">Configure POS system settings</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <a href="#" class="text-decoration-none">
+                                        <div class="card h-100 border-0 shadow-sm admin-card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                                                <h6>Security Logs</h6>
+                                                <p class="text-muted small mb-0">View system access logs</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <style>
-            .admin-card {
-                transition: all 0.3s ease;
-                cursor: pointer;
+            <style>
+                .admin-card {
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                }
+
+                .admin-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+                }
+            </style>
+        @endif
+
+        <script>
+            //for filtering items
+            document.querySelector('.filter-dropdown').addEventListener('change', function () {
+                const filter = this.value.toLowerCase().replace(/\s+/g, '-');
+                const rows = document.querySelectorAll('.inventory-table tbody tr');
+
+                rows.forEach(row => {
+                    if (filter === 'all-items') {
+                        row.style.display = 'flex';
+                    } else {
+                        const category = row.dataset.category;
+                        row.style.display = category === filter ? 'flex' : 'none';
+                    }
+                });
+            });
+
+            // Search functionality for edit modal
+            let ingredientsData = [
+                @foreach($inventory as $item)
+                    {
+                                id: {{ $item->id }},
+                                menu_item_id: {{ $item->menu_item_id }},
+                                name: {!! json_encode($item->ingredient->name ?? 'Unknown') !!},
+                                unit: {!! json_encode($item->unit ?? 'units') !!},
+                                current_stock: {{ $item->current_stock ?? 0 }},
+                                minimum_stock: {{ $item->minimum_stock ?? 0 }},
+                                maximum_stock: {{ $item->maximum_stock ?? 0 }}
+                    }@if(!$loop->last), @endif
+                @endforeach
+];
+
+            console.log('Ingredients data loaded:', ingredientsData);
+
+            function searchItems(query) {
+                try {
+                    const resultsContainer = document.getElementById('searchResults');
+
+                    if (!resultsContainer) {
+                        console.error('Search results container not found');
+                        return;
+                    }
+
+                    if (query.length === 0) {
+                        resultsContainer.style.display = 'none';
+                        return;
+                    }
+
+                    const filteredItems = ingredientsData.filter(function (item) {
+                        return item.name.toLowerCase().includes(query.toLowerCase());
+                    });
+
+                    if (filteredItems.length === 0) {
+                        resultsContainer.innerHTML = '<div style="padding: 0.75rem; color: #6b7280;">No items found</div>';
+                        resultsContainer.style.display = 'block';
+                        return;
+                    }
+
+                    resultsContainer.innerHTML = filteredItems.map(function (item) {
+                        return '<div onclick="selectItem(\'' + item.name.replace(/'/g, "\\'") + '\', \'' +
+                            item.unit + '\', ' + item.current_stock + ', ' + item.minimum_stock + ')" ' +
+                            'style="padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6;">' +
+                            item.name + ' - Current: ' + item.current_stock + ' ' + item.unit + '</div>';
+                    }).join('');
+
+                    resultsContainer.style.display = 'block';
+
+                } catch (error) {
+                    console.error('Error in searchItems:', error);
+                }
             }
 
-            .admin-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+            // Test route accessibility
+            function testRoutes() {
+                console.log('Testing route accessibility...');
+
+                // You can uncomment these to test if routes work
+                // fetch('/sales').then(response => console.log('Sales route status:', response.status));
+                // fetch('/product').then(response => console.log('Product route status:', response.status));
             }
-        </style>
-    @endif
 
-    <script>
-        //for filtering items
-        document.querySelector('.filter-dropdown').addEventListener('change', function () {
-            const filter = this.value.toLowerCase().replace(' ', '-');
-            const rows = document.querySelectorAll('.inventory-table tbody tr');
+            function selectItem(name, unit, currentStock, minimumStock = null) {
+                document.getElementById('editItemName').value = name;
+                document.getElementById('editQuantity').value = currentStock;
+                document.getElementById('editAlertLevel').value = minimumStock || '';
+                document.getElementById('searchResults').style.display = 'none';
 
-            rows.forEach(row => {
-                if (filter === 'all-items') {
-                    row.style.display = 'flex';
-                } else {
-                    const category = row.dataset.category;
-                    row.style.display = category === filter ? 'flex' : 'none';
+                // Auto-detect and set unit for edit modal
+                const detectedUnit = detectUnit(name) || unit;
+                document.getElementById('editUnitDisplay').value = detectedUnit;
+            }
+
+            // Update unit when editing item name changes
+            document.getElementById('editItemName').addEventListener('input', function () {
+                const unit = detectUnit(this.value);
+                document.getElementById('editUnitDisplay').value = unit;
+            });
+
+            // Hide search results when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#editItemName') && !e.target.closest('#searchResults')) {
+                    document.getElementById('searchResults').style.display = 'none';
                 }
             });
-        });
 
-        // Search functionality for edit modal
-        let ingredientsData = [
-            @foreach($ingredients as $ingredient)
-                            {
-                    name: "{{ $ingredient->name }}",
-                    unit: "{{ $ingredient->unit }}",
-                    stock_quantity: {{ $ingredient->stock_quantity }},
-                    used_stock: {{ $ingredient->used_stock ?? 0 }},
-                    critical_level: {{ $ingredient->critical_level ?? 0 }},
-                    stock_status: "{{ $ingredient->stock_status }}"
-                },
-            @endforeach
-        ];
-
-        function searchItems(query) {
-            const resultsContainer = document.getElementById('searchResults');
-
-            if (query.length === 0) {
-                resultsContainer.style.display = 'none';
-                return;
+            function openEditModal() {
+                document.getElementById('editItemModal').classList.add('show');
             }
 
-            const filteredItems = ingredientsData.filter(item =>
-                item.name.toLowerCase().includes(query.toLowerCase())
-            );
-
-            if (filteredItems.length === 0) {
-                resultsContainer.style.display = 'none';
-                return;
+            function closeEditModal() {
+                document.getElementById('editItemModal').classList.remove('show');
+                document.getElementById('editItemForm').reset();
             }
 
-            resultsContainer.innerHTML = filteredItems.map(item =>
-                `<div onclick="selectItem('${item.name}', '${item.unit}', ${item.stock_quantity}, ${item.critical_level})" 
-          style="padding: 0.75rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; hover:background-color: #f9fafb;">
-        ${item.name}${item.critical_level ? ' - Critical: ' + item.critical_level : ''}
-    </div>`
-            ).join('');
-
-            resultsContainer.style.display = 'block';
-        }
-
-        function selectItem(name, unit, quantity, criticalLevel = null) {
-            document.getElementById('editItemName').value = name;
-            document.getElementById('editQuantity').value = quantity;
-            document.getElementById('editAlertLevel').value = criticalLevel || '';
-            document.getElementById('searchResults').style.display = 'none';
-
-            // Auto-detect and set unit for edit modal
-            const detectedUnit = detectUnit(name);
-            document.getElementById('editUnitDisplay').value = detectedUnit;
-        }
-
-        // Update unit when editing item name changes
-        document.getElementById('editItemName').addEventListener('input', function () {
-            const unit = detectUnit(this.value);
-            document.getElementById('editUnitDisplay').value = unit;
-        });
-
-        // Hide search results when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('#editItemName') && !e.target.closest('#searchResults')) {
-                document.getElementById('searchResults').style.display = 'none';
+            function increaseQuantity() {
+                const input = document.getElementById('editQuantity');
+                input.value = parseFloat(input.value) + 1;
             }
-        });
 
-        function openEditModal() {
-            document.getElementById('editItemModal').classList.add('show');
-        }
-
-        function closeEditModal() {
-            document.getElementById('editItemModal').classList.remove('show');
-            document.getElementById('editItemForm').reset();
-        }
-
-        function increaseQuantity() {
-            const input = document.getElementById('editQuantity');
-            input.value = parseFloat(input.value) + 1;
-        }
-
-        function decreaseQuantity() {
-            const input = document.getElementById('editQuantity');
-            const currentValue = parseFloat(input.value);
-            if (currentValue > 0) {
-                input.value = currentValue - 1;
+            function decreaseQuantity() {
+                const input = document.getElementById('editQuantity');
+                const currentValue = parseFloat(input.value);
+                if (currentValue > 0) {
+                    input.value = currentValue - 1;
+                }
             }
-        }
 
-        // Edit item form submission
-        document.getElementById('editItemForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+            // Edit item form submission
+            document.getElementById('editItemForm').addEventListener('submit', function (e) {
+                e.preventDefault();
 
-            const itemName = document.getElementById('editItemName').value;
-            const newQuantity = parseFloat(document.getElementById('editQuantity').value);
-            const criticalLevel = document.getElementById('editAlertLevel').value ? parseFloat(document.getElementById('editAlertLevel').value) : null;
+                const itemName = document.getElementById('editItemName').value;
+                const newQuantity = parseFloat(document.getElementById('editQuantity').value);
+                const minimumStock = document.getElementById('editAlertLevel').value ? parseFloat(document.getElementById('editAlertLevel').value) : null;
 
-            if (itemName.trim()) {
-                // Check if CSRF token exists
-                const csrfToken = document.querySelector('meta[name="csrf-token"]');
-                if (!csrfToken) {
-                    console.error('CSRF token not found');
-                    alert('CSRF token missing. Please refresh the page.');
+                if (itemName.trim()) {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                    if (!csrfToken) {
+                        console.error('CSRF token not found');
+                        alert('CSRF token missing. Please refresh the page.');
+                        return;
+                    }
+
+                    // Send AJAX request to Laravel backend with correct field names
+                    fetch('/ingredients/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            name: itemName,
+                            current_stock: newQuantity, // Changed from stock_quantity
+                            minimum_stock: minimumStock // Changed from critical_level
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                updateTableRow(itemName, newQuantity, minimumStock);
+                                closeEditModal();
+                                showSuccessPopup('ITEM UPDATED SUCCESSFULLY');
+                            } else {
+                                alert('Error updating item: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Fetch error:', error);
+                            alert('Network error. Check console for details.');
+                        });
+                } else {
+                    alert('Please select an item first');
+                }
+            });
+
+            function updateTableRow(itemName, newQuantity, minimumStock = null) {
+                const rows = document.querySelectorAll('.inventory-table tbody tr');
+                rows.forEach(row => {
+                    const nameCell = row.querySelector('td:first-child');
+                    if (nameCell && nameCell.textContent.trim() === itemName) {
+                        const cells = row.querySelectorAll('td');
+
+                        // Update the current inventory column (4th column)
+                        const updatedUnit = document.getElementById('editUnitDisplay').value || 'units';
+                        cells[3].textContent = `${newQuantity.toFixed(2)} ${updatedUnit}`;
+
+                        // Update status indicator
+                        const statusCell = cells[4].querySelector('.status-indicator');
+                        const newStatus = getStockLevel(newQuantity, minimumStock);
+                        statusCell.className = `status-indicator ${newStatus}`;
+                        statusCell.title = `Current: ${newQuantity} | Min: ${minimumStock || 'Auto'}`;
+                    }
+                });
+            }
+
+            function showSuccessPopup(message) {
+                const popup = document.getElementById('successPopup');
+                popup.textContent = message;
+                popup.style.display = 'block';
+                setTimeout(() => {
+                    popup.style.display = 'none';
+                }, 2000);
+            }
+
+            // Close edit modal when clicking outside
+            document.getElementById('editItemModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeEditModal();
+                }
+            });
+
+            // Auto-detect unit based on ingredient name
+            const unitMapping = {
+                // Dry ingredients - grams
+                'flour': 'grams', 'sugar': 'grams', 'salt': 'grams', 'coffee': 'grams', 'tea': 'grams', 'cocoa': 'grams',
+                'beans': 'grams', 'powder': 'grams', 'spice': 'grams', 'garlic': 'grams', 'lemongrass': 'grams',
+                'butter': 'grams', 'cheese': 'grams', 'meat': 'grams', 'chicken': 'grams', 'fish': 'grams',
+                'potato': 'grams', 'vegetables': 'grams', 'chocolate': 'grams', 'tofu': 'grams', 'pasta': 'grams',
+                'crab': 'grams', 'rice': 'grams', 'kaya': 'grams', 'spread': 'grams',
+
+                // Liquids - ml
+                'water': 'ml', 'milk': 'ml', 'oil': 'ml', 'juice': 'ml', 'syrup': 'ml',
+                'sauce': 'ml', 'liquid': 'ml', 'cream': 'ml', 'honey': 'ml', 'pepper': 'ml',
+                'soy': 'ml', 'yogurt': 'ml',
+
+                // Countable items - pieces
+                'eggs': 'pieces', 'cups': 'pieces', 'plates': 'pieces', 'napkins': 'pieces', 'straws': 'pieces',
+                'bags': 'pieces', 'bottles': 'pieces', 'cans': 'pieces', 'boxes': 'pieces', 'containers': 'pieces',
+                'utensils': 'pieces', 'meatballs': 'pieces', 'bread': 'slices'
+            };
+
+            function detectUnit(itemName) {
+                const name = itemName.toLowerCase();
+
+                // Check for exact matches first
+                if (unitMapping[name]) {
+                    return unitMapping[name];
+                }
+
+                // Check for partial matches
+                for (let ingredient in unitMapping) {
+                    if (name.includes(ingredient)) {
+                        return unitMapping[ingredient];
+                    }
+                }
+
+                // Default to grams
+                return 'grams';
+            }
+
+            // Update unit when item name changes
+            document.getElementById('itemName').addEventListener('input', function () {
+                const unit = detectUnit(this.value);
+                document.getElementById('unitDisplay').value = unit;
+            });
+
+            // Set current date
+            function setCurrentDate() {
+                const today = new Date();
+                const day = String(today.getDate()).padStart(2, '0');
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const year = today.getFullYear();
+                document.getElementById('currentDate').value = `${day}/${month}/${year}`;
+            }
+
+            // Set date when page loads
+            document.addEventListener('DOMContentLoaded', setCurrentDate);
+
+            // Shopping List Modal functions
+            function openShoppingListModal() {
+                generateShoppingList();
+                document.getElementById('shoppingListModal').classList.add('show');
+            }
+
+            function closeShoppingListModal() {
+                document.getElementById('shoppingListModal').classList.remove('show');
+            }
+
+            function generateShoppingList() {
+                const tbody = document.getElementById('shoppingListBody');
+                tbody.innerHTML = '';
+
+                // Get low stock items from current inventory
+                const rows = document.querySelectorAll('.inventory-table tbody tr');
+                const lowStockItems = [];
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        const itemName = cells[0].textContent.trim();
+                        const currentStock = parseFloat(cells[3].textContent.trim().split(' ')[0]);
+                        const unit = cells[3].textContent.trim().split(' ')[1];
+                        const statusIndicator = cells[4].querySelector('.status-indicator');
+
+                        // Check if item is low or critical stock
+                        if (statusIndicator && (statusIndicator.classList.contains('status-low') || statusIndicator.classList.contains('status-critical'))) {
+                            const neededAmount = statusIndicator.classList.contains('status-critical') ?
+                                Math.max(currentStock * 3, 10) : Math.max(currentStock * 2, 5);
+                            lowStockItems.push({
+                                name: itemName,
+                                current: currentStock,
+                                needed: neededAmount,
+                                unit: unit
+                            });
+                        }
+                    }
+                });
+
+                if (lowStockItems.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #6b7280;">No items need restocking</td></tr>';
                     return;
                 }
 
-                // Send AJAX request to Laravel backend
-                fetch('/ingredients/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken.getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        name: itemName,
-                        stock_quantity: newQuantity,
-                        critical_level: criticalLevel
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update the table row with new values
-                            updateTableRow(itemName, newQuantity, criticalLevel);
-                            closeEditModal();
-                            showSuccessPopup('ITEM UPDATED SUCCESSFULLY');
-                        } else {
-                            alert('Error updating item: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Fetch error:', error);
-                        alert('Network error. Check console for details.');
-                    });
-            } else {
-                alert('Please select an item first');
-            }
-        });
-
-        function updateTableRow(itemName, newQuantity, criticalLevel = null) {
-            const rows = document.querySelectorAll('.inventory-table tbody tr');
-            rows.forEach(row => {
-                const nameCell = row.querySelector('td:first-child');
-                if (nameCell && nameCell.textContent.trim() === itemName) {
-                    const cells = row.querySelectorAll('td');
-                    cells[1].textContent = newQuantity.toFixed(2); // IN column
-
-                    // Get the updated unit from the edit form
-                    const updatedUnit = document.getElementById('editUnitDisplay').value || 'grams';
-                    cells[3].textContent = `${newQuantity.toFixed(2)} ${updatedUnit}`; // CURRENT INVENTORY with updated unit
-
-                    // Update status indicator with improved logic
-                    const statusCell = cells[4].querySelector('.status-indicator');
-                    statusCell.className = `status-indicator ${getStockLevel(newQuantity, criticalLevel)}`;
-
-                    // Add tooltip
-                    statusCell.title = criticalLevel ? `Critical: ${criticalLevel}` : 'Auto-calculated';
-                }
-            });
-        }
-
-        function showSuccessPopup(message) {
-            const popup = document.getElementById('successPopup');
-            popup.textContent = message;
-            popup.style.display = 'block';
-            setTimeout(() => {
-                popup.style.display = 'none';
-            }, 2000);
-        }
-
-        // Close edit modal when clicking outside
-        document.getElementById('editItemModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeEditModal();
-            }
-        });
-
-        // Auto-detect unit based on ingredient name
-        const unitMapping = {
-            // Dry ingredients - grams
-            'flour': 'grams', 'sugar': 'grams', 'salt': 'grams', 'coffee': 'grams', 'tea': 'grams', 'cocoa': 'grams',
-            'beans': 'grams', 'powder': 'grams', 'spice': 'grams', 'garlic': 'grams', 'lemongrass': 'grams',
-            'butter': 'grams', 'cheese': 'grams', 'meat': 'grams', 'chicken': 'grams', 'fish': 'grams',
-            'potato': 'grams', 'vegetables': 'grams', 'chocolate': 'grams', 'tofu': 'grams', 'pasta': 'grams',
-            'crab': 'grams', 'rice': 'grams', 'kaya': 'grams', 'spread': 'grams',
-
-            // Liquids - ml
-            'water': 'ml', 'milk': 'ml', 'oil': 'ml', 'juice': 'ml', 'syrup': 'ml',
-            'sauce': 'ml', 'liquid': 'ml', 'cream': 'ml', 'honey': 'ml', 'pepper': 'ml',
-            'soy': 'ml', 'yogurt': 'ml',
-
-            // Countable items - pieces
-            'eggs': 'pieces', 'cups': 'pieces', 'plates': 'pieces', 'napkins': 'pieces', 'straws': 'pieces',
-            'bags': 'pieces', 'bottles': 'pieces', 'cans': 'pieces', 'boxes': 'pieces', 'containers': 'pieces',
-            'utensils': 'pieces', 'meatballs': 'pieces', 'bread': 'slices'
-        };
-
-        function detectUnit(itemName) {
-            const name = itemName.toLowerCase();
-
-            // Check for exact matches first
-            if (unitMapping[name]) {
-                return unitMapping[name];
-            }
-
-            // Check for partial matches
-            for (let ingredient in unitMapping) {
-                if (name.includes(ingredient)) {
-                    return unitMapping[ingredient];
-                }
-            }
-
-            // Default to grams
-            return 'grams';
-        }
-
-        // Update unit when item name changes
-        document.getElementById('itemName').addEventListener('input', function () {
-            const unit = detectUnit(this.value);
-            document.getElementById('unitDisplay').value = unit;
-        });
-
-        // Set current date
-        function setCurrentDate() {
-            const today = new Date();
-            const day = String(today.getDate()).padStart(2, '0');
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const year = today.getFullYear();
-            document.getElementById('currentDate').value = `${day}/${month}/${year}`;
-        }
-
-        // Set date when page loads
-        document.addEventListener('DOMContentLoaded', setCurrentDate);
-
-        // Shopping List Modal functions
-        function openShoppingListModal() {
-            generateShoppingList();
-            document.getElementById('shoppingListModal').classList.add('show');
-        }
-
-        function closeShoppingListModal() {
-            document.getElementById('shoppingListModal').classList.remove('show');
-        }
-
-        function generateShoppingList() {
-            const tbody = document.getElementById('shoppingListBody');
-            tbody.innerHTML = '';
-
-            // Get low stock items from current inventory
-            const rows = document.querySelectorAll('.inventory-table tbody tr');
-            const lowStockItems = [];
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 4) {
-                    const itemName = cells[0].textContent.trim();
-                    const currentStock = parseFloat(cells[3].textContent.trim().split(' ')[0]);
-                    const unit = cells[3].textContent.trim().split(' ')[1];
-                    const statusIndicator = cells[4].querySelector('.status-indicator');
-
-                    // Check if item is low or critical stock
-                    if (statusIndicator && (statusIndicator.classList.contains('status-low') || statusIndicator.classList.contains('status-critical'))) {
-                        const neededAmount = statusIndicator.classList.contains('status-critical') ?
-                            Math.max(currentStock * 3, 10) : Math.max(currentStock * 2, 5);
-                        lowStockItems.push({
-                            name: itemName,
-                            current: currentStock,
-                            needed: neededAmount,
-                            unit: unit
-                        });
-                    }
-                }
-            });
-
-            if (lowStockItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 1rem; color: #6b7280;">No items need restocking</td></tr>';
-                return;
-            }
-
-            lowStockItems.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+                lowStockItems.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
                     <td style="padding: 0.5rem; border: 1px solid #d1d5db;">${item.name}</td>
                     <td style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">${item.current} ${item.unit}</td>
                     <td style="padding: 0.5rem; text-align: center; border: 1px solid #d1d5db;">${item.needed} ${item.unit}</td>
                 `;
-                tbody.appendChild(row);
-            });
-        }
+                    tbody.appendChild(row);
+                });
+            }
 
-        function printShoppingList() {
-            const printWindow = window.open('', '_blank');
-            const shoppingListContent = document.getElementById('shoppingListBody').innerHTML;
+            function printShoppingList() {
+                const printWindow = window.open('', '_blank');
+                const shoppingListContent = document.getElementById('shoppingListBody').innerHTML;
 
-            printWindow.document.write(`
+                printWindow.document.write(`
                 <html>
                 <head>
                     <title>Shopping List - Sip & Serve</title>
@@ -1588,74 +1567,61 @@
                 </html>
             `);
 
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // Close shopping list modal when clicking outside
-        document.getElementById('shoppingListModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeShoppingListModal();
+                printWindow.document.close();
+                printWindow.print();
             }
-        });
 
-        function openAddModal() {
-            document.getElementById('addItemModal').classList.add('show');
-        }
-
-        function closeAddModal() {
-            document.getElementById('addItemModal').classList.remove('show');
-            document.getElementById('addItemForm').reset();
-            document.getElementById('quantity').value = '1';
-        }
-
-        function getStockLevel(quantity, criticalLevel = null) {
-            // If criticalLevel is provided, use the custom logic
-            if (criticalLevel !== null && criticalLevel > 0) {
-                const lowLevel = criticalLevel * 2; // Warning at 2x critical level
-
-                if (quantity <= criticalLevel) {
-                    return 'status-critical'; // Red when at or below critical
+            // Close shopping list modal when clicking outside
+            document.getElementById('shoppingListModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeShoppingListModal();
                 }
-                if (quantity <= lowLevel) {
-                    return 'status-low'; // Orange when at or below warning level
+            });
+
+            function openAddModal() {
+                document.getElementById('addItemModal').classList.add('show');
+            }
+
+            function closeAddModal() {
+                document.getElementById('addItemModal').classList.remove('show');
+                document.getElementById('addItemForm').reset();
+                document.getElementById('quantity').value = '1';
+            }
+
+            function getStockLevel(currentStock, minimumStock = null) {
+                if (minimumStock !== null && minimumStock > 0) {
+                    if (currentStock <= minimumStock) {
+                        return 'status-critical';
+                    } else if (currentStock <= (minimumStock * 1.5)) {
+                        return 'status-low';
+                    }
+                    return 'status-good';
                 }
-                return 'status-good'; // Green otherwise
+
+                // Fallback logic when minimum stock is not set
+                if (currentStock <= 10) {
+                    return 'status-critical';
+                } else if (currentStock <= 25) {
+                    return 'status-low';
+                }
+                return 'status-good';
             }
 
-            // Improved dynamic logic based on quantity ranges
-            if (quantity >= 1000) {
-                // For high-volume items (like meat, butter)
-                if (quantity <= 100) return 'status-critical'; // Less than 10% of 1000
-                if (quantity <= 250) return 'status-low'; // Less than 25% of 1000
-            } else if (quantity >= 100) {
-                // For medium-volume items
-                if (quantity <= 15) return 'status-critical'; // Less than 15% of 100
-                if (quantity <= 30) return 'status-low'; // Less than 30% of 100
-            } else {
-                // For low-volume items - use original fixed thresholds
-                if (quantity < 2) return 'status-critical';
-                if (quantity < 5) return 'status-low';
-            }
+            // Add item form submission
+            document.getElementById('addItemForm').addEventListener('submit', function (e) {
+                e.preventDefault();
 
-            return 'status-good';
-        }
+                const itemName = document.getElementById('itemName').value;
+                const quantity = parseFloat(document.getElementById('quantity').value);
+                const unit = document.getElementById('unitDisplay').value;
 
-        // Add item form submission
-        document.getElementById('addItemForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+                if (itemName.trim()) {
+                    const tbody = document.getElementById('inventoryBody');
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-category', 'ingredients');
+                    row.style.display = 'flex';
 
-            const itemName = document.getElementById('itemName').value;
-            const quantity = parseFloat(document.getElementById('quantity').value);
-            const unit = document.getElementById('unitDisplay').value;
-
-            if (itemName.trim()) {
-                const tbody = document.getElementById('inventoryBody');
-                const row = document.createElement('tr');
-                row.setAttribute('data-category', 'ingredients');
-                row.style.display = 'flex';
-
-                row.innerHTML = `
+                    row.innerHTML = `
                     <td style="flex: 1; padding: 12px; text-align: center;">${itemName}</td>
                     <td style="flex: 1; padding: 12px; text-align: center;">${quantity.toFixed(2)}</td>
                     <td style="flex: 1; padding: 12px; text-align: center;">0</td>
@@ -1665,83 +1631,131 @@
                     </td>
                 `;
 
-                tbody.appendChild(row);
-                closeAddModal();
-                showSuccessPopup();
-            }
-        });
-
-        function showSuccessPopup() {
-            const popup = document.getElementById('successPopup');
-            popup.style.display = 'block';
-            setTimeout(() => {
-                popup.style.display = 'none';
-            }, 2000);
-        }
-
-        // Close add modal when clicking outside
-        document.getElementById('addItemModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeAddModal();
-            }
-        });
-
-        // Modal functions
-        function openLogoutModal() {
-            document.getElementById('logoutModal').classList.add('show');
-        }
-
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').classList.remove('show');
-        }
-
-        function confirmLogout() {
-            // Create a form and submit it to the logout route
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/logout';
-
-            // Add CSRF token
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-            form.appendChild(csrfInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('logoutModal').addEventListener('click', function (e) {
-            if (e.target === this) {
-                closeLogoutModal();
-            }
-        });
-
-        // Tab switching functionality
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', function () {
-                // Remove active class from all buttons
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-
-                // Handle navigation
-                if (this.textContent.trim() === 'SALES') {
-                    window.location.href = '/sales';
-                } else if (this.textContent.trim() === 'PRODUCT') {
-                    window.location.href = '/product';
+                    tbody.appendChild(row);
+                    closeAddModal();
+                    showSuccessPopup();
                 }
             });
-        });
 
-        // Filter dropdown functionality
-        document.querySelector('.filter-dropdown').addEventListener('change', function () {
-            console.log('Filter changed to:', this.value);
-            // Add your filter logic here
-        });
-    </script>
+            function showSuccessPopup() {
+                const popup = document.getElementById('successPopup');
+                popup.style.display = 'block';
+                setTimeout(() => {
+                    popup.style.display = 'none';
+                }, 2000);
+            }
+
+            // Close add modal when clicking outside
+            document.getElementById('addItemModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeAddModal();
+                }
+            });
+
+            // Modal functions
+            function openLogoutModal() {
+                document.getElementById('logoutModal').classList.add('show');
+            }
+
+            function closeLogoutModal() {
+                document.getElementById('logoutModal').classList.remove('show');
+            }
+
+            function confirmLogout() {
+                // Create a form and submit it to the logout route
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout';
+
+                // Add CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_token';
+                csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+
+            // Close modal when clicking outside
+            document.getElementById('logoutModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeLogoutModal();
+                }
+            });
+
+            // Tab switching functionality
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('DOM loaded, setting up navigation...');
+
+                // Get all tab buttons
+                const tabButtons = document.querySelectorAll('.tab-button');
+                console.log('Found tab buttons:', tabButtons.length);
+
+                // Add click listeners to each button
+                tabButtons.forEach(function (button, index) {
+                    console.log('Button ' + index + ':', button.textContent.trim());
+
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+
+                        const buttonText = this.textContent.trim();
+                        console.log('Clicked button:', buttonText);
+
+                        // Update active state
+                        tabButtons.forEach(function (btn) {
+                            btn.classList.remove('active');
+                        });
+                        this.classList.add('active');
+
+                        // Navigate based on button text
+                        if (buttonText === 'SALES') {
+                            console.log('Navigating to /sales');
+                            window.location.href = '/sales';
+                        } else if (buttonText === 'PRODUCT') {
+                            console.log('Navigating to /product');
+                            window.location.href = '/product';
+                        } else {
+                            console.log('Staying on current page for:', buttonText);
+                        }
+                    });
+                });
+            });
+            // Backup method using direct button selection
+            function setupDirectButtonHandlers() {
+                console.log('Setting up direct button handlers...');
+
+                const buttons = document.querySelectorAll('.tab-button');
+
+                if (buttons.length >= 3) {
+                    // Sales button (second button)
+                    if (buttons[1]) {
+                        buttons[1].onclick = function (e) {
+                            e.preventDefault();
+                            console.log('Direct sales click');
+                            window.location.href = '/sales';
+                        };
+                    }
+
+                    // Product button (third button)  
+                    if (buttons[2]) {
+                        buttons[2].onclick = function (e) {
+                            e.preventDefault();
+                            console.log('Direct product click');
+                            window.location.href = '/product';
+                        };
+                    }
+                }
+            }
+            setTimeout(setupDirectButtonHandlers, 500);
+
+            // Filter dropdown functionality
+            document.querySelector('.filter-dropdown').addEventListener('change', function () {
+                console.log('Filter changed to:', this.value);
+                // Add your filter logic here
+            });
+        </script>
 </body>
 
 </html>
