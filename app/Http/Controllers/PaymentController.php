@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
+
     public function processCashPayment(Request $request)
     {
         DB::beginTransaction();
@@ -21,14 +22,6 @@ class PaymentController extends Controller
             // Get cart items from session
             $cartItems = session('cart', []);
 
-            //$insufficientItems = $this->checkStockAvailability($cartItems);
-            if (!empty($insufficientItems)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Insufficient stock',
-                    'insufficient_items' => $insufficientItems
-                ], 400);
-            }
 
             // Create order
             $order = Order::create([
@@ -60,12 +53,20 @@ class PaymentController extends Controller
             $this->deductPackagingSupplies($cartItems, $order->order_type);
             $this->syncInventoryDisplay();
 
-            // Update inventory dashboard display
+            // Track ingredient usage properly
             foreach ($cartItems as $item) {
-                $inventory = Inventory::where('menu_item_id', $item['menu_item_id'])->first();
-                if ($inventory) {
-                    $inventory->current_stock -= $item['quantity'];
-                    $inventory->save();
+                $ingredientsUsed = DB::select("
+        SELECT mii.ingredient_id, mii.quantity_needed * ? as used_amount
+        FROM menu_item_ingredients mii
+        WHERE mii.menu_item_id = ?
+    ", [$item['quantity'], $item['menu_item_id']]);
+
+                foreach ($ingredientsUsed as $ingredient) {
+                    $inventory = Inventory::where('menu_item_id', $ingredient->ingredient_id)->first();
+                    if ($inventory) {
+                        $inventory->used_stock = ($inventory->used_stock ?? 0) + $ingredient->used_amount;
+                        $inventory->save();
+                    }
                 }
             }
 
@@ -103,12 +104,11 @@ class PaymentController extends Controller
     {
         // Get all ingredients needed for this order item
         $ingredientsNeeded = DB::select("
-            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
-            FROM menu_item_ingredients mii
-            INNER JOIN order_items oi ON oi.menu_item_id = mii.menu_item_id
-            INNER JOIN ingredients i ON i.id = mii.ingredient_id
-            WHERE oi.id = ?
-        ", [$quantity, $orderItemId]);
+        SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
+        FROM menu_item_ingredients mii
+        INNER JOIN ingredients i ON i.id = mii.ingredient_id
+        WHERE mii.menu_item_id = ?
+    ", [$quantity, $orderItemId]);
 
         foreach ($ingredientsNeeded as $ingredient) {
             $remainingNeeded = $ingredient->total_needed;
@@ -150,6 +150,10 @@ class PaymentController extends Controller
             }
         }
     }
+
+
+
+
     /**
      * Deduct packaging supplies for takeout orders
      */
@@ -279,56 +283,39 @@ class PaymentController extends Controller
 
     private function syncInventoryDisplay()
     {
-        // Update each inventory item based on actual ingredient usage
         $inventoryItems = Inventory::all();
         foreach ($inventoryItems as $inventory) {
-            // Get the ingredient this inventory tracks
-            $ingredient = DB::table('ingredients')
-                ->where('id', $inventory->menu_item_id)
-                ->first();
+            // Find ingredient by name matching
+            $ingredientName = $inventory->ingredient->name ?? null;
+            if ($ingredientName) {
+                $totalStock = DB::table('ingredients')
+                    ->where('name', $ingredientName)
+                    ->sum('stock_quantity');
 
-            if ($ingredient) {
-                $inventory->current_stock = $ingredient->stock_quantity;
+                $inventory->current_stock = max(0, $totalStock);
                 $inventory->save();
             }
         }
     }
 
-    /*private function checkStockAvailability($cart)
+    /*public function checkItemAvailability($menuItemId)
     {
-        $insufficientItems = [];
+        $ingredientsNeeded = DB::select("
+        SELECT i.name, mii.quantity_needed
+        FROM menu_item_ingredients mii
+        INNER JOIN ingredients i ON i.id = mii.ingredient_id
+        WHERE mii.menu_item_id = ?
+    ", [$menuItemId]);
 
-        foreach ($cart as $item) {
-            $menuItemId = $item['menu_item_id'];
-            $quantity = $item['quantity'];
+        foreach ($ingredientsNeeded as $ingredient) {
+            $available = DB::table('ingredients')
+                ->where('name', $ingredient->name)
+                ->sum('stock_quantity');
 
-            // Get ingredients needed
-            $ingredientsNeeded = DB::select("
-            SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
-            FROM menu_item_ingredients mii
-            INNER JOIN ingredients i ON i.id = mii.ingredient_id
-            WHERE mii.menu_item_id = ?
-        ", [$quantity, $menuItemId]);
-
-            foreach ($ingredientsNeeded as $ingredient) {
-                // Check total available stock
-                $totalAvailable = DB::table('ingredients')
-                    ->where('name', $ingredient->ingredient_name)
-                    ->where('stock_quantity', '>', 0)
-                    ->sum('stock_quantity');
-
-                if ($totalAvailable < $ingredient->total_needed) {
-                    $insufficientItems[] = [
-                        'menu_item' => $item['name'] ?? 'Menu Item #' . $menuItemId,
-                        'ingredient' => $ingredient->ingredient_name,
-                        'needed' => $ingredient->total_needed,
-                        'available' => $totalAvailable,
-                        'shortage' => $ingredient->total_needed - $totalAvailable
-                    ];
-                }
+            if ($available < $ingredient->quantity_needed) {
+                return false; // Item unavailable
             }
         }
-
-        return $insufficientItems;
+        return true; // Item available
     }*/
 }

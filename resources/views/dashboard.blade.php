@@ -966,7 +966,7 @@
                                     </td>
 
                                     <td style="flex: 1; padding: 12px; text-align: center;">
-                                        {{ number_format($item->maximum_stock - $item->current_stock, 2) }}
+                                        {{ number_format($item->used_stock ?? 0, 2) }}
                                     </td>
 
                                     <td style="flex: 1; padding: 12px; text-align: center;">

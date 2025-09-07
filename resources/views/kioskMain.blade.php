@@ -1391,7 +1391,7 @@
 
                 <div class="action-buttons">
                     <button class="cancel-btn" onclick="closeItemModal()">Cancel</button>
-                    <button class="add-to-cart-btn"
+                    <button class="add-to-cart-btn" id="addToCartButton"
                         onclick="addToCart(currentItem, null, {quantity: currentQuantity, addons: selectedAddons})">Add
                         to Cart</button>
                 </div>
@@ -1497,6 +1497,24 @@
                 ]
             }
         };
+
+        function openItemModal(item) {
+            // Check if item is available
+            fetch(`/api/check-availability/${item.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    const button = document.getElementById('addToCartButton');
+                    if (data.available) {
+                        button.disabled = false;
+                        button.textContent = 'Add to Cart';
+                        button.className = 'add-to-cart-btn';
+                    } else {
+                        button.disabled = true;
+                        button.textContent = 'Out of Stock';
+                        button.className = 'add-to-cart-btn disabled';
+                    }
+                });
+        }
 
         function openItemModal() {
             document.getElementById('itemDetailsModal').style.display = 'flex';
