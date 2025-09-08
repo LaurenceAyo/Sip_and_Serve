@@ -47,11 +47,9 @@ class PaymentController extends Controller
                     'special_instructions' => isset($item['modifiers']) && is_array($item['modifiers']) ? implode(', ', $item['modifiers']) : null,
                     'status' => 'pending'
                 ]);
-                $this->deductIngredients($item['menu_item_id'], $item['quantity']);
             }
 
             $this->deductPackagingSupplies($cartItems, $order->order_type);
-            $this->syncInventoryDisplay();
 
             // Track ingredient usage properly
             foreach ($cartItems as $item) {
@@ -64,8 +62,20 @@ class PaymentController extends Controller
                 foreach ($ingredientsUsed as $ingredient) {
                     $inventory = Inventory::where('menu_item_id', $ingredient->ingredient_id)->first();
                     if ($inventory) {
+                        Log::info("Before deduction", [
+                            'ingredient_id' => $ingredient->ingredient_id,
+                            'used_amount' => $ingredient->used_amount,
+                            'current_stock_before' => $inventory->current_stock
+                        ]);
+
                         $inventory->used_stock = ($inventory->used_stock ?? 0) + $ingredient->used_amount;
+                        $inventory->current_stock = max(0, $inventory->current_stock - $ingredient->used_amount);
                         $inventory->save();
+
+                        Log::info("After deduction", [
+                            'current_stock_after' => $inventory->current_stock,
+                            'used_stock' => $inventory->used_stock
+                        ]);
                     }
                 }
             }
@@ -100,56 +110,6 @@ class PaymentController extends Controller
     /**
      * Deduct ingredients for an order item
      */
-    private function deductIngredients($orderItemId, $quantity)
-    {
-        // Get all ingredients needed for this order item
-        $ingredientsNeeded = DB::select("
-        SELECT i.name as ingredient_name, mii.quantity_needed * ? as total_needed
-        FROM menu_item_ingredients mii
-        INNER JOIN ingredients i ON i.id = mii.ingredient_id
-        WHERE mii.menu_item_id = ?
-    ", [$quantity, $orderItemId]);
-
-        foreach ($ingredientsNeeded as $ingredient) {
-            $remainingNeeded = $ingredient->total_needed;
-
-            // Deduct using FIFO (First In, First Out)
-            while ($remainingNeeded > 0) {
-                $availableIngredient = DB::table('ingredients')
-                    ->where('name', $ingredient->ingredient_name)
-                    ->where('stock_quantity', '>', 0)
-                    ->orderBy('created_at', 'asc')
-                    ->first();
-
-                if (!$availableIngredient) {
-                    // No more stock available
-                    break;
-                }
-
-                if ($availableIngredient->stock_quantity >= $remainingNeeded) {
-                    // This ingredient has enough stock
-                    DB::table('ingredients')
-                        ->where('id', $availableIngredient->id)
-                        ->update([
-                            'stock_quantity' => $availableIngredient->stock_quantity - $remainingNeeded,
-                            'updated_at' => now()
-                        ]);
-
-                    $remainingNeeded = 0;
-                } else {
-                    // Use all of this ingredient and continue
-                    DB::table('ingredients')
-                        ->where('id', $availableIngredient->id)
-                        ->update([
-                            'stock_quantity' => 0,
-                            'updated_at' => now()
-                        ]);
-
-                    $remainingNeeded -= $availableIngredient->stock_quantity;
-                }
-            }
-        }
-    }
 
 
 
@@ -231,91 +191,17 @@ class PaymentController extends Controller
      */
     private function deductPackagingItem($itemName, $quantityNeeded)
     {
-        $remainingNeeded = $quantityNeeded;
+        // Find packaging item in inventory table
+        $packagingInventory = Inventory::whereHas('ingredient', function ($query) use ($itemName) {
+            $query->where('name', $itemName)->where('category', 'packaging-supplies');
+        })->first();
 
-        Log::info("Deducting packaging item: {$itemName}", [
-            'quantity_needed' => $quantityNeeded
-        ]);
-
-        // Use FIFO (First In, First Out) method similar to ingredient deduction
-        while ($remainingNeeded > 0) {
-            $availableItem = DB::table('ingredients')
-                ->where('name', $itemName)
-                ->where('category', 'packaging-supplies')
-                ->where('stock_quantity', '>', 0)
-                ->orderBy('created_at', 'asc')
-                ->first();
-
-            if (!$availableItem) {
-                // Log warning if packaging supply is out of stock
-                Log::warning("Packaging supply out of stock: {$itemName}", [
-                    'quantity_still_needed' => $remainingNeeded,
-                    'original_quantity_needed' => $quantityNeeded
-                ]);
-                break;
-            }
-
-            if ($availableItem->stock_quantity >= $remainingNeeded) {
-                // This batch has enough stock
-                DB::table('ingredients')
-                    ->where('id', $availableItem->id)
-                    ->update([
-                        'stock_quantity' => $availableItem->stock_quantity - $remainingNeeded,
-                        'updated_at' => now()
-                    ]);
-
-                Log::info("Deducted {$remainingNeeded} {$itemName} from batch {$availableItem->id}");
-                $remainingNeeded = 0;
-            } else {
-                // Use all of this batch and continue
-                DB::table('ingredients')
-                    ->where('id', $availableItem->id)
-                    ->update([
-                        'stock_quantity' => 0,
-                        'updated_at' => now()
-                    ]);
-
-                Log::info("Used all {$availableItem->stock_quantity} {$itemName} from batch {$availableItem->id}");
-                $remainingNeeded -= $availableItem->stock_quantity;
-            }
+        if ($packagingInventory && $packagingInventory->current_stock >= $quantityNeeded) {
+            $packagingInventory->used_stock = ($packagingInventory->used_stock ?? 0) + $quantityNeeded;
+            $packagingInventory->current_stock = max(0, $packagingInventory->current_stock - $quantityNeeded);
+            $packagingInventory->save();
+        } else {
+            Log::warning("Insufficient packaging supply: {$itemName}");
         }
     }
-
-    private function syncInventoryDisplay()
-    {
-        $inventoryItems = Inventory::all();
-        foreach ($inventoryItems as $inventory) {
-            // Find ingredient by name matching
-            $ingredientName = $inventory->ingredient->name ?? null;
-            if ($ingredientName) {
-                $totalStock = DB::table('ingredients')
-                    ->where('name', $ingredientName)
-                    ->sum('stock_quantity');
-
-                $inventory->current_stock = max(0, $totalStock);
-                $inventory->save();
-            }
-        }
-    }
-
-    /*public function checkItemAvailability($menuItemId)
-    {
-        $ingredientsNeeded = DB::select("
-        SELECT i.name, mii.quantity_needed
-        FROM menu_item_ingredients mii
-        INNER JOIN ingredients i ON i.id = mii.ingredient_id
-        WHERE mii.menu_item_id = ?
-    ", [$menuItemId]);
-
-        foreach ($ingredientsNeeded as $ingredient) {
-            $available = DB::table('ingredients')
-                ->where('name', $ingredient->name)
-                ->sum('stock_quantity');
-
-            if ($available < $ingredient->quantity_needed) {
-                return false; // Item unavailable
-            }
-        }
-        return true; // Item available
-    }*/
 }

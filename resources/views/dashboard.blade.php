@@ -910,7 +910,7 @@
 
                 <div class="button-group flex items-center space-x-1">
                     <button class="btn-primary" onclick="openShoppingListModal()">🛒 Generate Shopping List</button>
-                    <button class="btn-primary" onclick="openAddModal()">+ ADD ITEM</button>
+                    <button class="btn-primary" onclick="openAddModal()">+ ADD NEW ITEM</button>
                     <button class="btn-secondary" onclick="openEditModal()">EDIT ITEMS</button>
                 </div>
                 <select class="filter-dropdown">
@@ -956,7 +956,8 @@
                         <tbody id="inventoryBody">
                             @foreach($inventory as $item)
 
-                                <tr data-category="{{ $item->ingredient->category ?? 'ingredients' }}" style="display: flex;">
+                                <tr data-category="{{ $item->ingredient->category ?? 'ingredients' }}"
+                                    style="display: flex;">
                                     <td style="flex: 1; padding: 12px; text-align: center;">
                                         {{ $item->ingredient->name ?? 'Item ' . $item->menu_item_id }}
                                     </td>
@@ -1105,7 +1106,7 @@
 
         <div id="addItemModal" class="modal-overlay">
             <div class="add-modal-content">
-                <h3 class="add-modal-title">ADD ITEM</h3>
+                <h3 class="add-modal-title">ADD NEW ITEM</h3>
                 <form id="addItemForm">
                     <div class="form-group">
                         <label>Item Name:</label>
@@ -1219,13 +1220,13 @@
             let ingredientsData = [
                 @foreach($inventory as $item)
                     {
-                                id: {{ $item->id }},
-                                menu_item_id: {{ $item->menu_item_id }},
-                                name: {!! json_encode($item->ingredient->name ?? 'Unknown') !!},
-                                unit: {!! json_encode($item->unit ?? 'units') !!},
-                                current_stock: {{ $item->current_stock ?? 0 }},
-                                minimum_stock: {{ $item->minimum_stock ?? 0 }},
-                                maximum_stock: {{ $item->maximum_stock ?? 0 }}
+                    id: {{ $item->id }},
+                    menu_item_id: {{ $item->menu_item_id }},
+                    name: {!! json_encode($item->ingredient->name ?? 'Unknown') !!},
+                    unit: {!! json_encode($item->unit ?? 'units') !!},
+                    current_stock: {{ $item->current_stock ?? 0 }},
+                    minimum_stock: {{ $item->minimum_stock ?? 0 }},
+                    maximum_stock: {{ $item->maximum_stock ?? 0 }}
                     }@if(!$loop->last), @endif
                 @endforeach
 ];
@@ -1348,10 +1349,10 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': csrfToken.getAttribute('content')
                         },
-                        body: JSON.stringify({
+                        'body': JSON.stringify({
                             name: itemName,
-                            current_stock: newQuantity, // Changed from stock_quantity
-                            minimum_stock: minimumStock // Changed from critical_level
+                            current_stock: newQuantity, // This will be ADDED to existing stock
+                            minimum_stock: minimumStock
                         })
                     })
                         .then(response => response.json())

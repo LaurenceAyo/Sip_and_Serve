@@ -3,26 +3,32 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Ingredient; // Add your Ingredient model
+use App\Models\Ingredient;
 use Illuminate\Support\Facades\DB;
+use App\Models\Inventory;
 
 class IngredientController extends Controller
 {
     public function updateStock(Request $request)
     {
-        $ingredient = Ingredient::where('name', $request->name)->first();
+        // Find inventory record by ingredient name
+        $inventory = Inventory::whereHas('ingredient', function ($query) use ($request) {
+            $query->where('name', $request->name);
+        })->first();
 
-        if ($ingredient) {
-            $ingredient->stock_quantity = $request->stock_quantity;
-            if ($request->alert_level) {
-                $ingredient->reorder_level = $request->alert_level;
+        if ($inventory) {
+            // Add to current stock (restocking)
+            $inventory->current_stock += $request->current_stock;
+
+            if ($request->minimum_stock) {
+                $inventory->minimum_stock = $request->minimum_stock;
             }
-            $ingredient->save();
+            $inventory->save();
 
             return response()->json(['success' => true]);
         }
 
-        return response()->json(['success' => false, 'message' => 'Ingredient not found']);
+        return response()->json(['success' => false, 'message' => 'Item not found']);
     }
 
 
