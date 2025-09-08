@@ -146,6 +146,9 @@ Route::middleware(['auth'])->group(function () {
     // =============================================================================
     // CASHIER SYSTEM
     // =============================================================================
+    Route::get('/cashier/refresh', [CashierController::class, 'refreshOrders'])->name('cashier.refresh');
+
+
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
         Route::get('/refresh', [CashierController::class, 'refreshOrders'])->name('refresh');
@@ -288,6 +291,12 @@ Route::post('/test-cashier-post', function (Request $request) {
 // =============================================================================
 // PRINTER TESTING ROUTES
 // =============================================================================
+// Print routes
+Route::post('/print-receipt', [App\Http\Controllers\PrintController::class, 'printReceipt']);
+Route::post('/test-printer', [App\Http\Controllers\PrintController::class, 'testPrinter']);
+
+
+
 Route::get('/test-printer-connection', function () {
     try {
         $thermalPrinterService = new App\Services\ThermalPrinterService();

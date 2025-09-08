@@ -157,6 +157,7 @@ class CashierController extends Controller
         return $total;
     }
 
+
     /**
      * FIXED: Format order items with proper structure for JavaScript
      */
@@ -231,9 +232,10 @@ class CashierController extends Controller
         try {
             Log::info('GOOJPRT PT-210 - Refresh orders method called');
 
+            // Fix: Use 'status' not 'payment_status' for pending orders
             $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
                 ->where('payment_method', 'cash')
-                ->where('payment_status', 'pending')
+                ->where('status', 'pending')  // Changed from payment_status
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -253,37 +255,28 @@ class CashierController extends Controller
                         'id' => $order->id,
                         'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
                         'order_type' => $order->order_type,
-                        'total_amount' => $calculatedTotal, // Use calculated total
-                        'total' => $calculatedTotal, // Also provide 'total' for compatibility
+                        'total_amount' => $calculatedTotal,
+                        'total' => $calculatedTotal,
                         'cash_amount' => $cashAmount,
                         'expected_change' => $expectedChange,
                         'change_amount' => (float) ($order->change_amount ?? 0),
                         'payment_method' => $order->payment_method,
-                        'payment_status' => $order->payment_status,
+                        'payment_status' => 'pending', // Add this for JS compatibility
+                        'status' => $order->status,
                         'created_at' => $order->created_at->toISOString(),
                         'order_items' => $this->formatOrderItemsFixed($order->orderItems)
                     ];
-                }),
-                'printer_info' => [
-                    'name' => env('THERMAL_PRINTER_NAME', 'GOOJPRT PT-210'),
-                    'path' => env('THERMAL_PRINTER_PATH', 'GOOJPRT PT-210'),
-                    'status' => 'Ready'
-                ]
-            ], 200, [
-                'Content-Type' => 'application/json'
+                })
             ]);
         } catch (Exception $e) {
             Log::error('GOOJPRT PT-210 - Error refreshing cashier orders', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to refresh orders: ' . $e->getMessage()
-            ], 500, [
-                'Content-Type' => 'application/json'
-            ]);
+            ], 500);
         }
     }
 
@@ -373,10 +366,10 @@ class CashierController extends Controller
                     'printer_name' => env('THERMAL_PRINTER_NAME'),
                     'printer_path' => env('THERMAL_PRINTER_PATH')
                 ]);
-                
+
                 try {
                     $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
-                    
+
                     Log::info('GOOJPRT PT-210 - Receipt printing result', [
                         'order_id' => $order->id,
                         'receipt_printed' => $receiptPrinted
@@ -570,23 +563,22 @@ class CashierController extends Controller
     {
         try {
             Log::info('GOOJPRT PT-210 - Manual printer test requested via controller');
-            
+
             $result = $this->thermalPrinterService->testPrinter();
             $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
-            
+
             return response()->json([
                 'success' => $result,
                 'message' => $result ? 'GOOJPRT PT-210 test print sent successfully!' : 'GOOJPRT PT-210 test print failed',
                 'connection_info' => $connectionInfo,
                 'timestamp' => now()->toISOString()
             ]);
-            
         } catch (Exception $e) {
             Log::error('GOOJPRT PT-210 - Printer test controller error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -599,21 +591,20 @@ class CashierController extends Controller
     {
         try {
             Log::info('GOOJPRT PT-210 - Printer connection info requested via controller');
-            
+
             $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
-            
+
             return response()->json([
                 'success' => true,
                 'connection_info' => $connectionInfo,
                 'printer_model' => 'GOOJPRT PT-210',
                 'connection_status' => 'Ready to test'
             ]);
-            
         } catch (Exception $e) {
             Log::error('GOOJPRT PT-210 - Printer connection info controller error', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -630,7 +621,7 @@ class CashierController extends Controller
     {
         try {
             Log::info('GOOJPRT PT-210 - Manual printer connection reset requested');
-            
+
             // Clear any cached connections or temporary files
             $receiptPath = storage_path('app/thermal_receipts');
             if (file_exists($receiptPath)) {
@@ -641,23 +632,22 @@ class CashierController extends Controller
                     }
                 }
             }
-            
+
             // Re-initialize printer service
             $this->thermalPrinterService = new ThermalPrinterService();
             $testResult = $this->thermalPrinterService->testPrinter();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'GOOJPRT PT-210 connection reset completed',
                 'test_result' => $testResult,
                 'timestamp' => now()->toISOString()
             ]);
-            
         } catch (Exception $e) {
             Log::error('GOOJPRT PT-210 - Printer reset error', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -859,7 +849,6 @@ class CashierController extends Controller
                 'message' => 'Order updated successfully',
                 'new_total' => $newTotal
             ]);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -906,7 +895,7 @@ class CashierController extends Controller
                     'version_info' => 'mike42/escpos-php library loaded'
                 ]
             ];
-            
+
             // Test basic printer connectivity
             try {
                 $connectionInfo = $this->thermalPrinterService->getConnectionInfo();
@@ -916,7 +905,7 @@ class CashierController extends Controller
                 $diagnostics['connection_test'] = ['error' => $e->getMessage()];
                 $diagnostics['connection_status'] = 'Failed';
             }
-            
+
             // Get Windows printer list if possible
             if (PHP_OS_FAMILY === 'Windows') {
                 try {
@@ -926,12 +915,11 @@ class CashierController extends Controller
                     $diagnostics['windows_printers'] = ['Error: ' . $e->getMessage()];
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'diagnostics' => $diagnostics
             ]);
-            
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
