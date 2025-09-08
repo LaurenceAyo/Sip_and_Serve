@@ -838,10 +838,9 @@
             <div class="controls-section flex justify-between items-center mb-6">
                 <div class="filter-section flex items-center space-x-4">
                     <select class="filter-dropdown">
-                        <option>TODAY</option>
-                        <option>THIS WEEK</option>
-                        <option>THIS MONTH</option>
-                        <option>CUSTOM</option>
+                        <option {{ ($filter ?? 'TODAY') == 'TODAY' ? 'selected' : '' }}>TODAY</option>
+                        <option {{ ($filter ?? 'TODAY') == 'THIS WEEK' ? 'selected' : '' }}>THIS WEEK</option>
+                        <option {{ ($filter ?? 'TODAY') == 'THIS MONTH' ? 'selected' : '' }}>THIS MONTH</option>
                     </select>
                 </div>
 
@@ -1083,8 +1082,8 @@
 
         // Filter dropdown functionality
         document.querySelector('.filter-dropdown').addEventListener('change', function () {
-            console.log('Filter changed to:', this.value);
-            // Add your filter logic here
+            const filter = this.value;
+            window.location.href = `/sales?filter=${encodeURIComponent(filter)}`;
         });
 
         // Touch-friendly enhancements for tablets
