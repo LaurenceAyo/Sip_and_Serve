@@ -53,7 +53,7 @@ class AdminController extends Controller
                 'message' => 'Failed to create user: ' . $e->getMessage()
             ], 500);
         }
-}
+    }
 
     public function getUsersData()
     {
@@ -135,32 +135,28 @@ class AdminController extends Controller
     {
         try {
             $user = User::findOrFail($id);
-            
-            $request->validate([
+
+            $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
                 'role' => 'required|in:admin,manager,cashier,kitchen',
                 'password' => 'nullable|string|min:8',
-                'permissions' => 'nullable|string'
             ]);
 
-            $updateData = [
-                'name' => $request->name,
-                'email' => $request->email,
-                'role' => $request->role,
-                'permissions' => $request->permissions ?? '',
-            ];
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            $user->role = $validated['role'];
 
-            if ($request->filled('password')) {
-                $updateData['password'] = Hash::make($request->password);
+            if (!empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
             }
 
-            $user->update($updateData);
+            $user->save();
 
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully',
-                'data' => $user->only(['id', 'name', 'email', 'role', 'permissions', 'created_at', 'updated_at'])
+                'data' => $user->fresh()
             ]);
         } catch (\Exception $e) {
             return response()->json([
