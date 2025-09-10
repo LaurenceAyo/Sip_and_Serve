@@ -107,6 +107,16 @@ Route::prefix('qr')->name('qr.')->group(function () {
 });
 
 // =============================================================================
+// CASH DRAWER ROUTES
+// =============================================================================
+// Add these routes to web.php
+Route::post('/cashier/drawer/open', [CashierController::class, 'openDrawer']);
+Route::get('/cashier/drawer/test', [CashierController::class, 'testDrawer']);
+Route::get('/cashier/drawer/diagnostics', [CashierController::class, 'drawerDiagnostics']);
+
+
+
+// =============================================================================
 // API ROUTES (Public)
 // =============================================================================
 Route::prefix('api')->group(function () {
@@ -143,6 +153,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/kiosk', [KioskController::class, 'main'])->name('kiosk.main');
     Route::get('/admin/users/data', [AdminController::class, 'getUsersData'])->name('admin.users.data');
     Route::get('/admin/users/{id}', [AdminController::class, 'getUserDetails'])->name('admin.users.details');
+    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']);
     // =============================================================================
     // CASHIER SYSTEM
     // =============================================================================

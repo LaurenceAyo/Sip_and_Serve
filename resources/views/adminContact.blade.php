@@ -268,11 +268,6 @@
                     </div>
                 </div>
 
-                @guest
-                    <div class="back-to-login">
-                        <a href="http://127.0.0.1:8000/#">Back to Login</a>
-                    </div>
-                @endguest
             </div>
         </div>
 </body>

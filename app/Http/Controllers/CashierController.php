@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Services\ThermalPrinterService;
+use App\Services\CashDrawerService;
 use Exception;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\Printer;
@@ -20,11 +21,135 @@ use Mike42\Escpos\Printer;
 class CashierController extends Controller
 {
     protected $thermalPrinterService;
+    protected $cashDrawerService;
 
     public function __construct()
     {
         $this->thermalPrinterService = new ThermalPrinterService();
+        $this->cashDrawerService = new CashDrawerService();
     }
+
+    /**
+     * Open cash drawer manually
+     */
+    public function openDrawer(Request $request)
+    {
+        try {
+            Log::info('Cash Drawer - Manual open requested via controller');
+
+            $validated = $request->validate([
+                'drawer_number' => 'nullable|integer|in:1,2',
+                'reason' => 'nullable|string|max:255'
+            ]);
+
+            $drawerNumber = $validated['drawer_number'] ?? 1;
+            $reason = $validated['reason'] ?? 'Manual open by cashier';
+
+            // Open the cash drawer using separate service
+            $result = $this->cashDrawerService->openDrawer($drawerNumber);
+
+            if ($result) {
+                // Log the drawer opening for audit purposes
+                Log::info('Cash Drawer - Opened manually', [
+                    'drawer_number' => $drawerNumber,
+                    'reason' => $reason,
+                    'user_id' => Auth::id(),
+                    'timestamp' => now()->toISOString()
+                ]);
+
+                // Record in database for tracking
+                DB::table('cash_drawer_logs')->insert([
+                    'drawer_number' => $drawerNumber,
+                    'action' => 'manual_open',
+                    'reason' => $reason,
+                    'user_id' => Auth::id(),
+                    'success' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cash drawer opened successfully',
+                    'drawer_number' => $drawerNumber,
+                    'method' => 'USB/Serial Adapter'
+                ]);
+            } else {
+                // Log failed attempt
+                DB::table('cash_drawer_logs')->insert([
+                    'drawer_number' => $drawerNumber,
+                    'action' => 'manual_open',
+                    'reason' => $reason,
+                    'user_id' => Auth::id(),
+                    'success' => false,
+                    'error_message' => 'Drawer service returned false',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to open cash drawer - check connection'
+                ], 500);
+            }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Cash Drawer - Controller open error', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Cash drawer error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get cash drawer diagnostics and connection info
+     */
+    public function drawerDiagnostics()
+    {
+        try {
+            $connectionInfo = $this->cashDrawerService->getConnectionInfo();
+
+            return response()->json([
+                'success' => true,
+                'diagnostics' => [
+                    'connection_info' => $connectionInfo,
+                    'environment_config' => [
+                        'CASH_DRAWER_TYPE' => env('CASH_DRAWER_TYPE'),
+                        'CASH_DRAWER_COM_PORT' => env('CASH_DRAWER_COM_PORT'),
+                        'CASH_DRAWER_BAUD_RATE' => env('CASH_DRAWER_BAUD_RATE'),
+                    ],
+                    'system_info' => [
+                        'php_version' => PHP_VERSION,
+                        'os_family' => PHP_OS_FAMILY,
+                        'os' => php_uname(),
+                    ],
+                    'bluetooth_printer_info' => [
+                        'model' => 'Small Bluetooth Thermal Printer',
+                        'connection' => 'Bluetooth',
+                        'drawer_port' => 'None - Using separate adapter'
+                    ]
+                ]
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+
 
     public function index()
     {
@@ -282,25 +407,19 @@ class CashierController extends Controller
 
     public function acceptOrder(Request $request)
     {
-        Log::info('GOOJPRT PT-210 - Accept order method called', [
-            'request_data' => $request->all(),
-            'printer_configured' => env('THERMAL_PRINTER_NAME', 'Not configured')
+        Log::info('Bluetooth Printer + USB Drawer - Accept order called', [
+            'request_data' => $request->all()
         ]);
 
         try {
             $validated = $request->validate([
                 'order_id' => 'required|integer|exists:orders,id',
                 'cash_amount' => 'required|numeric|min:0',
-                'print_receipt' => 'boolean'
+                'print_receipt' => 'boolean',
+                'open_drawer' => 'boolean'
             ]);
 
-            Log::info('GOOJPRT PT-210 - Validation passed', ['validated' => $validated]);
         } catch (ValidationException $e) {
-            Log::error('GOOJPRT PT-210 - Validation failed', [
-                'errors' => $e->errors(),
-                'input' => $request->all()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -312,44 +431,22 @@ class CashierController extends Controller
 
         try {
             $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
-
-            // Use calculated total instead of database total
             $calculatedTotal = $this->calculateCorrectTotal($order);
 
-            Log::info('GOOJPRT PT-210 - Order found with calculated total', [
-                'order_id' => $order->id,
-                'database_total' => $order->total_amount,
-                'calculated_total' => $calculatedTotal,
-                'cash_amount' => $validated['cash_amount']
-            ]);
-
-            // Validate cash amount against calculated total
             if ($validated['cash_amount'] < $calculatedTotal) {
-                Log::warning('GOOJPRT PT-210 - Insufficient cash amount', [
-                    'cash_amount' => $validated['cash_amount'],
-                    'calculated_total' => $calculatedTotal
-                ]);
-
                 return response()->json([
                     'success' => false,
                     'message' => 'Cash amount is insufficient'
                 ], 422);
             }
 
-            // Calculate change using calculated total
             $changeAmount = $validated['cash_amount'] - $calculatedTotal;
 
-            Log::info('GOOJPRT PT-210 - Updating order with calculated values', [
-                'order_id' => $order->id,
-                'calculated_total' => $calculatedTotal,
-                'change_amount' => $changeAmount
-            ]);
-
-            // Update order with calculated total
+            // Update order
             $order->update([
                 'cash_amount' => $validated['cash_amount'],
                 'change_amount' => $changeAmount,
-                'total_amount' => $calculatedTotal, // Update with calculated total
+                'total_amount' => $calculatedTotal,
                 'payment_status' => 'paid',
                 'status' => 'preparing',
                 'paid_at' => now(),
@@ -357,26 +454,78 @@ class CashierController extends Controller
             ]);
 
             $receiptPrinted = false;
+            $drawerOpened = false;
             $printerError = null;
+            $drawerError = null;
 
-            // Print receipt using GOOJPRT PT-210 if requested
+            // Open cash drawer FIRST using separate USB/serial adapter
+            if ($validated['open_drawer'] ?? true) {
+                Log::info('USB Drawer - Opening for order payment', [
+                    'order_id' => $order->id
+                ]);
+
+                try {
+                    $drawerOpened = $this->cashDrawerService->openDrawer(1);
+                    
+                    // Log drawer operation
+                    DB::table('cash_drawer_logs')->insert([
+                        'drawer_number' => 1,
+                        'action' => 'order_payment',
+                        'order_id' => $order->id,
+                        'reason' => 'Cash payment received',
+                        'user_id' => Auth::id(),
+                        'success' => $drawerOpened,
+                        'error_message' => $drawerOpened ? null : 'Drawer service returned false',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+
+                    Log::info('USB Drawer - Operation result', [
+                        'order_id' => $order->id,
+                        'drawer_opened' => $drawerOpened
+                    ]);
+
+                } catch (Exception $e) {
+                    $drawerError = $e->getMessage();
+                    Log::error('USB Drawer - Opening exception', [
+                        'order_id' => $order->id,
+                        'error' => $drawerError
+                    ]);
+                    
+                    // Still log the attempt
+                    DB::table('cash_drawer_logs')->insert([
+                        'drawer_number' => 1,
+                        'action' => 'order_payment',
+                        'order_id' => $order->id,
+                        'reason' => 'Cash payment received',
+                        'user_id' => Auth::id(),
+                        'success' => false,
+                        'error_message' => $drawerError,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                    
+                    $drawerOpened = false;
+                }
+            }
+
+            // Print receipt using Bluetooth thermal printer (separate from drawer)
             if ($validated['print_receipt'] ?? true) {
-                Log::info('GOOJPRT PT-210 - Attempting to print receipt', [
-                    'order_id' => $order->id,
-                    'printer_name' => env('THERMAL_PRINTER_NAME'),
-                    'printer_path' => env('THERMAL_PRINTER_PATH')
+                Log::info('Bluetooth Printer - Attempting to print receipt', [
+                    'order_id' => $order->id
                 ]);
 
                 try {
                     $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
 
-                    Log::info('GOOJPRT PT-210 - Receipt printing result', [
+                    Log::info('Bluetooth Printer - Receipt result', [
                         'order_id' => $order->id,
                         'receipt_printed' => $receiptPrinted
                     ]);
+
                 } catch (Exception $e) {
                     $printerError = $e->getMessage();
-                    Log::error('GOOJPRT PT-210 - Receipt printing exception', [
+                    Log::error('Bluetooth Printer - Receipt exception', [
                         'order_id' => $order->id,
                         'error' => $printerError
                     ]);
@@ -386,24 +535,25 @@ class CashierController extends Controller
 
             DB::commit();
 
-            Log::info('GOOJPRT PT-210 - Order accepted by cashier', [
+            Log::info('Order processed - Bluetooth printer + USB drawer', [
                 'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'calculated_total' => $calculatedTotal,
-                'cash_amount' => $validated['cash_amount'],
-                'change_amount' => $changeAmount,
+                'total' => $calculatedTotal,
+                'change' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
-                'printer_error' => $printerError
+                'drawer_opened' => $drawerOpened
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Order accepted successfully',
                 'receipt_printed' => $receiptPrinted,
+                'drawer_opened' => $drawerOpened,
                 'change_amount' => $changeAmount,
-                'total_amount' => $calculatedTotal, // Return calculated total
-                'printer_info' => 'GOOJPRT PT-210 USB',
+                'total_amount' => $calculatedTotal,
+                'printer_info' => 'Bluetooth Thermal Printer',
+                'drawer_info' => 'USB/Serial Cash Drawer Adapter',
                 'printer_error' => $printerError,
+                'drawer_error' => $drawerError,
                 'order' => [
                     'id' => $order->id,
                     'status' => $order->status,
@@ -413,21 +563,19 @@ class CashierController extends Controller
             ], 200, [
                 'Content-Type' => 'application/json'
             ]);
+
         } catch (Exception $e) {
             DB::rollback();
 
-            Log::error('GOOJPRT PT-210 - Error accepting order', [
+            Log::error('Order processing error', [
                 'order_id' => $validated['order_id'] ?? 'unknown',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to accept order: ' . $e->getMessage()
-            ], 500, [
-                'Content-Type' => 'application/json'
-            ]);
+            ], 500);
         }
     }
 
