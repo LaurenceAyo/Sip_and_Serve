@@ -130,6 +130,35 @@ class AdminController extends Controller
             ], 500);
         }
     }
+    public function backupSettings()
+    {
+        if (Auth::user()->email !== 'laurenceayo7@gmail.com') {
+            abort(403, 'Access denied');
+        }
+
+        try {
+            // Export users data
+            $users = User::all()->toArray();
+
+            // You can add more data exports here (inventory, sales, etc.)
+            $backupData = [
+                'users' => $users,
+                'backup_date' => now()->toDateTimeString(),
+                'version' => '1.0'
+            ];
+
+            $filename = 'cafe_backup_' . now()->format('Y_m_d_H_i_s') . '.json';
+
+            return response()->json($backupData)
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->header('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Backup failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function updateUser(Request $request, $id)
     {

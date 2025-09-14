@@ -239,9 +239,9 @@
                 <i class="fas fa-users me-2"></i>
                 User Management
             </a>
-            <a href="#" class="nav-link">
+            <a href="#" class="nav-link" onclick="showBackupModal()">
                 <i class="fas fa-cog me-2"></i>
-                Settings
+                Backup Settings
             </a>
             <a href="#" class="nav-link" onclick="goToDashboard()">
                 <i class="fas fa-arrow-left me-2"></i>
@@ -294,7 +294,30 @@
                 </div>
             </div>
         </div>
-
+        <!-- Backup Settings Modal -->
+        <div class="modal fade" id="backupModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-cog me-2"></i>
+                            System Settings
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-4">
+                            <h6>Data Backup</h6>
+                            <p class="text-muted small">Download system data for backup purposes</p>
+                            <button class="btn btn-primary w-100" onclick="downloadBackup()">
+                                <i class="fas fa-download me-2"></i>
+                                Download Backup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- User Table -->
         <div class="user-table">
             <div class="table-responsive">
@@ -491,7 +514,7 @@
 
                 if (result.success && result.data) {
                     allUsers = result.data;
-                    console.log('Individual user roles:', allUsers.map(u => ({id: u.id, name: u.name, role: u.role})));
+                    console.log('Individual user roles:', allUsers.map(u => ({ id: u.id, name: u.name, role: u.role })));
                     console.log('All users after update:', allUsers);
                     displayUsers(allUsers);
                     updateStats();
@@ -650,6 +673,39 @@
             } catch (error) {
                 console.error('Error updating user:', error);
                 showAlert('Error updating user. Please try again.', 'danger');
+            }
+        }
+
+        function showBackupModal() {
+            const modal = new bootstrap.Modal(document.getElementById('backupModal'));
+            modal.show();
+        }
+
+        async function downloadBackup() {
+            try {
+                const response = await fetch('/admin/backup', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'cafe_backup_' + new Date().toISOString().slice(0, 19).replace(/:/g, '_') + '.json';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+
+                    showAlert('Backup downloaded successfully!', 'success');
+                } else {
+                    showAlert('Backup failed. Please try again.', 'danger');
+                }
+            } catch (error) {
+                console.error('Backup failed:', error);
+                showAlert('Backup failed. Please try again.', 'danger');
             }
         }
 

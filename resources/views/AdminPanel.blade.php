@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <style>
         body {
@@ -27,7 +29,7 @@
             color: white;
             padding: 2rem 1.5rem;
             z-index: 1000;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .main-content {
@@ -37,7 +39,7 @@
         }
 
         .nav-link {
-            color: rgba(255,255,255,0.8) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 8px;
@@ -48,13 +50,13 @@
         }
 
         .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
+            background-color: rgba(255, 255, 255, 0.1);
             color: white !important;
             transform: translateX(5px);
         }
 
         .nav-link.active {
-            background-color: rgba(255,255,255,0.2);
+            background-color: rgba(255, 255, 255, 0.2);
             color: white !important;
         }
 
@@ -62,7 +64,7 @@
             background: white;
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border: none;
             transition: transform 0.3s ease;
         }
@@ -75,7 +77,7 @@
         .user-table {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
@@ -105,11 +107,29 @@
             white-space: nowrap;
         }
 
-        .table td:nth-child(1) { min-width: 180px; }
-        .table td:nth-child(2) { max-width: 200px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
-        .table td:nth-child(3) { width: 120px; }
-        .table td:nth-child(4) { min-width: 140px; font-size: 11px; }
-        .table td:nth-child(5) { width: 180px; }
+        .table td:nth-child(1) {
+            min-width: 180px;
+        }
+
+        .table td:nth-child(2) {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
+        }
+
+        .table td:nth-child(3) {
+            width: 120px;
+        }
+
+        .table td:nth-child(4) {
+            min-width: 140px;
+            font-size: 11px;
+        }
+
+        .table td:nth-child(5) {
+            width: 180px;
+        }
 
         .btn-action {
             padding: 4px 6px;
@@ -147,7 +167,8 @@
             border-radius: 0 0 15px 15px;
         }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             border-radius: 8px;
             border: 1px solid #ddd;
             padding: 10px 12px;
@@ -176,15 +197,14 @@
                 <a href="#" class="nav-link">
                     <i class="fas fa-chart-bar me-2"></i>
                     Analytics
-                </a>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-cog me-2"></i>
-                    Settings
-                </a>
-                <a href="#" class="nav-link">
-                    <i class="fas fa-arrow-left me-2"></i>
-                    Back to Dashboard
-                </a>
+                    <a href="#" class="nav-link" onclick="showBackupModal()">
+                        <i class="fas fa-cog me-2"></i>
+                        Settings
+                    </a>
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Dashboard
+                    </a>
             </nav>
         </div>
     </div>
@@ -202,7 +222,29 @@
                 Add New User
             </button>
         </div>
-
+        <!-- Backup Settings Modal -->
+        <div class="modal fade" id="backupModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">System Settings</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <h6>Data Backup</h6>
+                                <p class="text-muted small">Download system data for backup purposes</p>
+                                <button class="btn btn-primary w-100" onclick="downloadBackup()">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download Backup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Stats Cards -->
         <div class="row mb-4">
             <div class="col-md-3">
@@ -294,6 +336,12 @@
             }
         }
 
+        function showBackupModal() {
+            const modal = new bootstrap.Modal(document.getElementById('backupModal'));
+            modal.show();
+        }
+
+
         function displayUsers(users) {
             const tbody = document.getElementById('usersTableBody');
             tbody.innerHTML = '';
@@ -341,6 +389,29 @@
                 tbody.innerHTML += row;
             });
         }
+        async function downloadBackup() {
+            try {
+                const response = await fetch('/admin/backup', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'cafe_backup_' + new Date().toISOString().slice(0, 19).replace(/:/g, '_') + '.json';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                console.error('Backup failed:', error);
+                alert('Backup failed. Please try again.');
+            }
+        }
 
         function getInitials(name) {
             return name.split(' ').map(part => part.charAt(0).toUpperCase()).slice(0, 2).join('');
@@ -350,7 +421,7 @@
             document.getElementById('totalUsers').textContent = allUsers.length;
             document.getElementById('activeUsers').textContent = allUsers.length;
             document.getElementById('adminUsers').textContent = allUsers.filter(u => u.role === 'admin').length;
-            document.getElementById('recentUsers').textContent = allUsers.filter(u => 
+            document.getElementById('recentUsers').textContent = allUsers.filter(u =>
                 new Date(u.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
             ).length;
         }
@@ -389,4 +460,5 @@
         });
     </script>
 </body>
+
 </html>

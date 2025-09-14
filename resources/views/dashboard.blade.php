@@ -209,6 +209,176 @@
                 width: 3px;
             }
 
+            .user-management-card {
+                display: block;
+                background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+                border-radius: 20px;
+                padding: 32px;
+                text-decoration: none;
+                color: inherit;
+                position: relative;
+                overflow: hidden;
+                border: 2px solid transparent;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                max-width: 400px;
+                margin: 0 auto;
+            }
+
+            .user-management-card::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                padding: 2px;
+                background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+                border-radius: 20px;
+                mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                mask-composite: xor;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .card-glow {
+                position: absolute;
+                inset: -2px;
+                background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+                border-radius: 22px;
+                opacity: 0;
+                filter: blur(20px);
+                transition: opacity 0.3s ease;
+                z-index: -1;
+            }
+
+            .user-management-card:hover {
+                transform: translateY(-12px) scale(1.02);
+                box-shadow: 0 24px 48px rgba(102, 126, 234, 0.25);
+            }
+
+            .user-management-card:hover::before {
+                opacity: 1;
+            }
+
+            .user-management-card:hover .card-glow {
+                opacity: 0.6;
+            }
+
+            .card-content {
+                position: relative;
+                z-index: 1;
+            }
+
+            .card-icon-wrapper {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 24px;
+            }
+
+            .card-icon {
+                width: 72px;
+                height: 72px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border-radius: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+                transition: all 0.3s ease;
+            }
+
+            .user-management-card:hover .card-icon {
+                transform: scale(1.1) rotate(5deg);
+                box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+            }
+
+            .card-badge {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            }
+
+            .card-text h3 {
+                font-size: 24px;
+                font-weight: 700;
+                color: #1a202c;
+                margin: 0 0 12px 0;
+                transition: color 0.3s ease;
+            }
+
+            .user-management-card:hover .card-text h3 {
+                color: #667eea;
+            }
+
+            .card-text p {
+                color: #718096;
+                font-size: 14px;
+                line-height: 1.6;
+                margin: 0 0 24px 0;
+                transition: color 0.3s ease;
+            }
+
+            .user-management-card:hover .card-text p {
+                color: #4a5568;
+            }
+
+            .card-stats {
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+                border-radius: 12px;
+                padding: 20px;
+                border: 1px solid rgba(102, 126, 234, 0.2);
+                backdrop-filter: blur(10px);
+            }
+
+            .stat-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .stat-number {
+                font-size: 32px;
+                font-weight: 800;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .stat-label {
+                font-size: 14px;
+                color: #667eea;
+                font-weight: 600;
+                margin-top: 4px;
+            }
+
+            @media (max-width: 768px) {
+                .user-management-card {
+                    padding: 24px;
+                    max-width: none;
+                }
+
+                .card-icon {
+                    width: 64px;
+                    height: 64px;
+                }
+
+                .card-text h3 {
+                    font-size: 20px;
+                }
+
+                .stat-number {
+                    font-size: 28px;
+                }
+            }
+
             /* Add Item Modal adjustments */
             .add-modal-content {
                 width: 70%;
@@ -881,6 +1051,16 @@
                 justify-self: center;
             }
         }
+
+        .admin-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .admin-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+        }
     </style>
 </head>
 
@@ -937,11 +1117,11 @@
                     <div class="status-indicator status-critical"></div>
                     <span>Critical</span>
                 </div>
-                
+
             </div>
             <div class="flex items-center space-x-2">
-                    <span>Note: Inventory Usage Tracking resets every first Day of the Month</span>
-                </div>
+                <span>Note: Inventory Usage Tracking resets every first Day of the Month</span>
+            </div>
 
             <!-- Inventory Table -->
             <div class="bg-white rounded-lg shadow-lg">
@@ -1161,13 +1341,35 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <a href="{{ route('admin.users') }}" class="text-decoration-none">
-                                        <div class="card h-100 border-0 shadow-sm admin-card">
-                                            <div class="card-body text-center">
-                                                <i class="fas fa-users fa-3x text-primary mb-3"></i>
-                                                <h6>User Management</h6>
-                                                <p class="text-muted small mb-0">Manage system users, roles & permissions
+                                    <a href="{{ route('admin.users') }}" class="user-management-card">
+                                        <div class="card-glow"></div>
+                                        <div class="card-content">
+                                            <div class="card-icon-wrapper">
+                                                <div class="card-icon">
+                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+                                                        xmlns="http://www.w3.org/2000/svg">
+                                                        <path
+                                                            d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z"
+                                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                            stroke-linejoin="round" />
+                                                        <path
+                                                            d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z"
+                                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                            stroke-linejoin="round" />
+                                                    </svg>
+                                                </div>
+                                                <div class="card-badge">Admin</div>
+                                            </div>
+                                            <div class="card-text">
+                                                <h3>User Management</h3>
+                                                <p>Manage system users, roles & permissions with advanced security controls
                                                 </p>
+                                            </div>
+                                            <div class="card-stats">
+                                                <div class="stat-item">
+                                                    <span class="stat-number">{{ \App\Models\User::count() ?? '0' }}</span>
+                                                    <span class="stat-label">Active Users</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </a>
@@ -1177,11 +1379,7 @@
                                 <div class="col-md-4 mb-3">
                                     <a href="#" class="text-decoration-none">
                                         <div class="card h-100 border-0 shadow-sm admin-card">
-                                            <div class="card-body text-center">
-                                                <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
-                                                <h6>Security Logs</h6>
-                                                <p class="text-muted small mb-0">View system access logs</p>
-                                            </div>
+
                                         </div>
                                     </a>
                                 </div>
@@ -1190,18 +1388,6 @@
                     </div>
                 </div>
             </div>
-
-            <style>
-                .admin-card {
-                    transition: all 0.3s ease;
-                    cursor: pointer;
-                }
-
-                .admin-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
-                }
-            </style>
         @endif
 
         <script>
