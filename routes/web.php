@@ -18,6 +18,8 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Pos\PosAuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -127,7 +129,7 @@ Route::prefix('api')->group(function () {
     });
 
     // Inventory API
-       Route::get('/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
+    Route::get('/inventory', [InventoryController::class, 'getInventoryData'])->name('api.inventory');
 });
 
 // =============================================================================
@@ -177,6 +179,51 @@ Route::middleware(['auth'])->group(function () {
             return redirect('/cashier')->with('message', "Edit functionality for order #{$id} coming soon");
         })->name('edit');
     });
+
+
+
+    // =============================================================================
+    // PIN-LOGIN AUTHENTICATION
+    // =============================================================================
+    Route::get('/pin-login', [AuthController::class, 'showPinLogin'])->name('pin.login');
+    Route::post('/pin-login', [AuthController::class, 'pinLogin'])->name('pin.authenticate');
+
+    Route::post('/pin-logout', [AuthController::class, 'pinLogout'])->name('pin.logout');
+
+    // Protect Filament admin routes
+    Route::get('/admin', function () {
+        return redirect('/admin/dashboard');
+    });
+
+    // If you want to protect this route, use existing middleware like 'auth'
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/admin', function () {
+            return redirect('/admin/dashboard');
+        });
+    });
+
+
+    // =============================================================================
+    // PIN-LOGIN SETUP
+    // =============================================================================
+    // POS PIN routes
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/pos/pin/setup', [PosAuthController::class, 'showPinSetup'])->name('pos.pin.setup');
+        Route::post('/pos/pin/setup', [PosAuthController::class, 'setupPin']);
+        Route::get('/pos/pin/verify', [PosAuthController::class, 'showPinVerify'])->name('pos.pin.verify');
+        Route::post('/pos/pin/verify', [PosAuthController::class, 'verifyPin']);
+        Route::post('/pos/lock', [PosAuthController::class, 'lockPos'])->name('pos.lock');
+        Route::post('/pos/pin/reset', [PosAuthController::class, 'resetPin'])->name('pos.pin.reset');
+    });
+
+    // Protect your POS routes:
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/pos/dashboard', function () {
+            return view('dashboard');
+        })->name('pos.dashboard');
+    });
+
+
 
     // =============================================================================
     // KITCHEN SYSTEM

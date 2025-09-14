@@ -65,6 +65,7 @@
                 display: flex;
                 gap: 1.9rem;
                 width: auto;
+                margin-right: 400px;
             }
 
             .btn-primary,
@@ -274,7 +275,7 @@
             .filter-dropdown {
                 grid-column: 3;
                 justify-self: end;
-                width: 200px;
+                width: 50px;
                 /* Fixed width instead of 320px */
                 padding: 18px 20px;
                 font-size: 1.1rem;
@@ -312,7 +313,7 @@
             /* For even smaller screens */
             @media (max-width: 1000px) {
                 .filter-dropdown {
-                    width: 200px;
+                    width: 100px;
                     /* Even more width for smaller screens */
                     font-size: 1rem;
                 }
@@ -499,7 +500,7 @@
         }
 
         .filter-dropdown {
-            position: sticky;
+            position: absolute;
             background: #f8f6f0;
             border: 2px solid #d4c5a9;
             border-radius: 5px;
@@ -507,6 +508,7 @@
             color: #5d4037;
             font-weight: 500;
             cursor: pointer;
+            right: 12px;
         }
 
         .tab-button {
@@ -845,7 +847,7 @@
         }
 
         .filter-dropdown {
-            width: 160px;
+            width: 125px;
             /* Fixed width to prevent overflow */
             padding: 16px 12px;
             font-size: 1rem;
@@ -874,7 +876,7 @@
             }
 
             .filter-dropdown {
-                width: 180px;
+                width: 100px;
                 margin: 0 auto;
                 justify-self: center;
             }
@@ -910,7 +912,6 @@
 
                 <div class="button-group flex items-center space-x-1">
                     <button class="btn-primary" onclick="openShoppingListModal()">🛒 Generate Shopping List</button>
-                    <button class="btn-primary" onclick="openAddModal()">+ ADD NEW ITEM</button>
                     <button class="btn-secondary" onclick="openEditModal()">EDIT ITEMS</button>
                 </div>
                 <select class="filter-dropdown">
@@ -936,7 +937,11 @@
                     <div class="status-indicator status-critical"></div>
                     <span>Critical</span>
                 </div>
+                
             </div>
+            <div class="flex items-center space-x-2">
+                    <span>Note: Inventory Usage Tracking resets every first Day of the Month</span>
+                </div>
 
             <!-- Inventory Table -->
             <div class="bg-white rounded-lg shadow-lg">
@@ -1106,7 +1111,6 @@
 
         <div id="addItemModal" class="modal-overlay">
             <div class="add-modal-content">
-                <h3 class="add-modal-title">ADD NEW ITEM</h3>
                 <form id="addItemForm">
                     <div class="form-group">
                         <label>Item Name:</label>

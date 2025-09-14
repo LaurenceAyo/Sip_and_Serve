@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->middleware(['pin.auth'])
             ->colors([
                 'primary' => Color::Amber,
             ])
