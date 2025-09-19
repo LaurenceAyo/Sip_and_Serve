@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Pos\PosAuthController;
+use App\Http\Controllers\BackupSettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -116,7 +117,17 @@ Route::post('/cashier/drawer/open', [CashierController::class, 'openDrawer']);
 Route::get('/cashier/drawer/test', [CashierController::class, 'testDrawer']);
 Route::get('/cashier/drawer/diagnostics', [CashierController::class, 'drawerDiagnostics']);
 
-
+// =============================================================================
+// Backup System Routes
+// =============================================================================
+Route::prefix('admin')->middleware(['auth'])->group(function () {
+    Route::get('/backup-settings', [BackupSettingsController::class, 'index'])->name('backup-settings');
+    Route::put('/backup-settings', [BackupSettingsController::class, 'update'])->name('backup-settings.update');
+});
+Route::get('/admin/backup-settings', [BackupSettingsController::class, 'index'])->name('backup-settings');
+Route::put('/admin/backup-settings', [BackupSettingsController::class, 'update'])->name('backup-settings.update');
+Route::get('/admin/backup', [BackupSettingsController::class, 'backup'])->name('admin.backup');
+Route::post('/admin/restore-backup', [BackupSettingsController::class, 'restore']);
 
 // =============================================================================
 // API ROUTES (Public)

@@ -1362,7 +1362,7 @@
                                             </div>
                                             <div class="card-text">
                                                 <h3>User Management</h3>
-                                                <p>Manage system users, roles & permissions with advanced security controls
+                                                <p>Manage System Users, Roles & Permissions with Advanced Security Controls
                                                 </p>
                                             </div>
                                             <div class="card-stats">

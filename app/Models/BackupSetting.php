@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class BackupSetting extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'backup_location',
+        'backup_schedule',
+        'data_included'
+    ];
+
+    protected $casts = [
+        'data_included' => 'array'
+    ];
+}

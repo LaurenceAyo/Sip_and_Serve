@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
 class AdminController extends Controller
@@ -137,12 +138,15 @@ class AdminController extends Controller
         }
 
         try {
-            // Export users data
-            $users = User::all()->toArray();
-
-            // You can add more data exports here (inventory, sales, etc.)
             $backupData = [
-                'users' => $users,
+                'users' => DB::table('users')->get(),
+                'ingredients' => DB::table('ingredients')->get(),
+                'menu_items' => DB::table('menu_items')->get(),
+                'orders' => DB::table('orders')->get(),
+                'order_items' => DB::table('order_items')->get(),
+                'categories' => DB::table('categories')->get(),
+                'inventory' => DB::table('inventory')->get(),
+                'settings' => DB::table('settings')->get(),
                 'backup_date' => now()->toDateTimeString(),
                 'version' => '1.0'
             ];

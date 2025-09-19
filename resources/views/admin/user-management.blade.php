@@ -239,7 +239,7 @@
                 <i class="fas fa-users me-2"></i>
                 User Management
             </a>
-            <a href="#" class="nav-link" onclick="showBackupModal()">
+            <a href="/admin/backup-settings" class="nav-link">
                 <i class="fas fa-cog me-2"></i>
                 Backup Settings
             </a>
@@ -255,7 +255,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h2 class="mb-1">User Management</h2>
-                <p class="text-muted">Manage system users and their permissions</p>
+                <p class="text-muted">Manage System Users and their Permissions</p>
             </div>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
                 <i class="fas fa-user-plus me-2"></i>
@@ -263,30 +263,23 @@
             </button>
         </div>
 
-        <!-- Stats Cards -->
+        <!-- Stats Cards - REMOVED "All Users" card -->
         <div class="row mb-4">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="stats-card text-center">
                     <div class="text-primary"><i class="fas fa-users" style="font-size: 2rem;"></i></div>
                     <h4 id="totalUsers">0</h4>
                     <p class="text-muted mb-0">Total Users</p>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card text-center">
-                    <div class="text-success"><i class="fas fa-user-check" style="font-size: 2rem;"></i></div>
-                    <h4 id="activeUsers">0</h4>
-                    <p class="text-muted mb-0">All Users</p>
-                </div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="stats-card text-center">
                     <div class="text-warning"><i class="fas fa-user-shield" style="font-size: 2rem;"></i></div>
                     <h4 id="adminUsers">0</h4>
                     <p class="text-muted mb-0">Admin Users</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <div class="stats-card text-center">
                     <div class="text-info"><i class="fas fa-user-clock" style="font-size: 2rem;"></i></div>
                     <h4 id="recentUsers">0</h4>
@@ -294,30 +287,7 @@
                 </div>
             </div>
         </div>
-        <!-- Backup Settings Modal -->
-        <div class="modal fade" id="backupModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-cog me-2"></i>
-                            System Settings
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-4">
-                            <h6>Data Backup</h6>
-                            <p class="text-muted small">Download system data for backup purposes</p>
-                            <button class="btn btn-primary w-100" onclick="downloadBackup()">
-                                <i class="fas fa-download me-2"></i>
-                                Download Backup
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
         <!-- User Table -->
         <div class="user-table">
             <div class="table-responsive">
@@ -505,7 +475,7 @@
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                         'Accept': 'application/json',
-                        'Cache-Control': 'no-cache' // Force fresh data
+                        'Cache-Control': 'no-cache'
                     }
                 });
 
@@ -676,39 +646,6 @@
             }
         }
 
-        function showBackupModal() {
-            const modal = new bootstrap.Modal(document.getElementById('backupModal'));
-            modal.show();
-        }
-
-        async function downloadBackup() {
-            try {
-                const response = await fetch('/admin/backup', {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    }
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'cafe_backup_' + new Date().toISOString().slice(0, 19).replace(/:/g, '_') + '.json';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-
-                    showAlert('Backup downloaded successfully!', 'success');
-                } else {
-                    showAlert('Backup failed. Please try again.', 'danger');
-                }
-            } catch (error) {
-                console.error('Backup failed:', error);
-                showAlert('Backup failed. Please try again.', 'danger');
-            }
-        }
-
         async function saveUser() {
             const form = document.getElementById('addUserForm');
             const formData = new FormData(form);
@@ -765,7 +702,6 @@
 
         function updateStats() {
             document.getElementById('totalUsers').textContent = allUsers.length;
-            document.getElementById('activeUsers').textContent = allUsers.length;
             document.getElementById('adminUsers').textContent = allUsers.filter(u => u.role === 'admin').length;
 
             const thisMonth = new Date();
