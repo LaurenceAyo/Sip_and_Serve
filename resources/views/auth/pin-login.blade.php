@@ -91,8 +91,17 @@
         <div class="max-w-md w-full">
             <!-- Header -->
             <div class="text-center mb-8">
-                <h3 class="text-3xl font-semibold text-gray-800 mb-3">Hi Partner, enter your PIN</h3>
-                <p class="text-gray-600 text-lg">Please enter your manager-issued 4-PIN code to verify it's you.</p>
+                <h3 class="text-3xl font-semibold text-gray-800 mb-3">
+                    Hi {{ $user->name ?? 'Partner' }}, enter your PIN
+                </h3>
+                <p class="text-gray-600 text-lg">
+                    Please enter your manager-issued 4-PIN code to verify it's you.
+                </p>
+                @if($user ?? null)
+                <div class="mt-4 bg-purple-100 border border-purple-300 text-purple-700 px-4 py-2 rounded">
+                    <strong>Role:</strong> {{ ucfirst($user->role) }} Access
+                </div>
+                @endif
             </div>
 
             <!-- Error Messages -->
@@ -108,9 +117,16 @@
                 </div>
             @endif
 
+            @if(session('success'))
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+                    {{ session('success') }}
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('pin.authenticate') }}" id="pin-form">
                 @csrf
                 <input type="hidden" name="pin" id="pin-input" value="">
+                <input type="hidden" name="type" value="{{ $pinType ?? 'general' }}">
                 
                 <!-- PIN Dots -->
                 <div class="flex justify-center space-x-6 mb-10">
@@ -145,6 +161,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path>
                         </svg>
                     </button>
+                </div>
+
+                <!-- Back to Dashboard Link -->
+                <div class="text-center mt-8">
+                    <a href="{{ route('dashboard') }}" class="text-purple-600 hover:text-purple-800 text-sm">
+                        ← Back to Dashboard
+                    </a>
                 </div>
             </form>
         </div>

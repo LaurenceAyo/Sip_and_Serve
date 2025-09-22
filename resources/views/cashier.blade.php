@@ -1769,6 +1769,41 @@
             editOrderData = null;
         }
 
+
+        function printReceipt(orderId) {
+            debugLog('printReceipt called with orderId:', orderId);
+
+            if (!orderId) {
+                console.error('printReceipt: No orderId provided');
+                showPrinterStatus('❌ Cannot print: No order ID', 'error');
+                return;
+            }
+
+            // Convert to string to ensure proper URL construction
+            const orderIdStr = String(orderId);
+            const receiptUrl = `${window.location.origin}/printer/json/${orderIdStr}`;
+
+            debugLog('Receipt URL for Thermer:', receiptUrl);
+
+            try {
+                // Try opening in new tab for Thermer to detect
+                const newWindow = window.open(receiptUrl, '_blank');
+
+                if (newWindow) {
+                    showPrinterStatus('Receipt data sent to Thermer', 'success');
+                    debugLog('Successfully opened receipt URL');
+                } else {
+                    throw new Error('Popup blocked or failed to open');
+                }
+            } catch (error) {
+                console.error('Error opening receipt URL:', error);
+                showPrinterStatus('❌ Failed to open receipt', 'error');
+            }
+        }
+
+
+
+
         function populateEditOrderItems() {
             const container = document.getElementById('editOrderItemsList');
 
@@ -2746,7 +2781,7 @@
             // Calculate the actual change before processing
             const actualChange = cashReceived - orderTotal;
 
-            // Store current order data before processing
+            // Store current order data before processing - THIS IS THE KEY FIX
             const processingOrderId = currentOrderId;
             const processingOrderNumber = currentOrderNumber;
 
@@ -2784,14 +2819,11 @@
                 });
 
                 if (data.success) {
-                    debugLog('Payment processed successfully, moving order');
+                    // FIX: Use the stored processingOrderId instead of currentOrderId
+                    debugLog('About to print receipt for order:', processingOrderId);
+                    printReceipt(processingOrderId);
 
-                    // Update printer status based on receipt printing result
-                    if (data.receipt_printed) {
-                        showPrinterStatus('✅ Payment completed! Receipt printed successfully.', 'success');
-                    } else {
-                        showPrinterStatus('⚠️ Payment completed! Receipt printing failed - check printer.', 'warning');
-                    }
+                    showPrinterStatus('Payment completed! Printing receipt...', 'success');
 
                     // Move order to processing panel with correct total
                     moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData, orderTotal);
@@ -3616,7 +3648,7 @@
             // Do initial refresh after a short delay
             setTimeout(autoRefreshOrders, 10000);
 
-            
+
         });
 
         // Stop auto-reload when page is about to unload

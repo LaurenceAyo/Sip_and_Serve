@@ -2,59 +2,44 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'email_verified_at',
         'created_by',
-        'manager_id'
+        'manager_id',
+        'role',
+        'status',
+        'permissions',
+        'password_reset_required',
+        'last_login_at'
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'last_login_at' => 'datetime',           // Added for admin system
-            'permissions' => 'array',                // Added for admin system
-            'password_reset_required' => 'boolean',  // Added for admin system
+            'last_login_at' => 'datetime',
+            'permissions' => 'array',
+            'password_reset_required' => 'boolean',
         ];
     }
 
-    /**
-     * Boot method to auto-generate manager_id for new users
-     */
     protected static function boot()
     {
         parent::boot();
@@ -75,9 +60,6 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Generate a unique manager ID
-     */
     public static function generateUniqueManagerId()
     {
         do {
@@ -87,30 +69,60 @@ class User extends Authenticatable
         return $managerId;
     }
 
-    /**
-     * Check if user is admin
-     */
+    // Enhanced role checking methods
     public function isAdmin()
     {
         return $this->email === 'laurenceayo7@gmail.com' || $this->role === 'admin';
     }
 
-    /**
-     * Check if user has specific permission
-     */
-    public function hasPermission($permission)
+    public function isManager()
     {
+        return $this->role === 'manager';
+    }
+
+    public function isCashier()
+    {
+        return $this->role === 'cashier';
+    }
+
+    public function isKitchen()
+    {
+        return $this->role === 'kitchen';
+    }
+
+    public function hasRole($role)
+    {
+        return $this->role === $role;
+    }
+
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+    
+    public function canAccess($area)
+    {
+        if (!$this->isActive()) {
+            return false;
+        }
+
         if ($this->isAdmin()) {
             return true;
         }
 
-        $userPermissions = $this->permissions ?? [];
-        return in_array($permission, $userPermissions) || in_array('all', $userPermissions);
+        switch ($area) {
+            case 'admin':
+                return $this->isAdmin();
+            case 'manager':
+                return $this->isManager() || $this->isAdmin();
+            case 'cashier':
+                return $this->isCashier() || $this->isAdmin();
+            case 'kitchen':
+                return $this->isKitchen() || $this->isAdmin();
+            default:
+                return false;
+        }
     }
-
-    /**
-     * Update last login timestamp
-     */
     public function updateLastLogin()
     {
         $this->update(['last_login_at' => now()]);

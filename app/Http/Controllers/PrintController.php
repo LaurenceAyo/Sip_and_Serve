@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ThermalPrinterService;
-use App\Models\Order; // Adjust based on your Order model
+use App\Models\Order; 
 use Illuminate\Support\Facades\Log;
 
 class PrintController extends Controller

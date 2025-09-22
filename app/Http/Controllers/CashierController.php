@@ -28,7 +28,7 @@ class CashierController extends Controller
         $this->thermalPrinterService = new ThermalPrinterService();
         $this->cashDrawerService = new CashDrawerService();
     }
-
+    
     /**
      * Open cash drawer manually
      */
@@ -164,7 +164,7 @@ class CashierController extends Controller
             ])
                 ->where('payment_method', 'cash')
                 ->where('payment_status', 'pending') // Only pending orders for cashier
-                ->where('status', 'pending') // Only pending status
+                ->where('status', 'preparing') // Only pending status
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -360,7 +360,7 @@ class CashierController extends Controller
             // Fix: Use 'status' not 'payment_status' for pending orders
             $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
                 ->where('payment_method', 'cash')
-                ->where('status', 'pending')  // Changed from payment_status
+                ->where('status', 'preparing')  // Changed from payment_status
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -578,7 +578,7 @@ class CashierController extends Controller
             ], 500);
         }
     }
-
+    
     public function completeOrder(Request $request)
     {
         $validated = $request->validate([
@@ -631,7 +631,7 @@ class CashierController extends Controller
             ], 500);
         }
     }
-
+    
     public function cancelOrder(Request $request)
     {
         Log::info('GOOJPRT PT-210 - Cancel order method called', [
