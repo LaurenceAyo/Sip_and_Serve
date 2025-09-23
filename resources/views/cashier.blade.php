@@ -1554,7 +1554,6 @@
         let processingOrders = new Map();
         let autoReloadInterval = null;
         let isProcessingPayment = false;
-
         // Edit Order Modal Variables
         let editOrderData = null;
         let editMenuItems = [
@@ -1589,22 +1588,18 @@
             if (token) {
                 return token.getAttribute('content');
             }
-
             // Fallback: try to get from Laravel's global
             if (window.Laravel && window.Laravel.csrfToken) {
                 return window.Laravel.csrfToken;
             }
-
             // Another fallback: try from input field
             const tokenInput = document.querySelector('input[name="_token"]');
             if (tokenInput) {
                 return tokenInput.value;
             }
-
             console.error('CSRF token not found in page');
             return null;
         }
-
 
         // Enhanced fetchWithErrorHandling
         async function fetchWithErrorHandling(url, options = {}) {
@@ -1612,7 +1607,6 @@
             if (!csrfToken) {
                 throw new Error('CSRF token not available');
             }
-
             const defaultOptions = {
                 method: 'POST',
                 headers: {
@@ -1624,7 +1618,6 @@
                 credentials: 'same-origin', // Include cookies
                 timeout: 30000 // Increased timeout for payment processing
             };
-
             const finalOptions = {
                 ...defaultOptions,
                 ...options,
@@ -1633,22 +1626,17 @@
                     ...options.headers
                 }
             };
-
             debugLog(`Making request to: ${url}`, finalOptions);
-
             try {
                 const timeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('Request timeout')), finalOptions.timeout);
                 });
-
                 const fetchPromise = fetch(url, finalOptions);
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
-
                 debugLog(`Response status: ${response.status}`, {
                     ok: response.ok,
                     statusText: response.statusText
                 });
-
                 if (!response.ok) {
                     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
                     try {
@@ -1664,7 +1652,6 @@
                     }
                     throw new Error(errorMessage);
                 }
-
                 const data = await response.json();
                 debugLog('Response data:', data);
                 return data;
@@ -1673,26 +1660,22 @@
                 throw error;
             }
         }
-
         // Edit Order Functions
         function editOrder(orderId) {
             currentAction = 'edit';
             currentOrderId = orderId;
-
             // Get the order data from the order card
             const orderCard = document.getElementById(`order-${orderId}`);
             if (!orderCard) {
                 showErrorMessage('Order not found');
                 return;
             }
-
             // Extract order data from the card
             const orderData = extractOrderDataFromCard(orderCard);
             if (!orderData) {
                 showErrorMessage('Could not extract order data');
                 return;
             }
-
             // Open the edit modal with the order data
             openEditOrderModal(orderData);
         }
@@ -1701,17 +1684,14 @@
             try {
                 const orderNumber = orderCard.querySelector('.order-number').textContent.replace('#', '');
                 const orderItems = [];
-
                 // Extract items from the order card
                 const itemElements = orderCard.querySelectorAll('.order-item');
                 itemElements.forEach((itemElement, index) => {
                     const itemText = itemElement.querySelector('.item-name').textContent;
                     const priceText = itemElement.querySelector('.item-price').textContent;
-
                     // Parse item name and quantity
                     const match = itemText.match(/^(.+?)\s+x(\d+)$/);
                     let itemName, quantity;
-
                     if (match) {
                         itemName = match[1].trim();
                         quantity = parseInt(match[2]);
@@ -1719,11 +1699,9 @@
                         itemName = itemText.trim();
                         quantity = 1;
                     }
-
                     // Parse price
                     const totalPrice = parseFloat(priceText.replace('PHP ', '').replace(',', ''));
                     const unitPrice = totalPrice / quantity;
-
                     orderItems.push({
                         id: index + 1, // Use index as temporary ID
                         name: itemName,
@@ -1732,7 +1710,6 @@
                         originalName: itemText
                     });
                 });
-
                 return {
                     id: parseInt(orderCard.getAttribute('data-order-id')),
                     orderNumber: orderNumber,
@@ -1749,14 +1726,11 @@
 
             const modal = document.getElementById('editOrderModal');
             const subtitle = document.getElementById('editModalSubtitle');
-
             if (subtitle) {
                 subtitle.textContent = `Order #${orderData.orderNumber} - Modify items and quantities`;
             }
-
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
-
             populateEditOrderItems();
             populateEditMenuItems();
             updateEditTotal();
@@ -1769,40 +1743,42 @@
             editOrderData = null;
         }
 
-
         function printReceipt(orderId) {
             debugLog('printReceipt called with orderId:', orderId);
-
             if (!orderId) {
                 console.error('printReceipt: No orderId provided');
                 showPrinterStatus('❌ Cannot print: No order ID', 'error');
                 return;
             }
 
-            // Convert to string to ensure proper URL construction
+            // Use Thermer URL scheme for Bluetooth printing
             const orderIdStr = String(orderId);
-            const receiptUrl = `${window.location.origin}/printer/json/${orderIdStr}`;
+            const receiptUrl = `${window.location.origin}/thermer/receipt/${orderIdStr}`;
+            const thermerUrl = `my.bluetoothprint.scheme://${receiptUrl}`;
 
-            debugLog('Receipt URL for Thermer:', receiptUrl);
+            debugLog('Thermer URL:', thermerUrl);
 
             try {
-                // Try opening in new tab for Thermer to detect
-                const newWindow = window.open(receiptUrl, '_blank');
+                // Create a temporary link element for Thermer
+                const link = document.createElement('a');
+                link.href = thermerUrl;
+                link.style.display = 'none';
+                document.body.appendChild(link);
 
-                if (newWindow) {
-                    showPrinterStatus('Receipt data sent to Thermer', 'success');
-                    debugLog('Successfully opened receipt URL');
-                } else {
-                    throw new Error('Popup blocked or failed to open');
-                }
+                // Click the link to trigger Thermer
+                link.click();
+
+                // Clean up
+                document.body.removeChild(link);
+
+                showPrinterStatus('Receipt sent to Thermer app for printing', 'success');
+                debugLog('Successfully triggered Thermer printing');
+
             } catch (error) {
-                console.error('Error opening receipt URL:', error);
-                showPrinterStatus('❌ Failed to open receipt', 'error');
+                console.error('Error triggering Thermer printing:', error);
+                showPrinterStatus('❌ Failed to trigger Thermer printing', 'error');
             }
         }
-
-
-
 
         function populateEditOrderItems() {
             const container = document.getElementById('editOrderItemsList');
@@ -1852,7 +1828,6 @@
 
             editMenuItems.forEach(item => {
                 const isInOrder = editOrderData.items.some(orderItem => orderItem.name.toLowerCase() === item.name.toLowerCase());
-
                 const itemElement = document.createElement('div');
                 itemElement.className = 'edit-menu-item';
                 itemElement.innerHTML = `
@@ -1865,7 +1840,6 @@
                         ${isInOrder ? 'Added' : 'Add'}
                     </button>
                 `;
-
                 container.appendChild(itemElement);
             });
         }
@@ -1888,7 +1862,6 @@
         function addEditItemToOrder(itemId) {
             const menuItem = editMenuItems.find(item => item.id === itemId);
             if (!menuItem) return;
-
             const existingItem = editOrderData.items.find(item => item.name.toLowerCase() === menuItem.name.toLowerCase());
             if (existingItem) {
                 existingItem.quantity++;
@@ -1913,7 +1886,6 @@
             if (itemIndex > -1) {
                 const removedItem = editOrderData.items[itemIndex];
                 editOrderData.items.splice(itemIndex, 1);
-
                 populateEditOrderItems();
                 populateEditMenuItems();
                 updateEditTotal();
@@ -1965,17 +1937,13 @@
                         total_price: item.price * item.quantity
                     }))
                 };
-
                 debugLog('Saving order changes:', requestData);
-
                 const data = await fetchWithErrorHandling('/cashier/update-order', {
                     method: 'POST',
                     body: JSON.stringify(requestData)
                 });
-
                 if (data.success) {
                     showEditNotification('Order updated successfully!', 'success');
-
                     // Update the order card in the pending panel
                     updateOrderCardAfterEdit(editOrderData);
 
@@ -1994,10 +1962,8 @@
         function updateOrderCardAfterEdit(orderData) {
             const orderCard = document.getElementById(`order-${orderData.id}`);
             if (!orderCard) return;
-
             // Recalculate total
             const newTotal = orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
             // Update items section
             const itemsContainer = orderCard.querySelector('.order-items');
             if (itemsContainer) {
@@ -2012,19 +1978,16 @@
                     itemsContainer.appendChild(itemElement);
                 });
             }
-
             // Update total
             const totalElement = orderCard.querySelector('.total-amount');
             if (totalElement) {
                 totalElement.textContent = `PHP ${newTotal.toFixed(2)}`;
             }
-
             // Update the onclick handlers with new total
             const acceptBtn = orderCard.querySelector('.btn-accept');
             if (acceptBtn) {
                 acceptBtn.setAttribute('onclick', `acceptOrder(${orderData.id}, ${newTotal}, '${orderData.orderNumber}', 0)`);
             }
-
             // Add visual feedback
             orderCard.style.border = '3px solid #28a745';
             setTimeout(() => {
@@ -2036,7 +1999,6 @@
             // Remove existing notifications
             const existingNotifications = document.querySelectorAll('.edit-notification');
             existingNotifications.forEach(notification => notification.remove());
-
             const notification = document.createElement('div');
             notification.className = `edit-notification notification ${type}`;
             notification.style.cssText = `
@@ -2052,9 +2014,7 @@
                background: ${type === 'success' ? '#28a745' : '#dc3545'};
            `;
             notification.textContent = message;
-
             document.body.appendChild(notification);
-
             setTimeout(() => {
                 notification.remove();
             }, 3000);
@@ -2063,13 +2023,11 @@
         // Calculate total amount correctly from order items
         function calculateOrderTotal(order) {
             let total = 0;
-
             // Always calculate from items first (most reliable)
             if (order.order_items && Array.isArray(order.order_items)) {
                 order.order_items.forEach(item => {
                     // Get quantity (default to 1 if not specified)
                     const quantity = parseInt(item.quantity) || 1;
-
                     // Get unit price (prefer unit_price, then price, then total_price divided by quantity)
                     let unitPrice = 0;
                     if (item.unit_price) {
@@ -2079,14 +2037,11 @@
                     } else if (item.total_price) {
                         unitPrice = parseFloat(item.total_price) / quantity;
                     }
-
                     // Calculate item total
                     const itemTotal = unitPrice * quantity;
-
                     if (!isNaN(itemTotal)) {
                         total += itemTotal;
                     }
-
                     debugLog(`Item calculation:`, {
                         name: item.name,
                         quantity: quantity,
@@ -2096,23 +2051,18 @@
                     });
                 });
             }
-
             // Only fall back to order.total_amount if no items or total is 0
             if (total <= 0 && order.total_amount) {
                 total = parseFloat(order.total_amount);
                 debugLog('Using fallback total_amount:', total);
             }
-
             debugLog('Final calculated order total', {
                 originalTotal: order.total_amount,
                 calculatedFromItems: total,
                 orderItems: order.order_items
             });
-
             return total;
         }
-
-
         // Page visibility API to pause/resume auto-reload when tab is not visible
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) {
@@ -2130,14 +2080,11 @@
                 }, 500); // Small delay to ensure all modals are checked properly
             }
         });
-
-
         // Auto-refresh function with better error handling
         function autoRefreshOrders() {
             const paymentModal = document.getElementById('paymentModal');
             const confirmModal = document.getElementById('confirmModal');
             const editModal = document.getElementById('editOrderModal');
-
             // Skip refreshing if modals are open to avoid triggering printing
             if ((paymentModal && paymentModal.classList.contains('show')) ||
                 (confirmModal && confirmModal.classList.contains('show')) ||
@@ -2145,29 +2092,23 @@
                 debugLog('Skipping auto-refresh: Modal is open');
                 return;
             }
-
             debugLog('Auto-refreshing orders...');
-
             fetchWithErrorHandling('/cashier/refresh', { method: 'GET' })
                 .then(data => {
                     if (data && data.success === true && Array.isArray(data.orders)) {
                         const currentPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
                             parseInt(card.getAttribute('data-order-id'))
                         );
-
                         updateOrdersDisplay(data.orders);
-
                         const newPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
                             parseInt(card.getAttribute('data-order-id'))
                         );
-
                         debugLog('Orders auto-refreshed successfully', {
                             serverTotal: data.orders.length,
                             beforePending: currentPendingOrders.length,
                             afterPending: newPendingOrders.length,
                             processingCount: processingOrders.size
                         });
-
                         showAutoRefreshIndicator();
                     } else {
                         debugLog('Auto-refresh returned invalid data structure', data);
@@ -2198,14 +2139,11 @@
                transition: opacity 0.3s ease;
                pointer-events: none;
            `;
-
             indicator.innerHTML = `⚠️ Refresh Failed`;
             document.body.appendChild(indicator);
-
             setTimeout(() => {
                 indicator.style.opacity = '1';
             }, 100);
-
             setTimeout(() => {
                 indicator.style.opacity = '0';
                 setTimeout(() => {
@@ -2233,14 +2171,11 @@
                transition: opacity 0.3s ease;
                pointer-events: none;
            `;
-
             indicator.innerHTML = '🔄 Updated';
             document.body.appendChild(indicator);
-
             setTimeout(() => {
                 indicator.style.opacity = '1';
             }, 100);
-
             setTimeout(() => {
                 indicator.style.opacity = '0';
                 setTimeout(() => {
@@ -2281,7 +2216,6 @@
                 debugLog('Invalid orders data received, skipping update', orders);
                 return;
             }
-
             // Handle empty orders response
             if (orders.length === 0) {
                 const existingOrders = container.querySelectorAll('.order-card');
@@ -2304,7 +2238,6 @@
             const currentOrderIds = Array.from(container.querySelectorAll('.order-card')).map(card => parseInt(card.getAttribute('data-order-id')));
             const newPendingOrderIds = orders.filter(order => order.payment_status === 'pending').map(order => order.id);
             const processingOrderIds = Array.from(processingOrders.keys());
-
             debugLog('Order comparison during auto-refresh', {
                 currentOrderIds,
                 newPendingOrderIds,
@@ -2328,7 +2261,6 @@
                     }
                 }
             });
-
             // Add new pending orders (but NEVER add ones we're already processing)
             orders.forEach(order => {
                 if (order.payment_status === 'pending' &&
@@ -2346,7 +2278,6 @@
                     debugLog(`SKIPPING order ${order.id} - already in processing, should not be in pending`);
                 }
             });
-
             // Check if we need to show empty state
             setTimeout(() => {
                 const remainingCards = container.querySelectorAll('.order-card');
@@ -2372,10 +2303,8 @@
             orderCard.className = 'order-card';
             orderCard.id = `order-${order.id}`;
             orderCard.setAttribute('data-order-id', order.id);
-
             let itemsHtml = '';
             let calculatedTotal = 0; // This will be the sum of all item prices
-
             // Handle both 'order_items' and 'items' for compatibility
             const orderItems = order.order_items || order.items || [];
 
@@ -2383,10 +2312,8 @@
                 orderItems.forEach(item => {
                     let itemName = item.name || 'Custom Item';
                     itemName = itemName.replace(/\s*x\d+\s*$/, '').trim();
-
                     // Get quantity (default to 1 if not specified)
                     const quantity = parseInt(item.quantity) || 1;
-
                     // Get unit price properly
                     let unitPrice = 0;
                     if (item.unit_price) {
@@ -2397,13 +2324,10 @@
                         // If we only have total_price, divide by quantity to get unit price
                         unitPrice = parseFloat(item.total_price) / quantity;
                     }
-
                     // Calculate total for this item
                     const itemTotal = unitPrice * quantity;
-
                     // Add to the calculated total
                     calculatedTotal += itemTotal;
-
                     debugLog(`Item in createOrderCard:`, {
                         name: itemName,
                         quantity: quantity,
@@ -2411,7 +2335,6 @@
                         itemTotal: itemTotal,
                         calculatedTotal: calculatedTotal
                     });
-
                     itemsHtml += `
                        <div class="order-item">
                            <span class="item-name">${itemName} x${quantity}</span>
@@ -2423,7 +2346,6 @@
 
             // Use the calculated total, but fallback to order.total or order.total_amount
             const totalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
-
             // Log for debugging
             debugLog('Order total calculation in createOrderCard:', {
                 orderId: order.id,
@@ -2433,14 +2355,11 @@
                 finalTotalUsed: totalAmount,
                 items: orderItems
             });
-
             const cashAmount = parseFloat(order.cash_amount || 0);
-
             let customerPaymentHtml = '';
             // Show payment info for all cash orders, not just ones with pre-set cash amounts
             if (order.payment_method === 'cash') {
                 const expectedChange = cashAmount > 0 ? (cashAmount - totalAmount) : 0;
-
                 customerPaymentHtml = `
                    <div class="customer-payment-info">
                        <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
@@ -2473,7 +2392,6 @@
                    </div>
                `;
             }
-
             const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
             const createdAt = order.created_at ? new Date(order.created_at) : new Date();
             const timeString = createdAt.toLocaleTimeString('en-US', {
@@ -2481,9 +2399,7 @@
                 minute: '2-digit',
                 hour12: true
             });
-
             const orderType = order.order_type || 'dine-in';
-
             orderCard.innerHTML = `
                <div class="order-header">
                    <span>Order</span>
@@ -2589,7 +2505,6 @@
                 .filter(amount => amount >= total)
                 .sort((a, b) => a - b)
                 .slice(0, 6);
-
             container.innerHTML = '';
             uniqueAmounts.forEach(amount => {
                 const button = document.createElement('button');
@@ -2641,17 +2556,14 @@
             if (cashReceivedDisplay) {
                 cashReceivedDisplay.textContent = `PHP ${cashReceived.toFixed(2)}`;
             }
-
             if (changeAmountDisplay) {
                 changeAmountDisplay.textContent = `PHP ${Math.max(0, changeAmount).toFixed(2)}`;
             }
-
             console.log('Change calculation debug:', {
                 cashReceived,
                 orderTotal,
                 changeAmount: cashReceived - orderTotal
             });
-
             if (changeDisplay) {
                 if (changeAmount < 0) {
                     changeDisplay.classList.add('negative');
@@ -2746,49 +2658,38 @@
                 changeAmount,
                 isProcessingPayment
             });
-
             // Prevent double-clicking
             if (isProcessingPayment) {
                 debugLog('Payment already in progress, ignoring click');
                 return;
             }
-
             if (cashReceived < orderTotal) {
                 showErrorMessage('Insufficient cash amount');
                 return;
             }
-
             if (!currentOrderId) {
                 showErrorMessage('No order selected');
                 return;
             }
-
             // Set processing state
             isProcessingPayment = true;
             setConfirmButtonLoading(true);
-
             // Show printer status
             showPrinterStatus('Processing payment and printing receipt...', 'processing');
-
             const requestData = {
                 order_id: parseInt(currentOrderId),
                 cash_amount: parseFloat(cashReceived),
                 print_receipt: true
             };
-
             debugLog('Payment request data:', requestData);
-
             // Calculate the actual change before processing
             const actualChange = cashReceived - orderTotal;
-
             // Store current order data before processing - THIS IS THE KEY FIX
             const processingOrderId = currentOrderId;
             const processingOrderNumber = currentOrderNumber;
-
             // Get the order card element BEFORE processing
             const orderCard = document.getElementById(`order-${currentOrderId}`);
             let orderData = null;
-
             if (orderCard) {
                 // Extract order data from the card for processing panel
                 orderData = {
@@ -2797,7 +2698,6 @@
                     orderCard: orderCard.cloneNode(true),
                     totalAmount: orderTotal
                 };
-
                 debugLog('Order card found and data extracted', {
                     cardId: orderCard.id,
                     orderData: orderData
@@ -2805,32 +2705,43 @@
             } else {
                 debugLog('WARNING: Order card not found!', { orderId: currentOrderId });
             }
-
             // CRITICAL: Remove from pending IMMEDIATELY before API call
             // This prevents auto-refresh from bringing it back
             removeOrderFromPending(processingOrderId);
 
             hidePaymentModal();
-
             try {
                 const data = await fetchWithErrorHandling('/cashier/accept-order', {
                     method: 'POST',
                     body: JSON.stringify(requestData)
                 });
-
+                //if payment sucessful
                 if (data.success) {
                     // FIX: Use the stored processingOrderId instead of currentOrderId
                     debugLog('About to print receipt for order:', processingOrderId);
-                    printReceipt(processingOrderId);
+
+
+
+                    // Use the working simple PHP endpoint for Thermer
+                    const receiptUrl = `${window.location.origin}/thermer-receipt.php?id=${processingOrderId}`;
+                    const thermerUrl = `my.bluetoothprint.scheme://${receiptUrl}`;
+
+                    debugLog('Thermer printing with working endpoint:', thermerUrl);
+
+                    // Create temporary link to trigger Thermer
+                    const link = document.createElement('a');
+                    link.href = thermerUrl;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
 
                     showPrinterStatus('Payment completed! Printing receipt...', 'success');
-
                     // Move order to processing panel with correct total
                     moveOrderToProcessing(processingOrderId, processingOrderNumber, actualChange, data.receipt_printed, orderData, orderTotal);
-
                     // Show success message
                     showSuccessMessage(`Order #${processingOrderNumber} payment processed successfully!`);
-
                     // Log the complete transaction
                     debugLog('Transaction completed', {
                         orderId: processingOrderId,
@@ -2839,7 +2750,6 @@
                         changeGiven: actualChange,
                         receiptPrinted: data.receipt_printed
                     });
-
                 } else {
                     // If payment failed, restore the order to pending
                     if (orderData && orderData.orderCard) {
@@ -2849,18 +2759,14 @@
                 }
             } catch (error) {
                 console.error('Payment processing error:', error);
-
                 // If payment failed and we removed the order, restore it
                 if (orderData && orderData.orderCard) {
                     restoreOrderToPending(orderData);
                 }
-
                 // Show error message
                 showErrorMessage('Payment processing failed: ' + error.message);
-
                 // Show printer error status
                 showPrinterStatus('❌ Payment failed: ' + error.message, 'error');
-
                 // Reset processing state
                 isProcessingPayment = false;
                 setConfirmButtonLoading(false);
@@ -2894,10 +2800,8 @@
 
             printerStatus.textContent = message;
             printerStatus.className = `printer-status show ${type}`;
-
             // Auto-hide after delay based on type
             const delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 4000;
-
             setTimeout(() => {
                 printerStatus.classList.remove('show');
             }, delay);

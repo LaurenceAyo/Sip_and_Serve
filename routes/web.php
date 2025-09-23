@@ -244,6 +244,14 @@ Route::middleware(['auth'])->group(function () {
             return redirect('/cashier')->with('message', "Edit functionality for order #{$id} coming soon");
         })->name('edit');
     });
+
+
+
+    Route::get('/simple-thermer/{id}', [App\Http\Controllers\CashierController::class, 'simpleThermerTest']);
+    Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
+    Route::get('/printer/receipt/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt'])
+    ->name('printer.receipt');
+    Route::get('/receipt/{id}', [PrinterController::class, 'receipt'])->name('receipt.print');
     Route::get('/printer/response',[App\Http\Controllers\PrinterController::class,'response']);
     Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);
     Route::get('/printer/next', function () {

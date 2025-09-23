@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Thermer Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn { 
+            display: block; 
+            padding: 15px 20px; 
+            margin: 10px 0; 
+            background: #007bff; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            text-align: center;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <a href="my.bluetoothprint.scheme://http://192.168.0.124:8000/thermer-receipt.php?id=86">Simple Print Test</a>
+    <h1>Thermer Print Test</h1>
+    
+    <a href="my.bluetoothprint.scheme://http://192.168.0.124:8000/simple-thermer/86" class="btn">
+        Test Print with Simple Endpoint
+    </a>
+    
+    <a href="my.bluetoothprint.scheme://http://192.168.0.124:8000/thermer/receipt/86" class="btn">
+        Test Print with Full Receipt
+    </a>
+    
+    <a href="http://192.168.0.124:8000/simple-thermer/86" class="btn">
+        View Simple JSON (for verification)
+    </a>
+    
+    <a href="http://192.168.0.124:8000/thermer/receipt/86" class="btn">
+        View Full JSON (for verification)
+    </a>
+</body>
+</html>

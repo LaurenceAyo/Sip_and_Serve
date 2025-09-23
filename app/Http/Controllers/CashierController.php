@@ -28,7 +28,7 @@ class CashierController extends Controller
         $this->thermalPrinterService = new ThermalPrinterService();
         $this->cashDrawerService = new CashDrawerService();
     }
-    
+
     /**
      * Open cash drawer manually
      */
@@ -418,7 +418,6 @@ class CashierController extends Controller
                 'print_receipt' => 'boolean',
                 'open_drawer' => 'boolean'
             ]);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -466,7 +465,7 @@ class CashierController extends Controller
 
                 try {
                     $drawerOpened = $this->cashDrawerService->openDrawer(1);
-                    
+
                     // Log drawer operation
                     DB::table('cash_drawer_logs')->insert([
                         'drawer_number' => 1,
@@ -484,14 +483,13 @@ class CashierController extends Controller
                         'order_id' => $order->id,
                         'drawer_opened' => $drawerOpened
                     ]);
-
                 } catch (Exception $e) {
                     $drawerError = $e->getMessage();
                     Log::error('USB Drawer - Opening exception', [
                         'order_id' => $order->id,
                         'error' => $drawerError
                     ]);
-                    
+
                     // Still log the attempt
                     DB::table('cash_drawer_logs')->insert([
                         'drawer_number' => 1,
@@ -504,7 +502,7 @@ class CashierController extends Controller
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
-                    
+
                     $drawerOpened = false;
                 }
             }
@@ -522,7 +520,6 @@ class CashierController extends Controller
                         'order_id' => $order->id,
                         'receipt_printed' => $receiptPrinted
                     ]);
-
                 } catch (Exception $e) {
                     $printerError = $e->getMessage();
                     Log::error('Bluetooth Printer - Receipt exception', [
@@ -563,7 +560,6 @@ class CashierController extends Controller
             ], 200, [
                 'Content-Type' => 'application/json'
             ]);
-
         } catch (Exception $e) {
             DB::rollback();
 
@@ -578,7 +574,265 @@ class CashierController extends Controller
             ], 500);
         }
     }
-    
+
+
+    public function simpleThermerTest($id)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-cache');
+
+        echo json_encode([
+            [
+                "type" => 0,
+                "content" => "SIP & SERVE CAFE",
+                "bold" => 1,
+                "align" => 1,
+                "format" => 0
+            ],
+            [
+                "type" => 0,
+                "content" => "Test Order #" . $id,
+                "bold" => 0,
+                "align" => 0,
+                "format" => 0
+            ],
+            [
+                "type" => 0,
+                "content" => "Total: P95.00",
+                "bold" => 1,
+                "align" => 2,
+                "format" => 0
+            ]
+        ]);
+        exit;
+    }
+
+    /**
+     * Generate receipt JSON for Thermer app printing
+     */
+    public function thermerReceipt($id)
+    {
+        // Clear any previous output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Start fresh output buffering
+        ob_start();
+
+        try {
+            // Add debug logging
+            Log::info('Thermer Receipt Request', ['order_id' => $id]);
+
+
+            $order = Order::with('orderItems.menuItem')->find($id);
+
+            if (!$order) {
+                Log::warning('Thermer Receipt - Order not found', ['order_id' => $id]);
+                return response()->json([
+                    [
+                        'type' => 0,
+                        'content' => 'Order #' . $id . ' not found',
+                        'bold' => 1,
+                        'align' => 1,
+                        'format' => 0
+                    ]
+                ], 200, ['Content-Type' => 'application/json']);
+            }
+
+            Log::info('Thermer Receipt - Order found', [
+                'order_id' => $order->id,
+                'items_count' => $order->orderItems->count()
+            ]);
+
+            $calculatedTotal = $this->calculateCorrectTotal($order);
+
+            $lines = [];
+
+            // Header
+            $lines[] = [
+                'type' => 0,
+                'content' => 'SIP & SERVE CAFE',
+                'bold' => 1,
+                'align' => 1,
+                'format' => 2
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => 'Official Receipt',
+                'bold' => 1,
+                'align' => 1,
+                'format' => 0
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => '================================',
+                'bold' => 0,
+                'align' => 1,
+                'format' => 0
+            ];
+
+            // Order details
+            $lines[] = [
+                'type' => 0,
+                'content' => 'Receipt: ' . ($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)),
+                'bold' => 0,
+                'align' => 0,
+                'format' => 0
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => 'Date: ' . $order->created_at->format('M d, Y H:i'),
+                'bold' => 0,
+                'align' => 0,
+                'format' => 0
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => 'Type: ' . ucfirst($order->order_type ?? 'Dine-in'),
+                'bold' => 0,
+                'align' => 0,
+                'format' => 0
+            ];
+
+            if ($order->customer_name) {
+                $lines[] = [
+                    'type' => 0,
+                    'content' => 'Customer: ' . substr($order->customer_name, 0, 20),
+                    'bold' => 0,
+                    'align' => 0,
+                    'format' => 0
+                ];
+            }
+
+            $lines[] = [
+                'type' => 0,
+                'content' => '--------------------------------',
+                'bold' => 0,
+                'align' => 0,
+                'format' => 0
+            ];
+
+            // Items using your existing method
+            $formattedItems = $this->formatOrderItemsFixed($order->orderItems);
+            foreach ($formattedItems as $item) {
+                $lines[] = [
+                    'type' => 0,
+                    'content' => substr($item['name'], 0, 25),
+                    'bold' => 0,
+                    'align' => 0,
+                    'format' => 0
+                ];
+
+                $lines[] = [
+                    'type' => 0,
+                    'content' => '  ' . $item['quantity'] . ' x P' . number_format($item['unit_price'], 2) . ' = P' . number_format($item['total_price'], 2),
+                    'bold' => 0,
+                    'align' => 2,
+                    'format' => 0
+                ];
+            }
+
+            $lines[] = [
+                'type' => 0,
+                'content' => '--------------------------------',
+                'bold' => 0,
+                'align' => 0,
+                'format' => 0
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => 'TOTAL: P' . number_format($calculatedTotal, 2),
+                'bold' => 1,
+                'align' => 2,
+                'format' => 1
+            ];
+
+            // Payment details
+            if ($order->cash_amount) {
+                $lines[] = [
+                    'type' => 0,
+                    'content' => 'Cash: P' . number_format((float) $order->cash_amount, 2),
+                    'bold' => 0,
+                    'align' => 0,
+                    'format' => 0
+                ];
+
+                if ($order->change_amount > 0) {
+                    $lines[] = [
+                        'type' => 0,
+                        'content' => 'Change: P' . number_format((float) $order->change_amount, 2),
+                        'bold' => 0,
+                        'align' => 0,
+                        'format' => 0
+                    ];
+                }
+            }
+
+            $lines[] = [
+                'type' => 0,
+                'content' => '================================',
+                'bold' => 0,
+                'align' => 1,
+                'format' => 0
+            ];
+
+            $lines[] = [
+                'type' => 0,
+                'content' => 'Thank you for dining with us!',
+                'bold' => 0,
+                'align' => 1,
+                'format' => 0
+            ];
+            Log::info('Thermer Receipt - JSON generated successfully', [
+                'order_id' => $id,
+                'lines_count' => count($lines)
+            ]);
+            // Just before the return statement in thermerReceipt method
+            Log::info('Thermer Receipt - Final JSON response', [
+                'order_id' => $id,
+                'lines_count' => count($lines),
+                'first_line' => isset($lines[0]) ? $lines[0] : null,
+                'json_encode_test' => json_encode($lines, JSON_UNESCAPED_UNICODE)
+            ]);
+
+            // Clear any output buffers that might add extra content
+            if (ob_get_level()) {
+                ob_clean();
+            }
+            // Clean JSON response - no extra content
+            return response()->json($lines, 200, [
+                'Content-Type' => 'application/json',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Thermer Receipt Error', [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            // Return error in JSON format that Thermer can understand
+            return response()->json([
+                [
+                    'type' => 0,
+                    'content' => 'Error: Receipt not found',
+                    'bold' => 1,
+                    'align' => 1,
+                    'format' => 0
+                ]
+            ], 200, [
+                'Content-Type' => 'application/json'
+            ]);
+        }
+    }
+
     public function completeOrder(Request $request)
     {
         $validated = $request->validate([
@@ -631,7 +885,7 @@ class CashierController extends Controller
             ], 500);
         }
     }
-    
+
     public function cancelOrder(Request $request)
     {
         Log::info('GOOJPRT PT-210 - Cancel order method called', [
