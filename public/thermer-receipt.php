@@ -56,7 +56,7 @@ try {
 
     $obj2 = new stdClass();
     $obj2->type = 0;
-    $obj2->content = 'SIP & SERVE CAFE';
+    $obj2->content = 'Diversion Road, Sitio Sirangan   Macabog Sorsogon City, Sorsogon';
     $obj2->bold = 1;
     $obj2->align = 1;
     $obj2->format = 0;
@@ -64,7 +64,7 @@ try {
 
     $obj3 = new stdClass();
     $obj3->type = 0;
-    $obj3->content = 'Official Receipt';
+    $obj3->content = 'SIP & SERVE App';
     $obj3->bold = 1;
     $obj3->align = 1;
     $obj3->format = 0;
@@ -72,24 +72,24 @@ try {
 
     $obj4 = new stdClass();
     $obj4->type = 0;
-    $obj4->content = '================================';
-    $obj4->bold = 0;
+    $obj4->content = 'Official Receipt';
+    $obj4->bold = 1;
     $obj4->align = 1;
     $obj4->format = 0;
     array_push($a, $obj4);
 
-    // Order details
     $obj5 = new stdClass();
     $obj5->type = 0;
-    $obj5->content = 'Receipt: ' . ($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT));
+    $obj5->content = '================================';
     $obj5->bold = 0;
-    $obj5->align = 0;
+    $obj5->align = 1;
     $obj5->format = 0;
     array_push($a, $obj5);
 
+    // Order details
     $obj6 = new stdClass();
     $obj6->type = 0;
-    $obj6->content = 'Date: ' . $order->created_at->format('M d, Y H:i');
+    $obj6->content = 'Receipt: ' . ($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT));
     $obj6->bold = 0;
     $obj6->align = 0;
     $obj6->format = 0;
@@ -97,11 +97,19 @@ try {
 
     $obj7 = new stdClass();
     $obj7->type = 0;
-    $obj7->content = 'Type: ' . ucfirst($order->order_type ?? 'Dine-in');
+    $obj7->content = 'Date: ' . $order->created_at->format('M d, Y H:i');
     $obj7->bold = 0;
     $obj7->align = 0;
     $obj7->format = 0;
     array_push($a, $obj7);
+
+    $obj8 = new stdClass();
+    $obj8->type = 0;
+    $obj8->content = 'Type: ' . ucfirst($order->order_type ?? 'Dine-in');
+    $obj8->bold = 0;
+    $obj8->align = 0;
+    $obj8->format = 0;
+    array_push($a, $obj8);
 
     // Customer name if available
     if ($order->customer_name) {
@@ -151,6 +159,8 @@ try {
         array_push($a, $obj_details);
     }
 
+    ////////////////////////////////////////////
+    // Total separator
     // Total separator
     $obj_sep2 = new stdClass();
     $obj_sep2->type = 0;
@@ -160,13 +170,50 @@ try {
     $obj_sep2->format = 0;
     array_push($a, $obj_sep2);
 
-    // Total
+    // === TOTALS ===
+    $subtotal = $order->orderItems->sum(fn($i) => ($i->unit_price ?? ($i->total_price / max(1, $i->quantity))) * $i->quantity);
+    $tax = $order->tax_amount ?? 0;
+    $discount = $order->discount_amount ?? 0;
+    $grandTotal = $subtotal + $tax - $discount;
+
+    // Subtotal
+    $obj_subtotal = new stdClass();
+    $obj_subtotal->type = 0;
+    $obj_subtotal->content = 'Subtotal: P' . number_format($subtotal, 2);
+    $obj_subtotal->bold = 0;
+    $obj_subtotal->align = 2;
+    $obj_subtotal->format = 0;
+    array_push($a, $obj_subtotal);
+
+    // VAT (if applicable)
+    if ($tax > 0) {
+        $obj_vat = new stdClass();
+        $obj_vat->type = 0;
+        $obj_vat->content = 'VAT 12%: P' . number_format($tax, 2);
+        $obj_vat->bold = 0;
+        $obj_vat->align = 2;
+        $obj_vat->format = 0;
+        array_push($a, $obj_vat);
+    }
+
+    // Discount (if applicable)
+    if ($discount > 0) {
+        $obj_discount = new stdClass();
+        $obj_discount->type = 0;
+        $obj_discount->content = 'Discount: -P' . number_format($discount, 2);
+        $obj_discount->bold = 0;
+        $obj_discount->align = 2;
+        $obj_discount->format = 0;
+        array_push($a, $obj_discount);
+    }
+
+    // Grand Total
     $obj_total = new stdClass();
     $obj_total->type = 0;
-    $obj_total->content = 'TOTAL: P' . number_format($total, 2);
+    $obj_total->content = 'TOTAL: P' . number_format($grandTotal, 2);
     $obj_total->bold = 1;
     $obj_total->align = 2;
-    $obj_total->format = 1;
+    $obj_total->format = 2;
     array_push($a, $obj_total);
 
     // Enhanced Payment details section
@@ -283,7 +330,7 @@ try {
 
     $obj_footer5 = new stdClass();
     $obj_footer5->type = 0;
-    $obj_footer5->content = 'BIR: 2819550';
+    $obj_footer5->content = 'Email: lprimerocoffee@gmail.com';
     $obj_footer5->bold = 0;
     $obj_footer5->align = 1;
     $obj_footer5->format = 0;
@@ -291,11 +338,27 @@ try {
 
     $obj_footer6 = new stdClass();
     $obj_footer6->type = 0;
-    $obj_footer6->content = 'TIN: 269-004-339-000-00';
+    $obj_footer6->content = 'Phone: 0993-688-1248';
     $obj_footer6->bold = 0;
     $obj_footer6->align = 1;
     $obj_footer6->format = 0;
     array_push($a, $obj_footer6);
+
+    $obj_footer7 = new stdClass();
+    $obj_footer7->type = 0;
+    $obj_footer7->content = 'BIR: 2819550';
+    $obj_footer7->bold = 0;
+    $obj_footer7->align = 1;
+    $obj_footer7->format = 0;
+    array_push($a, $obj_footer7);
+
+    $obj_footer8 = new stdClass();
+    $obj_footer8->type = 0;
+    $obj_footer8->content = 'TIN: 269-004-339-000-00';
+    $obj_footer8->bold = 0;
+    $obj_footer8->align = 1;
+    $obj_footer8->format = 0;
+    array_push($a, $obj_footer8);
 
     echo json_encode($a, JSON_FORCE_OBJECT);
 } catch (Exception $e) {
