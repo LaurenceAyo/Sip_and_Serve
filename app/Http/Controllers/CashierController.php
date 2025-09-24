@@ -162,7 +162,7 @@ class CashierController extends Controller
                 'orderItems.menuItem',
                 'orderItems.menuItem.category'
             ])
-                ->where('payment_method', 'cash')
+                ->whereIn('payment_method', ['cash', 'maya'])
                 ->where('payment_status', 'pending') // Only pending orders for cashier
                 ->where('status', 'preparing') // Only pending status
                 ->orderBy('created_at', 'asc')
@@ -359,7 +359,7 @@ class CashierController extends Controller
 
             // Fix: Use 'status' not 'payment_status' for pending orders
             $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
-                ->where('payment_method', 'cash')
+                ->whereIn('payment_method', ['cash', 'maya'])
                 ->where('status', 'preparing')  // Changed from payment_status
                 ->orderBy('created_at', 'asc')
                 ->get();
@@ -451,6 +451,27 @@ class CashierController extends Controller
                 'paid_at' => now(),
                 'kitchen_received_at' => now(),
             ]);
+
+
+            // After order update, before printer/drawer operations
+            if ($order->payment_method === 'maya') {
+                // For Maya payments, show QR and wait for manual confirmation
+                $order->update([
+                    'payment_status' => 'pending_confirmation',
+                    'status' => 'awaiting_payment'
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'payment_method' => 'maya',
+                    'requires_qr_payment' => true,
+                    'qr_image_path' => '/assets/maya-qr.png',
+                    'order_id' => $order->id,
+                    'total_amount' => $calculatedTotal,
+                    'message' => 'Show Maya QR to customer'
+                ]);
+            }
+
 
             $receiptPrinted = false;
             $drawerOpened = false;
@@ -812,7 +833,7 @@ class CashierController extends Controller
                 'Pragma' => 'no-cache',
                 'Expires' => '0'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Thermer Receipt Error', [
                 'order_id' => $id,
                 'error' => $e->getMessage()
@@ -885,6 +906,56 @@ class CashierController extends Controller
             ], 500);
         }
     }
+
+    public function confirmMayaPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
+            'confirmed_by_staff' => 'required|boolean'
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
+            $calculatedTotal = $this->calculateCorrectTotal($order);
+
+            $order->update([
+                'payment_status' => 'paid',
+                'status' => 'preparing',
+                'paid_at' => now(),
+                'kitchen_received_at' => now(),
+            ]);
+
+            DB::commit();
+
+            // Print receipt for Maya payments
+            try {
+                $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
+            } catch (Exception $e) {
+                $receiptPrinted = false;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Maya payment confirmed',
+                'receipt_printed' => $receiptPrinted,
+                'order' => [
+                    'id' => $order->id,
+                    'status' => $order->status,
+                    'payment_status' => $order->payment_status,
+                    'total_amount' => $calculatedTotal
+                ]
+            ]);
+        } catch (Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to confirm Maya payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function cancelOrder(Request $request)
     {

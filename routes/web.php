@@ -273,6 +273,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // =============================================================================
+// Maya PAYMENT ROUTES (Staff only)
+// =============================================================================
+    Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
+
+// =============================================================================
 // KITCHEN ROUTES (Kitchen Staff, Manager, and Admin)
 // =============================================================================
 Route::middleware(['auth'])->group(function () {

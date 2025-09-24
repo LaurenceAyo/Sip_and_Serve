@@ -138,8 +138,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .success-animation {
@@ -149,9 +154,22 @@
         }
 
         @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-10px);
+            }
+
+            60% {
+                transform: translateY(-5px);
+            }
         }
     </style>
 </head>
@@ -166,12 +184,12 @@
                 </h2>
                 <p class="mb-0 mt-2">Manual payment instructions</p>
             </div>
-            
+
             <div class="qr-container" id="qrContainer">
                 <div class="loading-spinner mb-3"></div>
                 <p>Generating QR Code...</p>
             </div>
-            
+
             <div class="order-details">
                 <h5>Order Summary</h5>
                 <div class="d-flex justify-content-between">
@@ -179,10 +197,10 @@
                     <span>{{ isset($order) ? $order->created_at->format('M d, Y h:i A') : now()->format('M d, Y h:i A') }}</span>
                 </div>
                 <div class="total-amount text-center">
-                    ₱{{ isset($order) ? number_format($order->total_amount, 2) : '150.00' }}
+                    ₱{{ isset($order) ? number_format((float) $order->total_amount, 2) : '150.00' }}
                 </div>
             </div>
-            
+
             <div class="payment-instructions">
                 <h6><i class="fas fa-mobile-alt me-2"></i>Payment Steps:</h6>
                 <div class="step">
@@ -202,17 +220,17 @@
                     <div>Show payment receipt to staff</div>
                 </div>
             </div>
-            
+
             <div class="countdown" id="countdown">
                 <i class="fas fa-clock me-2"></i>
                 Time remaining: <span id="timeLeft">15:00</span>
             </div>
-            
+
             <div class="status-checking" id="statusCheck" style="display: none;">
                 <div class="loading-spinner me-2"></div>
                 Checking payment status...
             </div>
-            
+
             <div class="text-center p-3">
                 <button class="btn btn-outline-secondary me-2" onclick="refreshQR()">
                     <i class="fas fa-refresh me-2"></i>
@@ -233,7 +251,7 @@
         let timeLeft = 900;
         const orderId = {{ $order->id ?? 1 }};
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             generateQRCode();
             startCountdown();
             startStatusChecking();
@@ -241,30 +259,21 @@
 
         async function generateQRCode() {
             try {
-                const response = await fetch(`/qr/payment/${orderId}/generate`, {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.qr_image) {
-                    // Show actual QR code
-                    document.getElementById('qrContainer').innerHTML = `
-                        <div class="qr-code">
-                            <img src="${data.qr_image}" alt="GCash QR Code" style="width: 250px; height: 250px;">
-                        </div>
-                        <p class="mt-3 text-muted">Scan with GCash app to pay</p>
-                    `;
-                } else {
-                    showError(data.message || 'QR generation failed');
-                }
+                // Show static QR code instead of generating dynamic one
+                document.getElementById('qrContainer').innerHTML = `
+            <div class="qr-code">
+                <img src="/assets/maya-qr.png" alt="Maya QR Code" style="width: 250px; height: 250px;">
+            </div>
+            <p class="mt-3 text-muted">Scan with Maya app to pay</p>
+            <div class="manual-payment">
+                <h6>Manual Payment Instructions:</h6>
+                <p><strong>Account Name:</strong> L PRIMERO CAFE</p>
+                <p><strong>Reference:</strong> Order #${orderId}</p>
+                <p><strong>Amount:</strong> ₱{{ isset($order) ? number_format((float) $order->total_amount, 2) : '150.00' }}</p>
+            </div>
+        `;
             } catch (error) {
-                console.error('QR generation error:', error);
+                console.error('QR display error:', error);
                 showError('Error loading payment information');
             }
         }
@@ -273,7 +282,7 @@
             countdownTimer = setInterval(() => {
                 timeLeft--;
                 updateCountdownDisplay();
-                
+
                 if (timeLeft <= 0) {
                     clearInterval(countdownTimer);
                     showExpired();
@@ -284,7 +293,7 @@
         function updateCountdownDisplay() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
-            document.getElementById('timeLeft').textContent = 
+            document.getElementById('timeLeft').textContent =
                 `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
@@ -295,29 +304,18 @@
         async function checkStatus() {
             const statusElement = document.getElementById('statusCheck');
             statusElement.style.display = 'block';
-            
-            try {
-                const response = await fetch(`/qr/payment/${orderId}/status`, {
-                    method: 'GET',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.paid) {
-                    clearInterval(countdownTimer);
-                    clearInterval(statusCheckInterval);
-                    showSuccess();
-                } else {
-                    statusElement.style.display = 'none';
-                }
-            } catch (error) {
-                statusElement.style.display = 'none';
-                console.error('Status check failed:', error);
-            }
+
+            // Since this is manual, you could either:
+            // 1. Always return false (staff confirms manually)
+            // 2. Create an admin interface to mark payments as received
+            // 3. Remove auto-checking entirely
+
+            statusElement.innerHTML = `
+        <div class="text-center p-3">
+            <p>Payment confirmation is handled manually by staff.</p>
+            <button class="btn btn-success" onclick="showSuccess()">Mark as Paid (Staff Only)</button>
+        </div>
+    `;
         }
 
         function showSuccess() {
@@ -329,7 +327,7 @@
                     <h2 class="mt-3">Payment Successful!</h2>
                 </div>
                 <div class="p-4 text-center">
-                    <h4 class="text-success">₱{{ isset($order) ? number_format($order->total_amount, 2) : '150.00' }}</h4>
+                    <h4 class="text-success">₱{{ isset($order) ? number_format((float) $order->total_amount, 2) : '150.00' }}</h4>
                     <p class="text-muted">Your payment has been confirmed</p>
                     <div class="mt-4">
                         <a href="{{ route('kiosk.index') }}" class="btn btn-primary">
@@ -346,7 +344,7 @@
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 <span class="text-danger">QR Code Expired</span>
             `;
-            
+
             document.getElementById('qrContainer').innerHTML = `
                 <div class="text-center p-4">
                     <i class="fas fa-clock text-warning" style="font-size: 3rem;"></i>
@@ -378,16 +376,16 @@
                 <i class="fas fa-clock me-2"></i>
                 Time remaining: <span id="timeLeft">15:00</span>
             `;
-            
+
             clearInterval(countdownTimer);
             clearInterval(statusCheckInterval);
-            
+
             // Show loading state
             document.getElementById('qrContainer').innerHTML = `
                 <div class="loading-spinner mb-3"></div>
                 <p>Generating QR Code...</p>
             `;
-            
+
             generateQRCode();
             startCountdown();
             startStatusChecking();

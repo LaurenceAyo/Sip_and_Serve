@@ -750,21 +750,21 @@
             <div class="total-section">
                 <div class="total-row">
                     <span>Subtotal:</span>
-                    <span>PHP {{ isset($order) ? number_format($order->subtotal, 2) : '300.00' }}</span>
+                    <span>PHP {{ isset($order) ? number_format((float) $order->subtotal, 2) : '300.00' }}</span>
                 </div>
                 <div class="total-row">
                     <span>Tax:</span>
-                    <span>PHP {{ isset($order) ? number_format($order->tax_amount, 2) : '0.00' }}</span>
+                    <span>PHP {{ isset($order) ? number_format((float) $order->tax_amount, 2) : '0.00' }}</span>
                 </div>
                 @if(isset($order) && $order->discount_amount > 0)
                     <div class="total-row">
                         <span>Discount:</span>
-                        <span>-PHP {{ number_format($order->discount_amount, 2) }}</span>
+                        <span>-PHP {{ number_format((float) $order->discount_amount, 2) }}</span>
                     </div>
                 @endif
                 <div class="total-row final">
                     <span>Total:</span>
-                    <span>PHP {{ isset($order) ? number_format($order->total_amount, 2) : '300.00' }}</span>
+                    <span>PHP {{ isset($order) ? number_format((float) $order->total_amount, 2) : '300.00' }}</span>
                 </div>
             </div>
 

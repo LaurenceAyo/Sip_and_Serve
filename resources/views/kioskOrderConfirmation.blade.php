@@ -169,19 +169,19 @@
             line-height: 1.3;
         }
 
-        .gcash-method {
+        .maya-method {
             background: linear-gradient(135deg, #007dfe, #0056b3);
             color: white;
             border-color: #007dfe;
         }
 
-        .gcash-method:hover {
+        .maya-method:hover {
             border-color: #0056b3;
             background: linear-gradient(135deg, #0056b3, #004494);
         }
 
-        .gcash-method .payment-method-title,
-        .gcash-method .payment-method-subtitle {
+        .maya-method .payment-method-title,
+        .maya-method .payment-method-subtitle {
             color: white;
         }
 
@@ -1184,6 +1184,41 @@
         .payment-modal-overlay.show .payment-modal-container {
             transform: translateY(0);
         }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(44, 24, 16, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c1810;
+        }
+
+        .modal-content {
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -1308,9 +1343,9 @@
                 </div>
 
                 <div class="payment-methods">
-                    <div class="payment-method-btn gcash-method" onclick="selectPaymentMethod('gcash')">
+                    <div class="payment-method-btn maya-method" onclick="selectPaymentMethod('maya')">
                         <span class="payment-method-icon">📱</span>
-                        <div class="payment-method-title">GCash</div>
+                        <div class="payment-method-title">Maya</div>
                         <div class="payment-method-subtitle">E-Wallet Payment</div>
                     </div>
 
@@ -1357,8 +1392,8 @@
         <div class="payment-modal-container">
             <div class="payment-modal-header">
                 <div class="payment-modal-icon">📱</div>
-                <h2 class="payment-modal-title">Pay with GCash</h2>
-                <p class="payment-modal-subtitle">Complete your payment using GCash</p>
+                <h2 class="payment-modal-title">Pay with MAYA</h2>
+                <p class="payment-modal-subtitle">Complete your payment using MAYA</p>
             </div>
 
             <div class="payment-modal-content">
@@ -1383,10 +1418,10 @@
                     <div class="gcash-instructions">
                         <div class="instruction-title">📱 <strong>How to pay:</strong></div>
                         <div class="instruction-steps">
-                            <div class="step">1. Click the "Pay with GCash" button below</div>
-                            <div class="step">2. You'll be redirected to GCash</div>
-                            <div class="step">3. Complete the payment</div>
-                            <div class="step">4. Return to this page to confirm</div>
+                            <div class="step">1. Scan the QR code and pay with your GCASH or MAYA</div>
+                            <div class="step">2. Once you receive the digital receipt, take note of the
+                                transaction/reference no.</div>
+                            <div class="step">3. Show the number to the cashier to finalize order.</div>
                         </div>
                     </div>
                 </div>
@@ -1396,7 +1431,7 @@
                         Cancel Payment
                     </button>
                     <button class="payment-modal-btn payment-modal-btn-proceed" id="gcashProceedBtn" disabled>
-                        Pay with GCash
+                        Pay Online
                     </button>
                 </div>
             </div>
@@ -1726,11 +1761,11 @@
             const proceedBtn = document.getElementById('proceedPaymentBtn');
             const cashSection = document.getElementById('cashInputSection');
 
-            if (method === 'gcash') {
+            if (method === 'gcash' || method === 'maya') {
                 if (cashSection) cashSection.classList.remove('show');
                 if (proceedBtn) {
                     proceedBtn.disabled = false;
-                    proceedBtn.textContent = 'Pay with GCash';
+                    proceedBtn.textContent = method === 'maya' ? 'Pay with Maya' : 'Pay with GCash';
                 }
             } else if (method === 'cash') {
                 if (cashSection) cashSection.classList.add('show');
@@ -1783,50 +1818,19 @@
 
             if (selectedPaymentMethod === 'cash') {
                 processCashPayment();
-            } else if (selectedPaymentMethod === 'gcash') {
+            } else if (selectedPaymentMethod === 'gcash' || selectedPaymentMethod === 'maya') {
                 processGCashPayment();
             }
         }
 
-        // GCash Payment Functions
+        // MAYA Payment Functions
         function processGCashPayment() {
             hidePaymentModal();
             showGCashModal();
 
-            // Show processing status
-            updateGCashStatus('⏳', 'Creating payment...');
-
-            // Call your existing GCash payment method
-            fetch('/kiosk/process-gcash-payment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken()
-                },
-                body: JSON.stringify({
-                    // Any additional data needed
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        gcashPaymentIntentId = data.data.payment_intent_id;
-
-                        if (data.data.redirect_url) {
-                            showGCashPaymentButton(data.data.redirect_url);
-                            updateGCashStatus('📱', 'Ready to pay with GCash');
-                            startGCashStatusPolling(data.data.payment_intent_id);
-                        } else {
-                            updateGCashStatus('❌', 'Payment setup failed');
-                        }
-                    } else {
-                        updateGCashStatus('❌', data.message || 'Payment failed');
-                    }
-                })
-                .catch(error => {
-                    console.error('GCash payment error:', error);
-                    updateGCashStatus('❌', 'Network error occurred');
-                });
+            // Show static QR code immediately
+            updateGCashStatus('📱', 'Ready to pay with Maya');
+            showStaticQRCode();
         }
 
         function showGCashModal() {
@@ -1851,28 +1855,104 @@
             }
         }
 
-        function showGCashPaymentButton(redirectUrl) {
+        function showStaticQRCode() {
             const qrContainer = document.getElementById('gcashQrContainer');
             const proceedBtn = document.getElementById('gcashProceedBtn');
 
             if (qrContainer) {
                 qrContainer.innerHTML = `
-                    <div class="gcash-payment-button-container">
-                        <button class="gcash-payment-button" onclick="openGCashPayment('${redirectUrl}')">
-                            <span class="gcash-icon">📱</span>
-                            <span class="gcash-text">Pay with GCash</span>
-                        </button>
-                        <p class="gcash-button-note">Click to open GCash payment</p>
-                    </div>
-                `;
+            <div class="static-qr-container">
+                <img src="/assets/maya-qr.png" alt="Maya QR Code" style="width: 250px; height: 250px; border: 2px solid #007bff; border-radius: 10px;">
+                <p style="margin-top: 15px; font-weight: bold; color: #007bff;">Scan to pay with Maya</p>
+            </div>
+        `;
             }
 
             if (proceedBtn) {
                 proceedBtn.disabled = false;
-                proceedBtn.textContent = 'Pay with GCash';
-                proceedBtn.onclick = () => openGCashPayment(redirectUrl);
+                proceedBtn.textContent = 'FINISH PAYMENT';
+                proceedBtn.onclick = () => showFinishPaymentModal();
             }
         }
+
+        function confirmManualPayment() {
+            if (confirm('Have you completed the payment via Maya? Please ensure payment is sent before confirming.')) {
+                // Process as cash payment for now, or create separate endpoint
+                processCashPayment();
+            }
+        }
+        function showFinishPaymentModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay show'; // Add 'show' class immediately
+            modal.id = 'finishPaymentModal';
+            modal.innerHTML = `
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Payment Complete?</h2>
+            </div>
+            <div class="modal-content">
+                <p style="text-align: center; margin: 20px 0; font-size: 1.1rem;">
+                    Are you done using the QR?
+                </p>
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button onclick="hideFinishPaymentModal()" style="background: #6c757d; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1;">
+                        NO
+                    </button>
+                    <button onclick="completePaymentAndReturn()" style="background: #28a745; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1;">
+                        YES
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideFinishPaymentModal() {
+            const modal = document.getElementById('finishPaymentModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+        }
+
+        function completePaymentAndReturn() {
+            // Create order with Maya payment method
+            const orderData = {
+                payment_method: 'maya',
+                total_amount: totalAmount,
+                cash_amount: totalAmount, 
+                change_amount: 0 
+            };
+
+            fetch('/kiosk/process-cash-payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(orderData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Order sent to cashier, redirect to kiosk home
+                        window.location.href = '{{ route("kiosk.index") }}';
+                    } else {
+                        alert('Error processing order: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Order processing error:', error);
+                    alert('Error processing order: ' + error.message);
+                });
+        }
+
+        /////////////////////////
 
         function openGCashPayment(url) {
             // Open payment in new tab/window
@@ -1887,12 +1967,6 @@
                     updateGCashStatus('🔄', 'Checking payment status...');
                 }
             }, 1000);
-        }
-
-        function startGCashStatusPolling(paymentIntentId) {
-            gcashPollInterval = setInterval(() => {
-                checkGCashPaymentStatus(paymentIntentId);
-            }, 3000); // Poll every 3 seconds
         }
 
         function checkGCashPaymentStatus(paymentIntentId) {

@@ -2440,51 +2440,45 @@
 
         // Your existing acceptOrder function stays the same
         function acceptOrder(orderId, amount, orderNumber, cashAmount = null) {
-            debugLog('Accept order called', { orderId, amount, orderNumber, cashAmount });
-
             currentOrderId = parseInt(orderId);
             currentAmount = parseFloat(amount) || 0;
             currentOrderNumber = orderNumber || orderId.toString().padStart(4, '0');
             orderTotal = currentAmount;
 
-            if (cashAmount && parseFloat(cashAmount) > 0) {
-                cashReceived = parseFloat(cashAmount);
-            } else {
-                cashReceived = 0;
-            }
-
-            showPaymentModal();
+            // Show payment method selection modal instead of direct cash modal
+            showPaymentMethodModal();
         }
 
-        function showPaymentModal() {
-            const modal = document.getElementById('paymentModal');
-            const orderTotalDisplay = document.getElementById('orderTotalDisplay');
-            const cashInput = document.getElementById('cashAmount');
+        function showPaymentMethodModal() {
+            // Create and show payment method selection
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'paymentMethodModal';
+            modal.innerHTML = `
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Select Payment Method</h2>
+                <p>Order #${currentOrderNumber} - PHP ${orderTotal.toFixed(2)}</p>
+            </div>
+            <div class="modal-content">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                    <button onclick="processCashPayment()" style="background: #28a745; color: white; border: none; padding: 20px; border-radius: 8px; cursor: pointer; font-size: 1.1rem;">
+                        💵 Cash Payment
+                    </button>
+                    <button onclick="processMayaPayment()" style="background: #00a8ff; color: white; border: none; padding: 20px; border-radius: 8px; cursor: pointer; font-size: 1.1rem;">
+                        📱 Maya QR
+                    </button>
+                </div>
+                <button onclick="hidePaymentMethodModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
 
-            if (!modal || !orderTotalDisplay || !cashInput) {
-                console.error('Payment modal elements not found');
-                return;
-            }
-
-            orderTotalDisplay.textContent = `PHP ${orderTotal.toFixed(2)}`;
-
-            if (cashReceived > 0) {
-                cashInput.value = cashReceived.toFixed(2);
-            } else {
-                cashInput.value = '';
-                cashReceived = 0;
-            }
-
-            changeAmount = 0;
-            generateQuickCashButtons();
-            updatePaymentDisplays();
-
+            document.body.appendChild(modal);
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
-
-            setTimeout(() => {
-                if (cashInput) cashInput.focus();
-            }, 300);
         }
 
         function generateQuickCashButtons() {
@@ -2770,6 +2764,127 @@
                 // Reset processing state
                 isProcessingPayment = false;
                 setConfirmButtonLoading(false);
+            }
+        }
+
+        //NEW
+        function processCashPayment() {
+            hidePaymentMethodModal();
+            showPaymentModal(); // Your existing cash payment modal
+        }
+
+        function processMayaPayment() {
+            hidePaymentMethodModal();
+            showMayaQRModal();
+        }
+
+        function showMayaQRModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'mayaQRModal';
+            modal.innerHTML = `
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Maya QR Payment</h2>
+                <p>Order #${currentOrderNumber} - PHP ${orderTotal.toFixed(2)}</p>
+            </div>
+            <div class="modal-content" style="text-align: center;">
+                <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <img src="/assets/maya-qr.png" alt="Maya QR Code" style="width: 250px; height: 250px; border: 2px solid #00a8ff; border-radius: 10px;">
+                    <p style="margin-top: 15px; font-weight: bold; color: #00a8ff;">Ask customer to scan with Maya app</p>
+                </div>
+                
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: left;">
+                    <strong>Instructions:</strong><br>
+                    1. Show this QR code to customer<br>
+                    2. Customer scans with Maya app<br>
+                    3. Customer completes payment<br>
+                    4. Confirm payment received below
+                </div>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>Amount: PHP ${orderTotal.toFixed(2)}</strong><br>
+                    <small>Reference: Order #${currentOrderNumber}</small>
+                </div>
+                
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button onclick="hideMayaQRModal()" style="background: #6c757d; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1;">
+                        Cancel
+                    </button>
+                    <button onclick="confirmMayaPayment()" style="background: #28a745; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 2; font-weight: bold;">
+                        Payment Received - Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(modal);
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function confirmMayaPayment() {
+            try {
+                setMayaButtonLoading(true);
+
+                const data = await fetchWithErrorHandling('/cashier/confirm-maya-payment', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        order_id: currentOrderId,
+                        confirmed_by_staff: true
+                    })
+                });
+
+                if (data.success) {
+                    hideMayaQRModal();
+
+                    // Print receipt
+                    printReceipt(currentOrderId);
+
+                    // Move to processing
+                    moveOrderToProcessing(currentOrderId, currentOrderNumber, 0, data.receipt_printed, null, orderTotal);
+
+                    // Remove from pending
+                    removeOrderFromPending(currentOrderId);
+
+                    showSuccessMessage(`Maya payment confirmed for Order #${currentOrderNumber}!`);
+                } else {
+                    throw new Error(data.message || 'Failed to confirm payment');
+                }
+            } catch (error) {
+                showErrorMessage('Failed to confirm Maya payment: ' + error.message);
+            } finally {
+                setMayaButtonLoading(false);
+            }
+        }
+
+        function hidePaymentMethodModal() {
+            const modal = document.getElementById('paymentMethodModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+        }
+
+        function hideMayaQRModal() {
+            const modal = document.getElementById('mayaQRModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+        }
+
+        function setMayaButtonLoading(loading) {
+            const confirmBtn = document.querySelector('#mayaQRModal button[onclick="confirmMayaPayment()"]');
+            if (confirmBtn) {
+                if (loading) {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = 'Confirming...';
+                } else {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Payment Received - Confirm';
+                }
             }
         }
 

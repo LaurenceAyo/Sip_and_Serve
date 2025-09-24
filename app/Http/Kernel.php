@@ -55,5 +55,11 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'pin.auth' => \App\Http\Middleware\PinAuthentication::class,
         'pos.security' => \App\Http\Middleware\PosSecurityMiddleware::class,
+
+        'role' => \App\Http\Middleware\CheckRole::class,
+        'cashier' => \App\Http\Middleware\CheckCashierAccess::class,
+        'kitchen' => \App\Http\Middleware\CheckKitchenAccess::class,
+        'manager' => \App\Http\Middleware\CheckManagerAccess::class,
+        'admin' => \App\Http\Middleware\CheckAdminAccess::class,
     ];
 }
