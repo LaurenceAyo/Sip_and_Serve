@@ -49,12 +49,17 @@ class LoginController extends Controller
 
             $user = Auth::user();
 
-            // Redirect based on user role
-            if ($user->email === 'laurenceayo7@gmail.com') {
-                return redirect()->intended(route('dashboard'));
-            } else {
-                return redirect()->intended(route('kiosk.main'));
-            }
+            // Update last login
+            $user->updateLastLogin();
+
+            // Role-based redirection
+            return match($user->role) {
+                'admin' => redirect()->intended(route('dashboard')),
+                'manager' => redirect()->intended(route('dashboard')), 
+                'cashier' => redirect()->intended(route('cashier.index')),
+                'kitchen' => redirect()->intended(route('kitchen.index')),
+                default => redirect()->intended(route('dashboard'))
+            };
         }
 
         // Authentication failed

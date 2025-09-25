@@ -42,6 +42,11 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Unauthorized Access Page
+Route::get('/unauthorized', function () {
+    return view('unauthorized');
+})->name('unauthorized');
+
 // Public Contact Route
 Route::get('/adminContact', function () {
     return view('adminContact');
@@ -58,13 +63,6 @@ Route::get('/manifest.json', [LaravelPWA::class, 'manifest'])->name('pwa.manifes
 Route::get('/sw.js', [LaravelPWA::class, 'sw'])->name('pwa.sw');
 
 
-//==============================================================================
-// WIFI PRINTER TEST ROUTES
-//==============================================================================
-Route::post('/cashier/print-wifi-receipt', [CashierController::class, 'printWiFiReceipt']);
-Route::post('/cashier/test-wifi-printer', [CashierController::class, 'testWiFiPrinter']);
-Route::get('/cashier/wifi-printer-status', [CashierController::class, 'getWiFiPrinterStatus']);
-Route::post('/cashier/update-wifi-printer-ip', [CashierController::class, 'updateWiFiPrinterIP']);
 
 //==============================================================================
 // Password Reset Routes (Guest only)
@@ -182,9 +180,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // =============================================================================
-// ADMIN ROUTES (Admin only)
+// ADMINISTRATOR ROUTES (Administrator only)
 // =============================================================================
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':admin'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         // User Management Routes
         Route::get('/users', [AdminController::class, 'userManagement'])->name('users');
@@ -204,9 +202,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // =============================================================================
-// MANAGER ROUTES (Manager and Admin)
+// MANAGER ROUTES (Manager and Administrator)
 // =============================================================================
-Route::middleware(['auth'])->group(function () {
+    //TEMPORARY DISABLED Route::middleware(['auth', 'manager'])->group(function () {
     // Dashboard (Inventory Management)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
@@ -222,12 +220,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem'])->name('menu-items.update');
     Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem'])->name('menu-items.delete');
     Route::post('/ingredients/update', [IngredientController::class, 'updateStock'])->name('ingredients.update');
-});
+//});
 
 // =============================================================================
-// CASHIER ROUTES (Cashier, Manager, and Admin)
+// CASHIER ROUTES (Cashier, Manager, and Administrator)
 // =============================================================================
-Route::middleware(['auth'])->group(function () {
+
+Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':cashier'])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
         Route::get('/refresh', [CashierController::class, 'refreshOrders'])->name('refresh');
@@ -245,12 +245,13 @@ Route::middleware(['auth'])->group(function () {
         })->name('edit');
     });
 
+    // Maya Payment Routes
+    Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
 
-
+    // Receipt and Printer Routes
     Route::get('/simple-thermer/{id}', [App\Http\Controllers\CashierController::class, 'simpleThermerTest']);
     Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
-    Route::get('/printer/receipt/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt'])
-    ->name('printer.receipt');
+    Route::get('/printer/receipt/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt'])->name('printer.receipt');
     Route::get('/receipt/{id}', [PrinterController::class, 'receipt'])->name('receipt.print');
     Route::get('/printer/response',[App\Http\Controllers\PrinterController::class,'response']);
     Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);
@@ -273,14 +274,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // =============================================================================
-// Maya PAYMENT ROUTES (Staff only)
+// KITCHEN ROUTES (Kitchen Staff, Manager, and Administrator)
 // =============================================================================
-    Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
-
-// =============================================================================
-// KITCHEN ROUTES (Kitchen Staff, Manager, and Admin)
-// =============================================================================
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':kitchen'])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
         Route::get('/data', [KitchenController::class, 'getData'])->name('data');
@@ -310,22 +306,15 @@ Route::middleware(['auth'])->group(function () {
 // =============================================================================
 // PRINTER TESTING ROUTES (Staff only)
 // =============================================================================
-//Thermal app Bridge
-Route::get('/printer/response', [App\Http\Controllers\PrinterController::class, 'response']);
-Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':staff'])->group(function () {
+    //Thermal app Bridge
+    Route::get('/printer/response', [App\Http\Controllers\PrinterController::class, 'response']);
+    Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);
 
-// Bluetooth printing routes
-//Route::post('/cashier/receipt-content', [CashierController::class, 'getReceiptContent']);
-//Route::post('/cashier/web-bluetooth-test', [CashierController::class, 'webBluetoothTest']);
-//Route::get('/cashier/bluetooth-support', [CashierController::class, 'checkBluetoothSupport']);
-//Route::get('/cashier/bluetooth-print', [CashierController::class, 'bluetoothPrintReceipt']);
+    // Additional printer diagnostics
+    Route::get('/cashier/printer-diagnostics', [CashierController::class, 'printerDiagnostics']);
+    Route::post('/cashier/test-bluetooth-print', [CashierController::class, 'webBluetoothTest']);
 
-
-// Additional printer diagnostics
-Route::get('/cashier/printer-diagnostics', [CashierController::class, 'printerDiagnostics']);
-Route::post('/cashier/test-bluetooth-print', [CashierController::class, 'webBluetoothTest']);
-
-Route::middleware(['auth'])->group(function () {
     Route::post('/print-receipt', [App\Http\Controllers\PrintController::class, 'printReceipt']);
     Route::post('/test-printer', [App\Http\Controllers\PrintController::class, 'testPrinter']);
     Route::get('/test-printer-connection', function () {

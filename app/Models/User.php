@@ -40,6 +40,13 @@ class User extends Authenticatable
         ];
     }
 
+    // Role constants
+    const ROLE_ADMINISTRATOR = 'administrator';
+    const ROLE_ADMIN = 'admin'; // Support your existing admin role
+    const ROLE_MANAGER = 'manager';
+    const ROLE_CASHIER = 'cashier';
+    const ROLE_KITCHEN = 'kitchen';
+
     protected static function boot()
     {
         parent::boot();
@@ -49,7 +56,6 @@ class User extends Authenticatable
                 $user->manager_id = self::generateUniqueManagerId();
             }
 
-            // Set default values for admin fields if not provided
             if (!$user->role) {
                 $user->role = 'cashier';
             }
@@ -72,7 +78,12 @@ class User extends Authenticatable
     // Enhanced role checking methods
     public function isAdmin()
     {
-        return $this->email === 'laurenceayo7@gmail.com' || $this->role === 'admin';
+        return $this->email === 'laurenceayo7@gmail.com' || $this->role === 'admin' || $this->role === 'administrator';
+    }
+
+    public function isAdministrator()
+    {
+        return $this->isAdmin();
     }
 
     public function isManager()
@@ -90,9 +101,34 @@ class User extends Authenticatable
         return $this->role === 'kitchen';
     }
 
-    public function hasRole($role)
+    // Fixed hasRole method - supports both single role and array of roles
+    public function hasRole($roles)
     {
-        return $this->role === $role;
+        if (is_string($roles)) {
+            // Handle special case for admin
+            if ($roles === 'administrator' || $roles === 'admin') {
+                return $this->isAdmin();
+            }
+            return $this->role === $roles;
+        }
+
+        if (is_array($roles)) {
+            // Check if user has any of the given roles
+            foreach ($roles as $role) {
+                if ($role === 'administrator' || $role === 'admin') {
+                    if ($this->isAdmin()) {
+                        return true;
+                    }
+                } else {
+                    if ($this->role === $role) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        return false;
     }
 
     public function isActive()
@@ -113,16 +149,54 @@ class User extends Authenticatable
         switch ($area) {
             case 'admin':
                 return $this->isAdmin();
+            case 'dashboard':
             case 'manager':
                 return $this->isManager() || $this->isAdmin();
+            case 'sales':
+                return $this->isManager() || $this->isAdmin();
+            case 'product':
+                return $this->isManager() || $this->isAdmin();
             case 'cashier':
-                return $this->isCashier() || $this->isAdmin();
+                return $this->isCashier() || $this->isManager() || $this->isAdmin();
             case 'kitchen':
-                return $this->isKitchen() || $this->isAdmin();
+                return $this->isKitchen() || $this->isManager() || $this->isAdmin();
             default:
                 return false;
         }
     }
+
+    // This method is called by CheckManagerAccess middleware
+    public function canAccessDashboard()
+    {
+        return $this->isAdmin() || $this->isManager();
+    }
+
+    // Access permission methods for middleware
+    public function canAccessAdmin()
+    {
+        return $this->isAdmin();
+    }
+
+    public function canAccessSales()
+    {
+        return $this->isAdmin() || $this->isManager();
+    }
+
+    public function canAccessProduct()
+    {
+        return $this->isAdmin() || $this->isManager();
+    }
+
+    public function canAccessCashier()
+    {
+        return $this->isAdmin() || $this->isManager() || $this->isCashier();
+    }
+
+    public function canAccessKitchen()
+    {
+        return $this->isAdmin() || $this->isManager() || $this->isKitchen();
+    }
+
     public function updateLastLogin()
     {
         $this->update(['last_login_at' => now()]);

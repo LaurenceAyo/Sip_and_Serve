@@ -19,7 +19,7 @@
         body {
             font-family: 'Segoe UI', sans-serif;
             background:
-                url('{{ asset('assets/bg1_sandwich.png') }}') no-repeat center center fixed,
+                url('<?php echo e(asset('assets/bg1_sandwich.png')); ?>') no-repeat center center fixed,
                 linear-gradient(to bottom, #fff7e6 0%, #c2a477 100%);
             background-size: contain, cover;
             background-blend-mode: normal;
@@ -186,38 +186,39 @@
         <div class="welcome">Welcome Back!</div>
 
         <!-- Display error messages -->
-        @if ($errors->any())
+        <?php if($errors->any()): ?>
             <div class="error-messages">
-                @foreach ($errors->all() as $error)
-                    <div class="error-message">{{ $error }}</div>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <div class="error-message"><?php echo e($error); ?></div>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>
-        @endif
+        <?php endif; ?>
 
         <!-- Display session errors -->
-        @if (session('error'))
+        <?php if(session('error')): ?>
             <div class="error-messages">
-                <div class="error-message">{{ session('error') }}</div>
+                <div class="error-message"><?php echo e(session('error')); ?></div>
             </div>
-        @endif
+        <?php endif; ?>
 
         <!-- Display success message -->
-        @if (session('success'))
+        <?php if(session('success')): ?>
             <div class="success-message">
-                {{ session('success') }}
-            </div>
-        @endif
+                <?php echo e(session('success')); ?>
 
-        <form method="POST" action="{{ route('login') }}" id="loginForm">
-            @csrf
-            <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" autocomplete="off" required>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="<?php echo e(route('login')); ?>" id="loginForm">
+            <?php echo csrf_field(); ?>
+            <input type="email" name="email" placeholder="Email" value="<?php echo e(old('email')); ?>" autocomplete="off" required>
 
             <div class="password-container">
                 <input type="password" name="password" placeholder="Password" id="password-field" autocomplete="off" required>
                 <span class="toggle-password" onclick="togglePassword()" id="toggle-icon">👁️‍🗨️</span>
             </div>
 
-            <!-- <a href="{{ route('password.request') }}" class="forgot">Forgot Password?</a> -->
+            <!-- <a href="<?php echo e(route('password.request')); ?>" class="forgot">Forgot Password?</a> -->
             <div>
                 &nbsp;
             </div>
@@ -229,11 +230,11 @@
             </button>
 
             <!-- Hidden field to specify redirect after login -->
-            <input type="hidden" name="redirect_to" value="{{ route('dashboard') }}">
+            <input type="hidden" name="redirect_to" value="<?php echo e(route('dashboard')); ?>">
         </form>
 
         <div class="register">
-            Don't Have an Account? <a href="{{ route('admin.contact') }}">Ask Admin</a>
+            Don't Have an Account? <a href="<?php echo e(route('admin.contact')); ?>">Ask Admin</a>
         </div>
     </div>
 
@@ -268,4 +269,4 @@
     </script>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/welcome.blade.php ENDPATH**/ ?>

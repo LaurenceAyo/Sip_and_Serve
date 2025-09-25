@@ -12,7 +12,9 @@ return new class extends Migration
             $table->id();
             $table->enum('backup_location', ['local', 'server'])->default('local');
             $table->enum('backup_schedule', ['weekly', 'monthly'])->default('weekly');
-            $table->json('data_included')->nullable();
+            $table->timestamp('last_backup_at')->nullable();
+            $table->timestamp('next_backup_at')->nullable();
+            $table->boolean('auto_backup_enabled')->default(false);
             $table->timestamps();
         });
     }

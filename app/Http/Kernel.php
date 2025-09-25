@@ -1,15 +1,20 @@
 <?php
+// app/Http/Kernel.php
 
 namespace App\Http;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
 {
     /**
      * The application's global HTTP middleware stack.
+     *
+     * These middleware are run during every request to your application.
      */
     protected $middleware = [
+        // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
@@ -32,6 +37,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -41,6 +47,7 @@ class Kernel extends HttpKernel
      * The application's middleware aliases.
      */
     protected $middlewareAliases = [
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
@@ -51,15 +58,12 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' => \App\Http\Middleware\AdminMiddleware::class,
-        'role' => \App\Http\Middleware\RoleMiddleware::class,
         'pin.auth' => \App\Http\Middleware\PinAuthentication::class,
         'pos.security' => \App\Http\Middleware\PosSecurityMiddleware::class,
-
-        'role' => \App\Http\Middleware\CheckRole::class,
-        'cashier' => \App\Http\Middleware\CheckCashierAccess::class,
-        'kitchen' => \App\Http\Middleware\CheckKitchenAccess::class,
-        'manager' => \App\Http\Middleware\CheckManagerAccess::class,
-        'admin' => \App\Http\Middleware\CheckAdminAccess::class,
     ];
+
+    protected function schedule(Schedule $schedule)
+    {
+        $schedule->command('backup:auto')->hourly();
+    }
 }

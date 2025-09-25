@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title>Backup Settings - Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -115,30 +115,31 @@
             </div>
         </div>
 
-        @if(session('success'))
+        <?php if(session('success')): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
+                <?php echo e(session('success')); ?>
+
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        @endif
+        <?php endif; ?>
 
-        @if($errors->any())
+        <?php if($errors->any()): ?>
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <ul class="mb-0">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
+                    <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li><?php echo e($error); ?></li>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-        @endif
+        <?php endif; ?>
 
         <div class="row">
             <div class="col-lg-8">
                 <div class="settings-card">
-                    <form action="{{ route('admin.backup-settings.update') }}" method="POST">
-                        @csrf
-                        @method('PUT')
+                    <form action="<?php echo e(route('admin.backup-settings.update')); ?>" method="POST">
+                        <?php echo csrf_field(); ?>
+                        <?php echo method_field('PUT'); ?>
 
                         <div class="mb-4">
                             <h5 class="mb-3">
@@ -147,7 +148,7 @@
                             </h5>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="backup_location" id="local" value="local" 
-                                    {{ (isset($settings) && $settings->backup_location == 'local') ? 'checked' : 'checked' }}>
+                                    <?php echo e((isset($settings) && $settings->backup_location == 'local') ? 'checked' : 'checked'); ?>>
                                 <label class="form-check-label" for="local">
                                     <strong>Local Storage</strong>
                                     <br>
@@ -156,7 +157,7 @@
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="backup_location" id="server" value="server" disabled
-                                    {{ (isset($settings) && $settings->backup_location == 'server') ? 'checked' : '' }}>
+                                    <?php echo e((isset($settings) && $settings->backup_location == 'server') ? 'checked' : ''); ?>>
                                 <label class="form-check-label text-muted" for="server">
                                     <strong>Remote Server</strong>
                                     <br>
@@ -172,7 +173,7 @@
                             </h5>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="backup_schedule" id="weekly" value="weekly"
-                                    {{ (isset($settings) && $settings->backup_schedule == 'weekly') ? 'checked' : 'checked' }}>
+                                    <?php echo e((isset($settings) && $settings->backup_schedule == 'weekly') ? 'checked' : 'checked'); ?>>
                                 <label class="form-check-label" for="weekly">
                                     <strong>Weekly</strong>
                                     <br>
@@ -181,7 +182,7 @@
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="backup_schedule" id="monthly" value="monthly"
-                                    {{ (isset($settings) && $settings->backup_schedule == 'monthly') ? 'checked' : '' }}>
+                                    <?php echo e((isset($settings) && $settings->backup_schedule == 'monthly') ? 'checked' : ''); ?>>
                                 <label class="form-check-label" for="monthly">
                                     <strong>Monthly</strong>
                                     <br>
@@ -229,20 +230,23 @@
                     <div class="mb-3">
                         <strong>Current Location:</strong>
                         <span class="badge bg-primary ms-2">
-                            {{ isset($settings) ? ucfirst($settings->backup_location) : 'Local' }}
+                            <?php echo e(isset($settings) ? ucfirst($settings->backup_location) : 'Local'); ?>
+
                         </span>
                     </div>
                     <div class="mb-3">
                         <strong>Schedule:</strong>
                         <span class="badge bg-info ms-2">
-                            {{ isset($settings) ? ucfirst($settings->backup_schedule) : 'Weekly' }}
+                            <?php echo e(isset($settings) ? ucfirst($settings->backup_schedule) : 'Weekly'); ?>
+
                         </span>
                     </div>
                     <div class="mb-3">
                         <strong>Last Backup:</strong>
                         <br>
                         <small class="text-muted">
-                            {{ isset($settings) && $settings->updated_at ? $settings->updated_at->format('M d, Y H:i') : 'Never' }}
+                            <?php echo e(isset($settings) && $settings->updated_at ? $settings->updated_at->format('M d, Y H:i') : 'Never'); ?>
+
                         </small>
                     </div>
                 </div>
@@ -396,4 +400,4 @@
         }
     </script>
 </body>
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/admin/backup-settings.blade.php ENDPATH**/ ?>

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Middleware;
+
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,13 +49,13 @@ class RoleMiddleware
                 break;
 
             case 'cashier':
-                if (!($user->isCashier() || $user->isAdmin())) {
+                if (!($user->isCashier() || $user->isManager() || $user->isAdmin())) {
                     return $this->unauthorized($request, 'Cashier access required.');
                 }
                 break;
 
             case 'kitchen':
-                if (!($user->isKitchen() || $user->isAdmin())) {
+                if (!($user->isKitchen() || $user->isManager() || $user->isAdmin())) {
                     return $this->unauthorized($request, 'Kitchen staff access required.');
                 }
                 break;
@@ -101,7 +102,7 @@ class RoleMiddleware
      */
     private function getDefaultRouteForRole(string $role): string
     {
-        return match($role) {
+        return match ($role) {
             'admin' => 'dashboard',
             'manager' => 'dashboard',
             'cashier' => 'cashier.index',

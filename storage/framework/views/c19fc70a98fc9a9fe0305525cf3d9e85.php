@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title>Sip & Serve - Cashier</title>
 
     <style>
@@ -1430,6 +1430,8 @@
         <!-- Add this logout section -->
         <div class="logout-section">
             <div class="user-info">
+                <span>👤</span>
+                <span>Cashier</span>
             </div>
             <button class="logout-btn" onclick="logout()">
                 <span>🚪</span>
@@ -1449,38 +1451,39 @@
             </div>
 
             <div id="ordersContainer">
-                @if(isset($pendingOrders) && count($pendingOrders) > 0)
-                    @foreach($pendingOrders as $order)
-                        <div class="order-card" id="order-{{ $order['id'] }}" data-order-id="{{ $order['id'] }}">
+                <?php if(isset($pendingOrders) && count($pendingOrders) > 0): ?>
+                    <?php $__currentLoopData = $pendingOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <div class="order-card" id="order-<?php echo e($order['id']); ?>" data-order-id="<?php echo e($order['id']); ?>">
                             <div class="order-header">
                                 <span>Order</span>
-                                <span class="order-number">#{{ $order['id'] }}</span>
+                                <span class="order-number">#<?php echo e($order['id']); ?></span>
                             </div>
                             <div class="order-time">
-                                Placed at {{ $order['time'] }}
-                                <span class="order-type">{{ ucfirst($order['order_type'] ?? 'dine-in') }}</span>
+                                Placed at <?php echo e($order['time']); ?>
+
+                                <span class="order-type"><?php echo e(ucfirst($order['order_type'] ?? 'dine-in')); ?></span>
                             </div>
                             <div class="status-badge status-pending">Pending Payment</div>
 
                             <div class="order-items">
-                                @if(isset($order['order_items']) && is_array($order['order_items']))
-                                    @foreach($order['order_items'] as $item)
+                                <?php if(isset($order['order_items']) && is_array($order['order_items'])): ?>
+                                    <?php $__currentLoopData = $order['order_items']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <div class="order-item">
-                                            <span class="item-name">{{ $item['name'] }} x{{ $item['quantity'] }}</span>
-                                            <span class="item-price">PHP {{ number_format($item['total_price'], 2) }}</span>
+                                            <span class="item-name"><?php echo e($item['name']); ?> x<?php echo e($item['quantity']); ?></span>
+                                            <span class="item-price">PHP <?php echo e(number_format($item['total_price'], 2)); ?></span>
                                         </div>
-                                    @endforeach
-                                @elseif(isset($order['items']) && is_array($order['items']))
-                                    @foreach($order['items'] as $item)
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <?php elseif(isset($order['items']) && is_array($order['items'])): ?>
+                                    <?php $__currentLoopData = $order['items']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <div class="order-item">
-                                            <span class="item-name">{{ $item['name'] }}</span>
-                                            <span class="item-price">PHP {{ number_format($item['price'], 2) }}</span>
+                                            <span class="item-name"><?php echo e($item['name']); ?></span>
+                                            <span class="item-price">PHP <?php echo e(number_format($item['price'], 2)); ?></span>
                                         </div>
-                                    @endforeach
-                                @endif
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <?php endif; ?>
                             </div>
 
-                            @if((isset($order['cash_amount']) && $order['cash_amount'] > 0) || (isset($order['payment_method']) && $order['payment_method'] === 'cash'))
+                            <?php if((isset($order['cash_amount']) && $order['cash_amount'] > 0) || (isset($order['payment_method']) && $order['payment_method'] === 'cash')): ?>
                                 <div class="customer-payment-info">
                                     <div
                                         style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
@@ -1488,59 +1491,59 @@
                                     </div>
                                     <div class="payment-info-row">
                                         <span class="payment-info-label">🏷️ Order Total:</span>
-                                        <span>PHP {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
+                                        <span>PHP <?php echo e(number_format($order['total'] ?? $order['total_amount'] ?? 0, 2)); ?></span>
                                     </div>
-                                    @if(isset($order['cash_amount']) && $order['cash_amount'] > 0)
+                                    <?php if(isset($order['cash_amount']) && $order['cash_amount'] > 0): ?>
                                         <div class="payment-info-row">
                                             <span class="payment-info-label">💵 Will Bring:</span>
-                                            <span>PHP {{ number_format($order['cash_amount'], 2) }}</span>
+                                            <span>PHP <?php echo e(number_format($order['cash_amount'], 2)); ?></span>
                                         </div>
-                                        @if(isset($order['expected_change']) && $order['expected_change'] > 0)
+                                        <?php if(isset($order['expected_change']) && $order['expected_change'] > 0): ?>
                                             <div class="payment-info-row expected-change">
                                                 <span class="payment-info-label">💸 Expected Change:</span>
-                                                <span>PHP {{ number_format($order['expected_change'], 2) }}</span>
+                                                <span>PHP <?php echo e(number_format($order['expected_change'], 2)); ?></span>
                                             </div>
-                                        @endif
-                                    @else
+                                        <?php endif; ?>
+                                    <?php else: ?>
                                         <div class="payment-info-row">
                                             <span class="payment-info-label">💵 Will Bring:</span>
                                             <span style="color: #666; font-style: italic;">Amount to be determined</span>
                                         </div>
-                                    @endif
+                                    <?php endif; ?>
                                     <div class="edit-amount-note">
                                         💡 You can edit the cash amount during payment processing
                                     </div>
                                 </div>
-                            @endif
+                            <?php endif; ?>
 
                             <div class="order-total">
                                 <span>Total Amount:</span>
                                 <span class="total-amount">PHP
-                                    {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
+                                    <?php echo e(number_format($order['total'] ?? $order['total_amount'] ?? 0, 2)); ?></span>
                             </div>
 
                             <div class="order-actions">
                                 <button class="btn btn-accept"
-                                    onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
+                                    onclick="acceptOrder('<?php echo e($order['id']); ?>', <?php echo e($order['total'] ?? $order['total_amount'] ?? 0); ?>, '<?php echo e($order['order_number'] ?? $order['id']); ?>', <?php echo e($order['cash_amount'] ?? 0); ?>)">
                                     ✅ Accept
                                 </button>
-                                <button class="btn btn-edit" onclick="editOrder('{{ $order['id'] }}')">
+                                <button class="btn btn-edit" onclick="editOrder('<?php echo e($order['id']); ?>')">
                                     ✏️ Edit
                                 </button>
-                                <button class="btn btn-cancel" onclick="cancelOrder('{{ $order['id'] }}')">
+                                <button class="btn btn-cancel" onclick="cancelOrder('<?php echo e($order['id']); ?>')">
                                     ❌ Cancel
                                 </button>
                             </div>
                         </div>
-                    @endforeach
-                @else
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <?php else: ?>
                     <!-- Empty state when no orders -->
                     <div class="empty-state" id="emptyState">
                         <div class="empty-state-icon">📭</div>
                         <p>No pending cash orders</p>
                         <small>Orders will appear here when customers place cash orders</small>
                     </div>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1707,7 +1710,7 @@
         ];
 
         window.Laravel = {
-            csrfToken: '{{ csrf_token() }}'
+            csrfToken: '<?php echo e(csrf_token()); ?>'
         };
 
         function debugLog(message, data = null) {
@@ -3921,4 +3924,4 @@
     </div>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/cashier.blade.php ENDPATH**/ ?>

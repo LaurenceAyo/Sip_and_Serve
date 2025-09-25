@@ -303,174 +303,182 @@
         <!-- Pending Orders Section -->
         <div class="section">
             <div class="section-header">PENDING ORDERS</div>
-            @forelse($pendingOrders as $order)
-                <div class="order-card" data-order-id="{{ $order->id }}">
+            <?php $__empty_1 = true; $__currentLoopData = $pendingOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <div class="order-card" data-order-id="<?php echo e($order->id); ?>">
                     <div class="order-header">
                         <div class="order-number">
-                            Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</div>
-                        <div class="order-type">{{ ucfirst($order->order_type) }}</div>
+                            Order#<?php echo e($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)); ?></div>
+                        <div class="order-type"><?php echo e(ucfirst($order->order_type)); ?></div>
                     </div>
                     <div class="order-info">
-                        <span>Ordered: {{ $order->created_at->format('g:i A') }}</span>
-                        @if($order->order_type === 'dine-in' && $order->table_number)
-                            <span>Table {{ $order->table_number }}</span>
-                        @elseif($order->order_type === 'takeout')
+                        <span>Ordered: <?php echo e($order->created_at->format('g:i A')); ?></span>
+                        <?php if($order->order_type === 'dine-in' && $order->table_number): ?>
+                            <span>Table <?php echo e($order->table_number); ?></span>
+                        <?php elseif($order->order_type === 'takeout'): ?>
                             <span>Takeout</span>
-                        @endif
-                        @if($order->estimated_prep_time)
-                            <span>Est: {{ $order->estimated_prep_time }} min</span>
-                        @endif
+                        <?php endif; ?>
+                        <?php if($order->estimated_prep_time): ?>
+                            <span>Est: <?php echo e($order->estimated_prep_time); ?> min</span>
+                        <?php endif; ?>
                     </div>
                     <div class="order-items">
-                        @foreach($order->orderItems as $item)
+                        <?php $__currentLoopData = $order->orderItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="order-item">
-                                <span class="item-quantity">{{ $item->quantity }}x</span>
+                                <span class="item-quantity"><?php echo e($item->quantity); ?>x</span>
                                 <span class="item-name">
-                                    {{ $item->name ?? $item->menuItem->name }}
-                                    @if($item->special_instructions)
-                                        <small style="color: #ff6b35;">{{ $item->special_instructions }}</small>
-                                    @endif
+                                    <?php echo e($item->name ?? $item->menuItem->name); ?>
+
+                                    <?php if($item->special_instructions): ?>
+                                        <small style="color: #ff6b35;"><?php echo e($item->special_instructions); ?></small>
+                                    <?php endif; ?>
                                 </span>
                             </div>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
                     <div class="order-total">
-                        Total: ₱{{ number_format($order->total_amount, 2) }}
-                        @if($order->payment_method === 'cash')
-                            <small>(Cash: ₱{{ number_format($order->cash_amount, 2) }}, Change:
-                                ₱{{ number_format($order->change_amount, 2) }})</small>
-                        @else
-                            <small>({{ strtoupper($order->payment_method) }})</small>
-                        @endif
+                        Total: ₱<?php echo e(number_format($order->total_amount, 2)); ?>
+
+                        <?php if($order->payment_method === 'cash'): ?>
+                            <small>(Cash: ₱<?php echo e(number_format($order->cash_amount, 2)); ?>, Change:
+                                ₱<?php echo e(number_format($order->change_amount, 2)); ?>)</small>
+                        <?php else: ?>
+                            <small>(<?php echo e(strtoupper($order->payment_method)); ?>)</small>
+                        <?php endif; ?>
                     </div>
-                    <form action="{{ route('kitchen.start', $order->id) }}" method="POST" style="display: inline;">
-                        @csrf
+                    <form action="<?php echo e(route('kitchen.start', $order->id)); ?>" method="POST" style="display: inline;">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="start-button">Start Cooking</button>
                     </form>
                 </div>
-            @empty
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="empty-section">
                     No pending orders at the moment
                 </div>
-            @endforelse
+            <?php endif; ?>
         </div>
 
         <!-- Processing Section - Update this part -->
         <div class="section">
             <div class="section-header">PREPARING</div>
-            @forelse($processingOrders as $order)
-                <div class="order-card processing-card {{ ($order->is_overdue_calculated ?? false) ? 'overdue-card' : '' }}"
-                    data-order-id="{{ $order->id }}">
+            <?php $__empty_1 = true; $__currentLoopData = $processingOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <div class="order-card processing-card <?php echo e(($order->is_overdue_calculated ?? false) ? 'overdue-card' : ''); ?>"
+                    data-order-id="<?php echo e($order->id); ?>">
                     <div class="order-header">
                         <div class="order-number">
-                            Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
+                            Order#<?php echo e($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)); ?>
+
                         </div>
                         <div class="timer"
-                            data-start-time="{{ $order->started_at ? $order->started_at->toISOString() : '' }}"
-                            data-estimated-minutes="{{ $order->estimated_prep_time ?? 30 }}">
-                            {{ $order->processing_time_display ?? '00:00' }}
+                            data-start-time="<?php echo e($order->started_at ? $order->started_at->toISOString() : ''); ?>"
+                            data-estimated-minutes="<?php echo e($order->estimated_prep_time ?? 30); ?>">
+                            <?php echo e($order->processing_time_display ?? '00:00'); ?>
+
                         </div>
                     </div>
 
                     <div class="order-info">
-                        <span>Started: {{ $order->started_at ? $order->started_at->format('g:i A') : 'Not started' }}</span>
-                        @if($order->order_type === 'dine-in' && $order->table_number)
-                            <span>Table {{ $order->table_number }}</span>
-                        @elseif($order->order_type === 'takeout')
+                        <span>Started: <?php echo e($order->started_at ? $order->started_at->format('g:i A') : 'Not started'); ?></span>
+                        <?php if($order->order_type === 'dine-in' && $order->table_number): ?>
+                            <span>Table <?php echo e($order->table_number); ?></span>
+                        <?php elseif($order->order_type === 'takeout'): ?>
                             <span>Takeout</span>
-                        @endif
-                        <span>{{ ucfirst($order->order_type) }}</span>
+                        <?php endif; ?>
+                        <span><?php echo e(ucfirst($order->order_type)); ?></span>
                     </div>
 
-                    @if($order->estimated_completion_time)
+                    <?php if($order->estimated_completion_time): ?>
                         <div class="estimated-time">
-                            Target completion: {{ $order->estimated_completion_time->format('g:i A') }}
-                            @if($order->is_overdue_calculated ?? false)
+                            Target completion: <?php echo e($order->estimated_completion_time->format('g:i A')); ?>
+
+                            <?php if($order->is_overdue_calculated ?? false): ?>
                                 <span style="color: #d32f2f; font-weight: bold;">OVERDUE</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
                     <div class="order-items">
-                        @foreach($order->orderItems as $item)
+                        <?php $__currentLoopData = $order->orderItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="order-item">
-                                <span class="item-quantity">{{ $item->quantity }}x</span>
+                                <span class="item-quantity"><?php echo e($item->quantity); ?>x</span>
                                 <span class="item-name">
-                                    {{ $item->name ?? $item->menuItem->name }}
-                                    @if($item->special_instructions)
-                                        <small style="color: #ff6b35;">{{ $item->special_instructions }}</small>
-                                    @endif
+                                    <?php echo e($item->name ?? $item->menuItem->name); ?>
+
+                                    <?php if($item->special_instructions): ?>
+                                        <small style="color: #ff6b35;"><?php echo e($item->special_instructions); ?></small>
+                                    <?php endif; ?>
                                 </span>
                             </div>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
 
-                    <form action="{{ route('kitchen.completeOrder', $order->id) }}" method="POST" style="display: inline;">
-                        @csrf
+                    <form action="<?php echo e(route('kitchen.completeOrder', $order->id)); ?>" method="POST" style="display: inline;">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="complete-button">Complete Order</button>
                     </form>
                 </div>
-            @empty
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="empty-section">
                     No orders currently being processed
                 </div>
-            @endforelse
+            <?php endif; ?>
         </div>
 
         <!-- Completed Orders Section - Update this part -->
         <div class="section">
             <div class="section-header">RECENTLY COMPLETED</div>
-            @forelse($completedOrders as $order)
-                <div class="order-card completed-card" data-order-id="{{ $order->id }}">
+            <?php $__empty_1 = true; $__currentLoopData = $completedOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <div class="order-card completed-card" data-order-id="<?php echo e($order->id); ?>">
                     <div class="order-header">
                         <div class="order-number">
-                            Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
+                            Order#<?php echo e($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)); ?>
+
                         </div>
 
                     </div>
 
                     <div class="order-info">
-                        <span>Completed: {{ $order->completed_at ? $order->completed_at->format('g:i A') : 'N/A' }}</span>
-                        @if($order->order_type === 'dine-in' && $order->table_number)
-                            <span>Table {{ $order->table_number }}</span>
-                        @elseif($order->order_type === 'takeout')
+                        <span>Completed: <?php echo e($order->completed_at ? $order->completed_at->format('g:i A') : 'N/A'); ?></span>
+                        <?php if($order->order_type === 'dine-in' && $order->table_number): ?>
+                            <span>Table <?php echo e($order->table_number); ?></span>
+                        <?php elseif($order->order_type === 'takeout'): ?>
                             <span>Takeout</span>
-                        @endif
+                        <?php endif; ?>
                     </div>
 
                     <div class="order-items">
-                        @foreach($order->orderItems as $item)
+                        <?php $__currentLoopData = $order->orderItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             <div class="order-item">
-                                <span class="item-quantity">{{ $item->quantity }}x</span>
+                                <span class="item-quantity"><?php echo e($item->quantity); ?>x</span>
                                 <span class="item-name">
-                                    {{ $item->name ?? $item->menuItem->name }}
+                                    <?php echo e($item->name ?? $item->menuItem->name); ?>
+
                                 </span>
                             </div>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </div>
 
-                    @if($order->estimated_prep_time && $order->total_prep_time_calculated)
+                    <?php if($order->estimated_prep_time && $order->total_prep_time_calculated): ?>
                         <div class="estimated-time">
-                            Estimated: {{ $order->estimated_prep_time }}min |
-                            Actual: {{ $order->total_prep_time_calculated }}min
-                            @php
+                            Estimated: <?php echo e($order->estimated_prep_time); ?>min |
+                            Actual: <?php echo e($order->total_prep_time_calculated); ?>min
+                            <?php
                                 $variance = $order->total_prep_time_calculated - $order->estimated_prep_time;
-                            @endphp
-                            @if($variance > 5)
-                                <span style="color: #d32f2f;">(+{{ $variance }}min)</span>
-                            @elseif($variance < -5)
-                                <span style="color: #4caf50;">({{ $variance }}min)</span>
-                            @else
+                            ?>
+                            <?php if($variance > 5): ?>
+                                <span style="color: #d32f2f;">(+<?php echo e($variance); ?>min)</span>
+                            <?php elseif($variance < -5): ?>
+                                <span style="color: #4caf50;">(<?php echo e($variance); ?>min)</span>
+                            <?php else: ?>
                                 <span style="color: #4caf50;">(On time)</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
-            @empty
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="empty-section">
                     No recently completed orders
                 </div>
-            @endforelse
+            <?php endif; ?>
 
         </div>
 
@@ -556,7 +564,7 @@
             updateTimers();
 
             // Play notification when new order arrives
-            let lastOrderCount = {{ ($pendingOrders->count() + $processingOrders->count()) ?? 0 }};
+            let lastOrderCount = <?php echo e(($pendingOrders->count() + $processingOrders->count()) ?? 0); ?>;
 
             function checkForNewOrders() {
                 const currentOrderCount = document.querySelectorAll('.order-card').length;
@@ -580,7 +588,7 @@
             }
 
             function confirmLogout() {
-                fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>' } })
                     .then(() => window.location.href = '/')
                     .catch(() => window.location.href = '/');
             }
@@ -597,4 +605,4 @@
         </div>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/kitchen.blade.php ENDPATH**/ ?>

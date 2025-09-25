@@ -14,8 +14,11 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        if (Auth::user()->email !== 'laurenceayo7@gmail.com') {
-            return redirect()->route('dashboard')->with('error', 'Access denied');
+        $user = Auth::user();
+
+        if (!$user->canAccessAdmin()) {
+            session(['error' => 'Administrator access required']);
+            return redirect()->route('unauthorized');
         }
 
         return $next($request);
