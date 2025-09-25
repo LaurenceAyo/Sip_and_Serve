@@ -43,7 +43,7 @@
         }
 
         .header::after {
-            content: '🍽️';
+            content: ;
             position: absolute;
             right: 30px;
             top: 50%;
@@ -1269,7 +1269,14 @@
             z-index: 1000;
             display: none;
         }
-
+        .logout-section {
+            position: fixed;
+            right: 20px;
+            top: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
         .printer-status.show {
             display: block;
         }
@@ -1373,15 +1380,7 @@
             }
         }
 
-        .logout-section {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+        
 
         .user-info {
             display: flex;
@@ -1430,8 +1429,6 @@
         <!-- Add this logout section -->
         <div class="logout-section">
             <div class="user-info">
-                <span>👤</span>
-                <span>Cashier</span>
             </div>
             <button class="logout-btn" onclick="logout()">
                 <span>🚪</span>

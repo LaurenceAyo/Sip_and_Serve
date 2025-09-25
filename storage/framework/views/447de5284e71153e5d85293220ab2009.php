@@ -179,7 +179,7 @@
         .logout-section {
             position: absolute;
             right: 20px;
-            top: 50%;
+            top: 43px;
             transform: translateY(-50%);
             display: flex;
             align-items: center;
