@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\MenuVariant;
+use App\Models\Ingredient; // Add this line
+use App\Models\MenuItemIngredient;
 
 class MenuItem extends Model
 {
@@ -46,17 +47,15 @@ class MenuItem extends Model
     {
         return $this->hasOne(Inventory::class);
     }
-
-    public function getImageUrlAttribute()
+    
+    public function ingredients()
     {
-        if ($this->image) {
-            return asset('assets/' . $this->image);
-        }
-        return asset('assets/default-item.jpg'); // fallback image
+        return $this->belongsToMany(Ingredient::class, 'menu_item_ingredients')
+            ->withPivot('quantity_needed');
     }
 
-    public function getFormattedPriceAttribute()
+    public function menuItemIngredients()
     {
-        return number_format((float)$this->price, 2);
+        return $this->hasMany(MenuItemIngredient::class);
     }
 }

@@ -140,7 +140,7 @@
 
             .modal-content {
                 width: 70%;
-                max-width: 500px;
+                max-width: 600px;
                 margin: 2rem;
                 padding: 3rem;
                 border-radius: 16px;
@@ -217,9 +217,11 @@
             background: #F5E6D3;
             padding: 35px 40px;
             border-radius: 12px;
-            text-align: center;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            width: 420px;
+            width: 90%;
+            max-width: 550px;
+            max-height: 85vh;
+            overflow-y: auto;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
@@ -229,6 +231,7 @@
             color: #2c2c2c;
             margin-bottom: 25px;
             letter-spacing: 0.3px;
+            text-align: center;
         }
 
         .modal-btn {
@@ -432,7 +435,7 @@
             font-size: 1rem;
         }
 
-        .form-group input {
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #d4c5a9;
@@ -442,7 +445,7 @@
             color: #374151;
         }
 
-        .form-group input:focus {
+        .form-group input:focus, .form-group textarea:focus {
             outline: none;
             border-color: #8b4513;
             background: white;
@@ -486,7 +489,6 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        /* Delete Confirmation Modal Styles */
         .delete-modal-content {
             background: #F5E6D3;
             padding: 35px 40px;
@@ -540,7 +542,6 @@
             font-style: italic;
         }
 
-        /* Delete Modal Buttons - Stacked like logout modal */
         .delete-modal-actions {
             display: flex;
             flex-direction: column;
@@ -588,6 +589,87 @@
             background: #f8f8f8;
             transform: translateY(-1px);
         }
+
+        /* Ingredient Section Styles */
+        .ingredients-section {
+            background: rgba(139, 69, 19, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .ingredients-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .ingredient-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            align-items: center;
+        }
+
+        .ingredient-select {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #d4c5a9;
+            border-radius: 6px;
+            background: white;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .ingredient-quantity {
+            width: 120px;
+            padding: 10px;
+            border: 2px solid #d4c5a9;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.95rem;
+        }
+
+        .btn-remove {
+            padding: 10px 15px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+            background: #b91c1c;
+        }
+
+        .btn-add-ingredient {
+            padding: 8px 16px;
+            background: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-add-ingredient:hover {
+            background: #6d3410;
+        }
+
+        .cost-display {
+            background: rgba(139, 69, 19, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-weight: 600;
+            color: #5d4037;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -630,6 +712,8 @@
                             <tr>
                                 <th>Item Name</th>
                                 <th>Price</th>
+                                <th>Cost</th>
+                                <th>Ingredients</th>
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
@@ -638,11 +722,13 @@
                                     <tr class="cursor-pointer" data-product-id="<?php echo e($item->id ?? $item['id']); ?>">
                                         <td><?php echo e($item->name ?? $item['name'] ?? 'Unknown'); ?></td>
                                         <td>PHP <?php echo e(number_format($item->price ?? $item['price'] ?? 0, 2)); ?></td>
+                                        <td>PHP <?php echo e(number_format($item->cost ?? $item['cost'] ?? 0, 2)); ?></td>
+                                        <td><?php echo e(isset($item->ingredients) ? count($item->ingredients) : 0); ?> items</td>
                                     </tr>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="2" style="padding: 2rem; color: #6b7280;">No menu items found</td>
+                                    <td colspan="4" style="padding: 2rem; color: #6b7280;">No menu items found</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -655,7 +741,7 @@
                 <h3 class="text-xl font-semibold mb-4" style="color: #5d4037;">Quick Actions</h3>
                 <div class="button-group">
                     <button class="btn-primary" onclick="openAddModal()">+ Add New Item</button>
-                    <button class="btn-secondary" onclick="editSelectedItem()">✏️ Edit Price</button>
+                    <button class="btn-secondary" onclick="editSelectedItem()">✏️ Edit Item</button>
                     <button class="btn-danger" onclick="deleteSelectedItem()">🗑️ Delete Item</button>
                 </div>
             </div>
@@ -684,10 +770,33 @@
                     <label>Product Name</label>
                     <input type="text" name="name" required placeholder="Enter product name">
                 </div>
+                
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" name="category" placeholder="e.g., Coffee, Pastries">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" rows="2" placeholder="Product description"></textarea>
+                </div>
+                
                 <div class="form-group">
                     <label>Price (PHP)</label>
                     <input type="number" name="price" step="0.01" required placeholder="0.00">
                 </div>
+
+                <div class="ingredients-section">
+                    <div class="ingredients-header">
+                        <label style="margin: 0; font-weight: 600; color: #5d4037;">Ingredients</label>
+                        <button type="button" class="btn-add-ingredient" onclick="addIngredientRow('add')">+ Add</button>
+                    </div>
+                    <div id="addIngredientsContainer"></div>
+                    <div id="addCostDisplay" class="cost-display" style="display: none;">
+                        Calculated Cost: PHP <span id="addCalculatedCost">0.00</span>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
                     <button type="button" class="modal-btn modal-btn-cancel" onclick="closeAddModal()">Cancel</button>
                     <button type="submit" class="modal-btn btn-primary">Add Product</button>
@@ -699,19 +808,44 @@
     <!-- Edit Product Modal -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="modal-title">Edit Product Price</h3>
+            <h3 class="modal-title">Edit Product</h3>
             <form id="editProductForm">
+                <input type="hidden" id="editProductId">
+                
                 <div class="form-group">
                     <label>Product Name</label>
-                    <input type="text" id="editProductName" readonly>
+                    <input type="text" name="name" id="editProductName" required>
                 </div>
+                
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" name="category" id="editProductCategory">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" id="editProductDescription" rows="2"></textarea>
+                </div>
+                
                 <div class="form-group">
                     <label>Price (PHP)</label>
                     <input type="number" name="price" id="editProductPrice" step="0.01" required>
                 </div>
+
+                <div class="ingredients-section">
+                    <div class="ingredients-header">
+                        <label style="margin: 0; font-weight: 600; color: #5d4037;">Ingredients</label>
+                        <button type="button" class="btn-add-ingredient" onclick="addIngredientRow('edit')">+ Add</button>
+                    </div>
+                    <div id="editIngredientsContainer"></div>
+                    <div id="editCostDisplay" class="cost-display" style="display: none;">
+                        Calculated Cost: PHP <span id="editCalculatedCost">0.00</span>
+                    </div>
+                </div>
+
                 <div class="modal-actions">
                     <button type="button" class="modal-btn modal-btn-cancel" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="modal-btn btn-secondary">Update Price</button>
+                    <button type="submit" class="modal-btn btn-secondary">Update Product</button>
                 </div>
             </form>
         </div>
@@ -722,9 +856,7 @@
         <div class="delete-modal-content">
             <div class="delete-modal-title">Delete Product?</div>
             <div class="delete-modal-message">Are you sure you want to delete this product?</div>
-            <div class="delete-modal-product" id="deleteProductInfo">
-                <!-- Product info will be inserted here -->
-            </div>
+            <div class="delete-modal-product" id="deleteProductInfo"></div>
             <div class="delete-warning">This action cannot be undone.</div>
 
             <div class="delete-modal-actions">
@@ -736,7 +868,7 @@
 
     <!-- Logout Modal -->
     <div id="logoutModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 420px;">
             <div class="modal-title">Logout Account?</div>
             <button class="modal-btn modal-btn-logout" onclick="confirmLogout()">Logout</button>
             <button class="modal-btn modal-btn-cancel" onclick="closeLogoutModal()">Cancel</button>
@@ -745,6 +877,7 @@
 
     <script>
         let selectedProductId = null;
+        const ingredients = <?php echo json_encode($ingredients ?? [], 15, 512) ?>;
         let products = [
             <?php if(isset($menu_items) && count($menu_items) > 0): ?>
                 <?php $__currentLoopData = $menu_items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -752,17 +885,19 @@
                         id: <?php echo e($item->id ?? $item['id'] ?? 0); ?>,
                         name: "<?php echo e($item->name ?? $item['name'] ?? 'Unknown'); ?>",
                         price: <?php echo e($item->price ?? $item['price'] ?? 0); ?>,
+                        cost: <?php echo e($item->cost ?? $item['cost'] ?? 0); ?>,
                         category: "<?php echo e($item->category ?? $item['category'] ?? 'NULL'); ?>",
-                        description: "<?php echo e($item->description ?? $item['description'] ?? ''); ?>"
+                        description: "<?php echo e($item->description ?? $item['description'] ?? ''); ?>",
+                        ingredients: <?php echo json_encode($item->ingredients ?? [], 15, 512) ?>
                     }<?php if(!$loop->last): ?>, <?php endif; ?>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <?php endif; ?>
         ];
 
-        // Initialize application
+        // Initialize
         document.addEventListener('DOMContentLoaded', function () {
             initializeRowSelection();
-            renderProducts();
+            addIngredientRow('add');
         });
 
         // Search functionality
@@ -787,18 +922,80 @@
             });
         }
 
-        // Helper function to get CSRF token
+        // Ingredient Management
+        function addIngredientRow(mode) {
+            const container = document.getElementById(mode + 'IngredientsContainer');
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.innerHTML = `
+                <select class="ingredient-select" onchange="calculateCost('${mode}')" required>
+                    <option value="">Select Ingredient</option>
+                    ${ingredients.map(ing => `
+                        <option value="${ing.id}" data-cost="${ing.cost_per_unit}">
+                            ${ing.name} (${ing.stock_quantity} ${ing.unit})
+                        </option>
+                    `).join('')}
+                </select>
+                <input type="number" step="0.01" placeholder="Qty" class="ingredient-quantity" 
+                    onchange="calculateCost('${mode}')" required>
+                <button type="button" class="btn-remove" onclick="removeIngredientRow(this, '${mode}')">Remove</button>
+            `;
+            container.appendChild(row);
+            document.getElementById(mode + 'CostDisplay').style.display = 'block';
+        }
+
+        function removeIngredientRow(btn, mode) {
+            btn.parentElement.remove();
+            calculateCost(mode);
+            const container = document.getElementById(mode + 'IngredientsContainer');
+            if (container.children.length === 0) {
+                document.getElementById(mode + 'CostDisplay').style.display = 'none';
+            }
+        }
+
+        function calculateCost(mode) {
+            const rows = document.querySelectorAll(`#${mode}IngredientsContainer .ingredient-row`);
+            let totalCost = 0;
+            
+            rows.forEach(row => {
+                const select = row.querySelector('.ingredient-select');
+                const quantity = parseFloat(row.querySelector('.ingredient-quantity').value) || 0;
+                const option = select.options[select.selectedIndex];
+                const cost = parseFloat(option.dataset.cost) || 0;
+                totalCost += cost * quantity;
+            });
+            
+            document.getElementById(mode + 'CalculatedCost').textContent = totalCost.toFixed(2);
+        }
+
+        function getIngredients(mode) {
+            const rows = document.querySelectorAll(`#${mode}IngredientsContainer .ingredient-row`);
+            const ingredientsData = [];
+            
+            rows.forEach(row => {
+                const select = row.querySelector('.ingredient-select');
+                const quantity = row.querySelector('.ingredient-quantity');
+                if (select.value && quantity.value) {
+                    ingredientsData.push({
+                        id: parseInt(select.value),
+                        quantity: parseFloat(quantity.value)
+                    });
+                }
+            });
+            
+            return ingredientsData;
+        }
+
+        // Helper functions
         function getCSRFToken() {
             const csrfToken = document.querySelector('meta[name="csrf-token"]');
             if (!csrfToken) {
-                console.error('CSRF token not found');
                 showMessage('CSRF token missing. Please refresh the page.', 'error');
                 return null;
             }
             return csrfToken.getAttribute('content');
         }
 
-        // Helper function to get common AJAX headers
         function getAjaxHeaders() {
             const token = getCSRFToken();
             if (!token) return null;
@@ -813,6 +1010,8 @@
         // Modal functions
         function openAddModal() {
             document.getElementById('addModal').classList.add('show');
+            document.getElementById('addIngredientsContainer').innerHTML = '';
+            addIngredientRow('add');
         }
 
         function closeAddModal() {
@@ -832,8 +1031,38 @@
                 return;
             }
 
+            document.getElementById('editProductId').value = product.id;
             document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductCategory').value = product.category || '';
+            document.getElementById('editProductDescription').value = product.description || '';
             document.getElementById('editProductPrice').value = product.price;
+            
+            document.getElementById('editIngredientsContainer').innerHTML = '';
+            if (product.ingredients && product.ingredients.length > 0) {
+                product.ingredients.forEach(ing => {
+                    const container = document.getElementById('editIngredientsContainer');
+                    const row = document.createElement('div');
+                    row.className = 'ingredient-row';
+                    row.innerHTML = `
+                        <select class="ingredient-select" onchange="calculateCost('edit')" required>
+                            <option value="">Select Ingredient</option>
+                            ${ingredients.map(i => `
+                                <option value="${i.id}" data-cost="${i.cost_per_unit}" ${i.id === ing.id ? 'selected' : ''}>
+                                    ${i.name} (${i.stock_quantity} ${i.unit})
+                                </option>
+                            `).join('')}
+                        </select>
+                        <input type="number" step="0.01" value="${ing.pivot?.quantity_needed || 0}" 
+                            placeholder="Qty" class="ingredient-quantity" onchange="calculateCost('edit')" required>
+                        <button type="button" class="btn-remove" onclick="removeIngredientRow(this, 'edit')">Remove</button>
+                    `;
+                    container.appendChild(row);
+                });
+                calculateCost('edit');
+            } else {
+                addIngredientRow('edit');
+            }
+            
             document.getElementById('editModal').classList.add('show');
         }
 
@@ -854,7 +1083,6 @@
                 return;
             }
 
-            // Show product info in delete modal
             document.getElementById('deleteProductInfo').innerHTML = `
                 <div class="product-name">${product.name}</div>
                 <div class="product-price">PHP ${parseFloat(product.price).toFixed(2)}</div>
@@ -867,224 +1095,113 @@
             document.getElementById('deleteModal').classList.remove('show');
         }
 
-        function confirmDelete() {
-            const product = products.find(p => p.id === selectedProductId);
+        async function confirmDelete() {
             const headers = getAjaxHeaders();
             if (!headers) return;
 
-            fetch('/menu-items/delete', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    id: selectedProductId
-                })
-            })
-            .then(response => {
-                console.log('Delete response status:', response.status);
+            try {
+                const response = await fetch(`/product/${selectedProductId}`, {
+                    method: 'DELETE',
+                    headers: headers
+                });
+
+                const result = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                return response.text();
-            })
-            .then(text => {
-                console.log('Delete raw response:', text);
-                
-                try {
-                    const data = JSON.parse(text);
-                    console.log('Delete parsed data:', data);
-                    
-                    if (data.success) {
-                        // Remove from frontend array
-                        products = products.filter(p => p.id !== selectedProductId);
-                        renderProducts();
-                        selectedProductId = null;
-                        closeDeleteModal();
-                        showMessage(`"${product.name}" deleted successfully`, 'success');
-                    } else {
-                        showMessage('Error deleting item: ' + (data.message || 'Unknown error'), 'error');
-                    }
-                } catch (e) {
-                    console.log('Delete JSON parse failed:', e);
-                    // Assume success and update frontend
+                if (result.success) {
                     products = products.filter(p => p.id !== selectedProductId);
                     renderProducts();
                     selectedProductId = null;
                     closeDeleteModal();
-                    showMessage(`"${product.name}" deleted successfully`, 'success');
+                    showMessage('Product deleted successfully', 'success');
+                } else {
+                    showMessage('Error: ' + result.message, 'error');
                 }
-            })
-            .catch(error => {
-                console.error('Delete fetch error:', error);
-                showMessage('Error deleting item. Please try again.', 'error');
-            });
+            } catch (error) {
+                showMessage('Error deleting product', 'error');
+            }
         }
 
-        // FIXED: Add Product Form Handler
-        document.getElementById('addProductForm').addEventListener('submit', function (e) {
+        // Form handlers
+        document.getElementById('addProductForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const name = formData.get('name').trim();
-            const price = parseFloat(formData.get('price'));
+            const ingredientsData = getIngredients('add');
 
-            if (!name || price < 0 || isNaN(price)) {
-                showMessage('Please provide valid product details', 'error');
+            if (ingredientsData.length === 0) {
+                showMessage('Please add at least one ingredient', 'error');
                 return;
             }
+
+            const data = {
+                name: formData.get('name'),
+                category: formData.get('category') || 'NULL',
+                description: formData.get('description') || '',
+                price: parseFloat(formData.get('price')),
+                ingredients: ingredientsData
+            };
 
             const headers = getAjaxHeaders();
             if (!headers) return;
 
-            fetch('/menu-items/store', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    name: name,
-                    price: price
-                })
-            })
-            .then(response => {
-                console.log('Add response status:', response.status);
+            try {
+                const response = await fetch('/product/store', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (result.success) {
+                    showMessage('Product added successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage('Error: ' + result.message, 'error');
                 }
-                
-                return response.text();
-            })
-            .then(text => {
-                console.log('Add raw response:', text);
-                
-                try {
-                    const data = JSON.parse(text);
-                    console.log('Add parsed data:', data);
-                    
-                    if (data.success && data.item) {
-                        // Add to frontend array
-                        const newProduct = {
-                            id: data.item.id,
-                            name: data.item.name,
-                            price: parseFloat(data.item.price),
-                            category: data.item.category || 'NULL',
-                            description: data.item.description || ''
-                        };
-                        
-                        products.push(newProduct);
-                        renderProducts();
-                        closeAddModal();
-                        showMessage('Menu item added successfully!', 'success');
-                    } else {
-                        showMessage('Error adding item: ' + (data.message || 'Unknown error'), 'error');
-                    }
-                } catch (e) {
-                    console.log('Add JSON parse failed:', e);
-                    // Since item was added to database, add it to frontend manually
-                    const newProduct = {
-                        id: Date.now(), // Temporary ID
-                        name: name,
-                        price: price,
-                        category: 'NULL',
-                        description: ''
-                    };
-                    
-                    products.push(newProduct);
-                    renderProducts();
-                    closeAddModal();
-                    showMessage('Menu item added successfully!', 'success');
-                }
-            })
-            .catch(error => {
-                console.error('Add fetch error:', error);
-                
-                // Since you mentioned items are being added to DB, let's add to frontend too
-                const newProduct = {
-                    id: Date.now(), // Temporary ID
-                    name: name,
-                    price: price,
-                    category: 'NULL',
-                    description: ''
-                };
-                
-                products.push(newProduct);
-                renderProducts();
-                closeAddModal();
-                showMessage('Menu item added successfully!', 'success');
-            });
+            } catch (error) {
+                showMessage('Error adding product', 'error');
+            }
         });
 
-        // FIXED: Edit Product Form Handler
-        document.getElementById('editProductForm').addEventListener('submit', function (e) {
+        document.getElementById('editProductForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const price = parseFloat(formData.get('price'));
+            const ingredientsData = getIngredients('edit');
 
-            if (price < 0 || isNaN(price)) {
-                showMessage('Please provide a valid price', 'error');
+            if (ingredientsData.length === 0) {
+                showMessage('Please add at least one ingredient', 'error');
                 return;
             }
 
-            const product = products.find(p => p.id === selectedProductId);
-            if (!product) {
-                showMessage('Product not found', 'error');
-                return;
-            }
+            const data = {
+                name: formData.get('name'),
+                category: formData.get('category') || 'NULL',
+                description: formData.get('description') || '',
+                price: parseFloat(formData.get('price')),
+                ingredients: ingredientsData
+            };
 
             const headers = getAjaxHeaders();
             if (!headers) return;
 
-            fetch('/menu-items/update', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    id: selectedProductId,
-                    price: price
-                })
-            })
-            .then(response => {
-                console.log('Update response status:', response.status);
+            try {
+                const response = await fetch(`/product/${selectedProductId}`, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (result.success) {
+                    showMessage('Product updated successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMessage('Error: ' + result.message, 'error');
                 }
-                
-                return response.text();
-            })
-            .then(text => {
-                console.log('Update raw response:', text);
-                
-                try {
-                    const data = JSON.parse(text);
-                    console.log('Update parsed data:', data);
-                    
-                    if (data.success) {
-                        // Update frontend array
-                        const productIndex = products.findIndex(p => p.id === selectedProductId);
-                        if (productIndex !== -1) {
-                            products[productIndex].price = price;
-                        }
-                        renderProducts();
-                        closeEditModal();
-                        showMessage('Menu item price updated successfully!', 'success');
-                    } else {
-                        showMessage('Error updating item: ' + (data.message || 'Unknown error'), 'error');
-                    }
-                } catch (e) {
-                    console.log('Update JSON parse failed:', e);
-                    // Assume success and update frontend
-                    const productIndex = products.findIndex(p => p.id === selectedProductId);
-                    if (productIndex !== -1) {
-                        products[productIndex].price = price;
-                    }
-                    renderProducts();
-                    closeEditModal();
-                    showMessage('Menu item price updated successfully!', 'success');
-                }
-            })
-            .catch(error => {
-                console.error('Update fetch error:', error);
-                showMessage('Error updating item. Please try again.', 'error');
-            });
+            } catch (error) {
+                showMessage('Error updating product', 'error');
+            }
         });
 
         // Render products
@@ -1093,7 +1210,7 @@
             tbody.innerHTML = '';
 
             if (products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" style="padding: 2rem; color: #6b7280;">No products found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="padding: 2rem; color: #6b7280;">No products found</td></tr>';
                 return;
             }
 
@@ -1104,6 +1221,8 @@
                 row.innerHTML = `
                     <td>${product.name}</td>
                     <td>PHP ${parseFloat(product.price).toFixed(2)}</td>
+                    <td>PHP ${parseFloat(product.cost).toFixed(2)}</td>
+                    <td>${product.ingredients?.length || 0} items</td>
                 `;
                 tbody.appendChild(row);
             });

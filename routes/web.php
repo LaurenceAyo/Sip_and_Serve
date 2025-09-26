@@ -182,7 +182,7 @@ Route::middleware(['auth'])->group(function () {
 // =============================================================================
 // ADMINISTRATOR ROUTES (Administrator only)
 // =============================================================================
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':admin'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         // User Management Routes
         Route::get('/users', [AdminController::class, 'userManagement'])->name('users');
@@ -202,24 +202,27 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':admin'])
 });
 
 // =============================================================================
-// MANAGER ROUTES (Manager and Administrator)
+// MANAGER ROUTES (Manager and Administrator) (Sub routes for Product Management and Sales Management)
 // =============================================================================
-    //TEMPORARY DISABLED Route::middleware(['auth', 'manager'])->group(function () {
-    // Dashboard (Inventory Management)
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 
-    // Sales Management
-    Route::get('/sales', [SalesController::class, 'index'])->name('sales');
+// Dashboard (Inventory Management)
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 
-    // Product Management
-    Route::get('/product', [ProductController::class, 'index'])->name('product');
+// Sales Management
+Route::get('/sales', [SalesController::class, 'index'])->name('sales');
 
-    // Menu & Ingredient Management
-    Route::post('/menu-items/store', [KioskController::class, 'storeMenuItem'])->name('menu-items.store');
-    Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem'])->name('menu-items.update');
-    Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem'])->name('menu-items.delete');
-    Route::post('/ingredients/update', [IngredientController::class, 'updateStock'])->name('ingredients.update');
+// Product Management
+Route::get('/product', [ProductController::class, 'index'])->name('product');
+Route::post('/product/store', [ProductController::class, 'store'])->name('product.store');
+Route::put('/product/{id}', [ProductController::class, 'update'])->name('product.update');
+Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product.destroy');
+
+// Menu & Ingredient Management
+Route::post('/menu-items/store', [KioskController::class, 'storeMenuItem'])->name('menu-items.store');
+Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem'])->name('menu-items.update');
+Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem'])->name('menu-items.delete');
+Route::post('/ingredients/update', [IngredientController::class, 'updateStock'])->name('ingredients.update');
 //});
 
 // =============================================================================
@@ -227,7 +230,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':admin'])
 // =============================================================================
 
 Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':cashier'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':cashier'])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
         Route::get('/refresh', [CashierController::class, 'refreshOrders'])->name('refresh');
@@ -253,7 +256,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':cashier'
     Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
     Route::get('/printer/receipt/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt'])->name('printer.receipt');
     Route::get('/receipt/{id}', [PrinterController::class, 'receipt'])->name('receipt.print');
-    Route::get('/printer/response',[App\Http\Controllers\PrinterController::class,'response']);
+    Route::get('/printer/response', [App\Http\Controllers\PrinterController::class, 'response']);
     Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);
     Route::get('/printer/next', function () {
         $orderId = Cache::pull('thermer_print_queue'); // Get and remove from queue
@@ -276,7 +279,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':cashier'
 // =============================================================================
 // KITCHEN ROUTES (Kitchen Staff, Manager, and Administrator)
 // =============================================================================
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':kitchen'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':kitchen'])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
         Route::get('/data', [KitchenController::class, 'getData'])->name('data');
@@ -306,7 +309,7 @@ Route::middleware(['auth'])->group(function () {
 // =============================================================================
 // PRINTER TESTING ROUTES (Staff only)
 // =============================================================================
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class.':staff'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':staff'])->group(function () {
     //Thermal app Bridge
     Route::get('/printer/response', [App\Http\Controllers\PrinterController::class, 'response']);
     Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);

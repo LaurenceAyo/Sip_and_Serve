@@ -10,7 +10,7 @@ class MenuItemIngredient extends Model
     use HasFactory;
 
     protected $table = 'menu_item_ingredients';
-
+    public $timestamps = false; // Add this line
     protected $fillable = [
         'menu_item_id',
         'ingredient_id',
