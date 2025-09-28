@@ -1924,9 +1924,8 @@
                 return;
             }
 
-            // Use Thermer URL scheme for Bluetooth printing
-            const orderIdStr = String(orderId);
-            const receiptUrl = `${window.location.origin}/thermer/receipt/${orderIdStr}`;
+            // Use the clean PHP endpoint
+            const receiptUrl = `${window.location.origin}/thermer-receipt.php?id=${orderId}`;
             const thermerUrl = `my.bluetoothprint.scheme://${receiptUrl}`;
 
             debugLog('Thermer URL:', thermerUrl);
@@ -2884,16 +2883,13 @@
                 });
                 //if payment sucessful
                 if (data.success) {
-                    // FIX: Use the stored processingOrderId instead of currentOrderId
                     debugLog('About to print receipt for order:', processingOrderId);
 
-
-
-                    // Use the working simple PHP endpoint for Thermer
+                    // Use the clean PHP endpoint
                     const receiptUrl = `${window.location.origin}/thermer-receipt.php?id=${processingOrderId}`;
                     const thermerUrl = `my.bluetoothprint.scheme://${receiptUrl}`;
 
-                    debugLog('Thermer printing with working endpoint:', thermerUrl);
+                    debugLog('Thermer printing with clean endpoint:', thermerUrl);
 
                     // Create temporary link to trigger Thermer
                     const link = document.createElement('a');
@@ -2902,7 +2898,6 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-
 
                     showPrinterStatus('Payment completed! Printing receipt...', 'success');
                     // Move order to processing panel with correct total
@@ -3001,18 +2996,13 @@
             try {
                 setMayaButtonLoading(true);
 
-                console.log('Maya payment confirmation started for order:', currentOrderId);
-
-                // Use the same endpoint as cash payments with Maya-specific data
                 const requestData = {
                     order_id: parseInt(currentOrderId),
-                    cash_amount: parseFloat(orderTotal), // Set to order total for Maya
+                    cash_amount: parseFloat(orderTotal),
                     payment_method: 'maya',
                     maya_confirmed: true,
                     print_receipt: true
                 };
-
-                console.log('Maya payment request data:', requestData);
 
                 // Use the same endpoint as cash payments
                 const data = await fetchWithErrorHandling('/cashier/accept-order', {
@@ -3021,7 +3011,6 @@
                 });
 
                 if (data.success) {
-                    // Same processing as cash payments
                     hideMayaQRModal();
                     removeOrderFromPending(currentOrderId);
                     printReceipt(currentOrderId);
@@ -3031,7 +3020,6 @@
                     throw new Error(data.message || 'Failed to confirm payment');
                 }
             } catch (error) {
-                console.error('Maya payment error:', error);
                 showErrorMessage('Failed to confirm Maya payment: ' + error.message);
             } finally {
                 setMayaButtonLoading(false);

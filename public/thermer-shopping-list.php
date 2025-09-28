@@ -16,7 +16,6 @@ try {
         }
     }
     
-    // Database connection
     $host = $_ENV['DB_HOST'] ?? 'localhost';
     $database = $_ENV['DB_DATABASE'] ?? '';
     $username = $_ENV['DB_USERNAME'] ?? '';
@@ -25,7 +24,6 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$database", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Query inventory with ingredients based on your actual structure
     $sql = "SELECT 
                 i.id,
                 i.menu_item_id,
@@ -44,7 +42,6 @@ try {
     $stmt->execute();
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Calculate low stock items
     $lowStockItems = [];
     foreach ($items as $item) {
         $currentStock = floatval($item['current_stock']);
@@ -61,7 +58,6 @@ try {
     
     $a = array();
     
-    // Header
     $obj1 = new stdClass();
     $obj1->type = 0;
     $obj1->content = 'SIP & SERVE CAFE';
@@ -86,7 +82,6 @@ try {
     $obj3->format = 0;
     array_push($a, $obj3);
 
-    // Date and time
     $obj4 = new stdClass();
     $obj4->type = 0;
     $obj4->content = 'Generated: ' . date('M d, Y H:i');

@@ -465,6 +465,17 @@ class CashierController extends Controller
                 'paid_at' => now(),
                 'kitchen_received_at' => now(),
             ]);
+            // Add this after the order->update() call
+            Log::info('Payment processed - checking order state', [
+                'order_id' => $order->id,
+                'payment_method' => $isMayaPayment ? 'maya' : 'cash',
+                'items_count_before_commit' => $order->orderItems->count(),
+                'order_data' => [
+                    'payment_status' => $order->payment_status,
+                    'status' => $order->status,
+                    'total_amount' => $order->total_amount
+                ]
+            ]);
 
             $receiptPrinted = false;
             $drawerOpened = false;
