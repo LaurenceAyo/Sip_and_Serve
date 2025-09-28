@@ -75,19 +75,44 @@ try {
     // Header
     $obj1 = new stdClass();
     $obj1->type = 0;
-    $obj1->content = 'SIP & SERVE CAFE';
-    $obj1->bold = 1;
+    $obj1->content = "L' PRIMERO CAFE";
+    $obj1->bold = 2;
     $obj1->align = 1;
     $obj1->format = 2;
     array_push($a, $obj1);
     
     $obj2 = new stdClass();
     $obj2->type = 0;
-    $obj2->content = 'Official Receipt';
+    $obj2->content = 'SIP & SERVE APP';
     $obj2->bold = 1;
     $obj2->align = 1;
     $obj2->format = 0;
     array_push($a, $obj2);
+    
+    // Address
+    $objAddr1 = new stdClass();
+    $objAddr1->type = 0;
+    $objAddr1->content = 'Diversion Road, Sitio Sirangan, Macabog';
+    $objAddr1->bold = 0;
+    $objAddr1->align = 1;
+    $objAddr1->format = 4;
+    array_push($a, $objAddr1);
+    
+    $objAddr2 = new stdClass();
+    $objAddr2->type = 0;
+    $objAddr2->content = 'Sorsogon City, Sorsogon';
+    $objAddr2->bold = 0;
+    $objAddr2->align = 1;
+    $objAddr2->format = 4;
+    array_push($a, $objAddr2);
+    
+    $obj2b = new stdClass();
+    $obj2b->type = 0;
+    $obj2b->content = 'Official Receipt';
+    $obj2b->bold = 1;
+    $obj2b->align = 1;
+    $obj2b->format = 0;
+    array_push($a, $obj2b);
     
     $obj3 = new stdClass();
     $obj3->type = 0;
@@ -117,7 +142,7 @@ try {
     $obj6 = new stdClass();
     $obj6->type = 0;
     $obj6->content = 'Type: ' . ucfirst($order->order_type ?: 'Dine-in');
-    $obj6->bold = 0;
+    $obj6->bold = 1;
     $obj6->align = 0;
     $obj6->format = 0;
     array_push($a, $obj6);
@@ -140,6 +165,15 @@ try {
     $obj7->align = 0;
     $obj7->format = 0;
     array_push($a, $obj7);
+    
+    // Order/s header
+    $objOrderHeader = new stdClass();
+    $objOrderHeader->type = 0;
+    $objOrderHeader->content = 'Order/s:';
+    $objOrderHeader->bold = 1;
+    $objOrderHeader->align = 0;
+    $objOrderHeader->format = 0;
+    array_push($a, $objOrderHeader);
     
     // Add real order items
     foreach ($orderItems as $item) {
@@ -222,10 +256,43 @@ try {
     $obj14 = new stdClass();
     $obj14->type = 0;
     $obj14->content = 'Thank you for dining with us!';
-    $obj14->bold = 0;
+    $obj14->bold = 1;
     $obj14->align = 1;
     $obj14->format = 0;
     array_push($a, $obj14);
+    
+    // Business details
+    $objSeparator = new stdClass();
+    $objSeparator->type = 0;
+    $objSeparator->content = '--------------------------------';
+    $objSeparator->bold = 0;
+    $objSeparator->align = 1;
+    $objSeparator->format = 0;
+    array_push($a, $objSeparator);
+    
+    $objPhone = new stdClass();
+    $objPhone->type = 0;
+    $objPhone->content = 'Tel: 0993-688-1248';
+    $objPhone->bold = 0;
+    $objPhone->align = 1;
+    $objPhone->format = 4;
+    array_push($a, $objPhone);
+    
+    $objBIR = new stdClass();
+    $objBIR->type = 0;
+    $objBIR->content = 'BIR #: 2819550';
+    $objBIR->bold = 0;
+    $objBIR->align = 1;
+    $objBIR->format = 4;
+    array_push($a, $objBIR);
+    
+    $objTIN = new stdClass();
+    $objTIN->type = 0;
+    $objTIN->content = 'TIN #: 269-004-339-000-00';
+    $objTIN->bold = 0;
+    $objTIN->align = 1;
+    $objTIN->format = 4;
+    array_push($a, $objTIN);
     
     // Add footer with timestamp
     $objFooter = new stdClass();
