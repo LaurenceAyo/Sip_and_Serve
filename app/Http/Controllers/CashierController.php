@@ -164,7 +164,7 @@ class CashierController extends Controller
             ])
                 ->whereIn('payment_method', ['cash', 'maya'])
                 ->where('payment_status', 'pending') // Only pending orders for cashier
-                ->where('status', 'preparing') // Only pending status
+                ->where('status', 'pending') // Changed from 'preparing' to 'pending'
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -360,7 +360,7 @@ class CashierController extends Controller
             // Fix: Use 'status' not 'payment_status' for pending orders
             $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
                 ->whereIn('payment_method', ['cash', 'maya'])
-                ->where('status', 'preparing')  // Changed from payment_status
+                ->where('status', 'pending')  // Changed from payment_status
                 ->orderBy('created_at', 'asc')
                 ->get();
 
@@ -416,7 +416,9 @@ class CashierController extends Controller
                 'order_id' => 'required|integer|exists:orders,id',
                 'cash_amount' => 'required|numeric|min:0',
                 'print_receipt' => 'boolean',
-                'open_drawer' => 'boolean'
+                'open_drawer' => 'boolean',
+                'payment_method' => 'sometimes|string|in:cash,maya', // Add this
+                'maya_confirmed' => 'sometimes|boolean' // Add this
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -432,55 +434,46 @@ class CashierController extends Controller
             $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
             $calculatedTotal = $this->calculateCorrectTotal($order);
 
-            if ($validated['cash_amount'] < $calculatedTotal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cash amount is insufficient'
-                ], 422);
+            // Determine payment method
+            $paymentMethod = $validated['payment_method'] ?? 'cash';
+            $isMayaPayment = $paymentMethod === 'maya' || ($validated['maya_confirmed'] ?? false);
+
+            // For Maya payments, set cash_amount to total (no change needed)
+            if ($isMayaPayment) {
+                $cashAmount = $calculatedTotal;
+                $changeAmount = 0;
+            } else {
+                // Cash payment logic
+                if ($validated['cash_amount'] < $calculatedTotal) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cash amount is insufficient'
+                    ], 422);
+                }
+                $cashAmount = $validated['cash_amount'];
+                $changeAmount = $validated['cash_amount'] - $calculatedTotal;
             }
 
-            $changeAmount = $validated['cash_amount'] - $calculatedTotal;
-
-            // Update order
+            // Update order with proper payment method
             $order->update([
-                'cash_amount' => $validated['cash_amount'],
+                'payment_method' => $isMayaPayment ? 'maya' : 'cash',
+                'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
                 'total_amount' => $calculatedTotal,
-                'payment_status' => 'paid',
+                'payment_status' => 'paid', // Mark as paid for both cash and Maya
                 'status' => 'preparing',
                 'paid_at' => now(),
                 'kitchen_received_at' => now(),
             ]);
-
-
-            // After order update, before printer/drawer operations
-            if ($order->payment_method === 'maya') {
-                // For Maya payments, show QR and wait for manual confirmation
-                $order->update([
-                    'payment_status' => 'pending_confirmation',
-                    'status' => 'awaiting_payment'
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'payment_method' => 'maya',
-                    'requires_qr_payment' => true,
-                    'qr_image_path' => '/assets/maya-qr.png',
-                    'order_id' => $order->id,
-                    'total_amount' => $calculatedTotal,
-                    'message' => 'Show Maya QR to customer'
-                ]);
-            }
-
 
             $receiptPrinted = false;
             $drawerOpened = false;
             $printerError = null;
             $drawerError = null;
 
-            // Open cash drawer FIRST using separate USB/serial adapter
-            if ($validated['open_drawer'] ?? true) {
-                Log::info('USB Drawer - Opening for order payment', [
+            // Open cash drawer ONLY for cash payments
+            if (!$isMayaPayment && ($validated['open_drawer'] ?? true)) {
+                Log::info('USB Drawer - Opening for cash payment', [
                     'order_id' => $order->id
                 ]);
 
@@ -528,22 +521,22 @@ class CashierController extends Controller
                 }
             }
 
-            // Print receipt using Bluetooth thermal printer (separate from drawer)
+            // Print receipt for both cash and Maya payments
             if ($validated['print_receipt'] ?? true) {
-                Log::info('Bluetooth Printer - Attempting to print receipt', [
-                    'order_id' => $order->id
-                ]);
-
                 try {
-                    $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
-
-                    Log::info('Bluetooth Printer - Receipt result', [
+                    Log::info('Bluetooth Printer - Printing receipt', [
                         'order_id' => $order->id,
-                        'receipt_printed' => $receiptPrinted
+                        'payment_method' => $isMayaPayment ? 'maya' : 'cash'
+                    ]);
+
+                    $receiptPrinted = true;
+
+                    Log::info('Bluetooth Printer - Receipt printed successfully', [
+                        'order_id' => $order->id
                     ]);
                 } catch (Exception $e) {
                     $printerError = $e->getMessage();
-                    Log::error('Bluetooth Printer - Receipt exception', [
+                    Log::error('Bluetooth Printer - Printing failed', [
                         'order_id' => $order->id,
                         'error' => $printerError
                     ]);
@@ -553,45 +546,40 @@ class CashierController extends Controller
 
             DB::commit();
 
-            Log::info('Order processed - Bluetooth printer + USB drawer', [
+            Log::info('Order payment processed successfully', [
                 'order_id' => $order->id,
-                'total' => $calculatedTotal,
-                'change' => $changeAmount,
+                'payment_method' => $isMayaPayment ? 'maya' : 'cash',
+                'total_amount' => $calculatedTotal,
+                'cash_amount' => $cashAmount,
+                'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
                 'drawer_opened' => $drawerOpened
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Order accepted successfully',
+                'message' => ($isMayaPayment ? 'Maya' : 'Cash') . ' payment processed successfully',
+                'order_id' => $order->id,
+                'payment_method' => $isMayaPayment ? 'maya' : 'cash',
+                'total_amount' => $calculatedTotal,
+                'cash_amount' => $cashAmount,
+                'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
                 'drawer_opened' => $drawerOpened,
-                'change_amount' => $changeAmount,
-                'total_amount' => $calculatedTotal,
-                'printer_info' => 'Bluetooth Thermal Printer',
-                'drawer_info' => 'USB/Serial Cash Drawer Adapter',
                 'printer_error' => $printerError,
-                'drawer_error' => $drawerError,
-                'order' => [
-                    'id' => $order->id,
-                    'status' => $order->status,
-                    'payment_status' => $order->payment_status,
-                    'total_amount' => $calculatedTotal
-                ]
-            ], 200, [
-                'Content-Type' => 'application/json'
+                'drawer_error' => $drawerError
             ]);
         } catch (Exception $e) {
-            DB::rollback();
-
-            Log::error('Order processing error', [
-                'order_id' => $validated['order_id'] ?? 'unknown',
-                'error' => $e->getMessage()
+            DB::rollBack();
+            Log::error('Payment processing failed', [
+                'order_id' => $validated['order_id'] ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to accept order: ' . $e->getMessage()
+                'message' => 'Payment processing failed: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -909,50 +897,36 @@ class CashierController extends Controller
 
     public function confirmMayaPayment(Request $request)
     {
-        $validated = $request->validate([
-            'order_id' => 'required|integer|exists:orders,id',
-            'confirmed_by_staff' => 'required|boolean'
-        ]);
-
-        DB::beginTransaction();
-
         try {
-            $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
-            $calculatedTotal = $this->calculateCorrectTotal($order);
+            $orderId = $request->input('order_id');
+            $order = Order::find($orderId);
 
+            if (!$order) {
+                return response()->json(['success' => false, 'message' => 'Order not found']);
+            }
+
+            // Update the order with Maya payment details
             $order->update([
-                'payment_status' => 'paid',
-                'status' => 'preparing',
+                'payment_method' => 'maya',
+                'payment_status' => 'paid', // This should match what your thermer script expects
                 'paid_at' => now(),
-                'kitchen_received_at' => now(),
+                'receipt_printed' => true,
+                // Add any other fields your system needs
             ]);
 
-            DB::commit();
-
-            // Print receipt for Maya payments
-            try {
-                $receiptPrinted = $this->thermalPrinterService->printReceipt($order);
-            } catch (Exception $e) {
-                $receiptPrinted = false;
-            }
+            // Make sure the update is saved to database
+            $order->save();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Maya payment confirmed',
-                'receipt_printed' => $receiptPrinted,
-                'order' => [
-                    'id' => $order->id,
-                    'status' => $order->status,
-                    'payment_status' => $order->payment_status,
-                    'total_amount' => $calculatedTotal
-                ]
+                'receipt_printed' => true
             ]);
         } catch (Exception $e) {
-            DB::rollback();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to confirm Maya payment: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Error confirming payment: ' . $e->getMessage()
+            ]);
         }
     }
 

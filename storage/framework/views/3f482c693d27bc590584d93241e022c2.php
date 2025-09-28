@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title>L'PRIMERO CAFE - Review Order</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap"
@@ -1240,52 +1240,54 @@
 
             <!-- Order Items Section -->
             <section class="order-items-section" id="orderItemsSection">
-                @if(session('cart') && count(session('cart')) > 0)
-                    @foreach(session('cart') as $index => $item)
+                <?php if(session('cart') && count(session('cart')) > 0): ?>
+                    <?php $__currentLoopData = session('cart'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <div class="order-item">
-                            <img src="{{ $item['image'] ?? 'data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'><rect width=\'80\' height=\'80\' fill=\'%23F5F5F5\'/><circle cx=\'40\' cy=\'40\' r=\'20\' fill=\'%238B4513\'/></svg>' }}"
-                                alt="{{ $item['name'] }}" class="order-item-image">
+                            <img src="<?php echo e($item['image'] ?? 'data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 80 80\'><rect width=\'80\' height=\'80\' fill=\'%23F5F5F5\'/><circle cx=\'40\' cy=\'40\' r=\'20\' fill=\'%238B4513\'/></svg>'); ?>"
+                                alt="<?php echo e($item['name']); ?>" class="order-item-image">
 
                             <div class="order-item-details">
-                                <div class="order-item-name">{{ $item['name'] }}</div>
-                                @if(isset($item['addons']) && count($item['addons']) > 0)
+                                <div class="order-item-name"><?php echo e($item['name']); ?></div>
+                                <?php if(isset($item['addons']) && count($item['addons']) > 0): ?>
                                     <div class="order-item-addons">
-                                        Add-ons: {{ implode(', ', array_column($item['addons'], 'name')) }}
+                                        Add-ons: <?php echo e(implode(', ', array_column($item['addons'], 'name'))); ?>
+
                                     </div>
-                                @endif
+                                <?php endif; ?>
 
                                 <div class="order-item-controls">
                                     <div class="quantity-controls">
-                                        <button class="quantity-btn" onclick="updateItemQuantity({{ $index }}, -1)">−</button>
-                                        <span class="quantity-display">{{ $item['quantity'] }}</span>
-                                        <button class="quantity-btn" onclick="updateItemQuantity({{ $index }}, 1)">+</button>
+                                        <button class="quantity-btn" onclick="updateItemQuantity(<?php echo e($index); ?>, -1)">−</button>
+                                        <span class="quantity-display"><?php echo e($item['quantity']); ?></span>
+                                        <button class="quantity-btn" onclick="updateItemQuantity(<?php echo e($index); ?>, 1)">+</button>
                                     </div>
                                     <div class="order-item-price">
                                         PHP
-                                        {{ number_format(($item['price'] + ($item['addonsPrice'] ?? 0)) * $item['quantity'], 2) }}
+                                        <?php echo e(number_format(($item['price'] + ($item['addonsPrice'] ?? 0)) * $item['quantity'], 2)); ?>
+
                                     </div>
                                 </div>
                             </div>
 
-                            <button class="order-item-remove" onclick="removeItem({{ $index }})">🗑️</button>
+                            <button class="order-item-remove" onclick="removeItem(<?php echo e($index); ?>)">🗑️</button>
                         </div>
-                    @endforeach
-                @else
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <?php else: ?>
                     <div class="empty-cart">
                         <h3>Your cart is empty</h3>
                         <p>Please add items to your cart before reviewing your order.</p>
-                        <a href="{{ route('kiosk.main', ['orderType' => session('orderType', 'dine-in')]) }}"
+                        <a href="<?php echo e(route('kiosk.main', ['orderType' => session('orderType', 'dine-in')])); ?>"
                             class="btn btn-back">
                             Back to Menu
                         </a>
                     </div>
-                @endif
+                <?php endif; ?>
             </section>
 
-            @if(session('cart') && count(session('cart')) > 0)
+            <?php if(session('cart') && count(session('cart')) > 0): ?>
                 <!-- Order Summary -->
                 <footer class="order-summary">
-                    @php
+                    <?php
                         $cart = session('cart', []);
                         $subtotal = 0;
                         foreach ($cart as $item) {
@@ -1293,27 +1295,27 @@
                         }
                         $discounts = 0;
                         $total = $subtotal - $discounts;
-                    @endphp
+                    ?>
 
                     <div class="summary-row">
                         <span><strong>Sub Total:</strong></span>
-                        <span id="subtotalAmount">PHP {{ number_format($subtotal, 2) }}</span>
+                        <span id="subtotalAmount">PHP <?php echo e(number_format($subtotal, 2)); ?></span>
                     </div>
 
-                    @if($discounts > 0)
+                    <?php if($discounts > 0): ?>
                         <div class="summary-row">
                             <span><strong>Discounts:</strong></span>
-                            <span id="discountAmount">PHP {{ number_format($discounts, 2) }}</span>
+                            <span id="discountAmount">PHP <?php echo e(number_format($discounts, 2)); ?></span>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
                     <div class="summary-row total">
                         <span><strong>TOTAL:</strong></span>
-                        <span id="totalAmount">PHP {{ number_format($total, 2) }}</span>
+                        <span id="totalAmount">PHP <?php echo e(number_format($total, 2)); ?></span>
                     </div>
 
                     <div class="action-buttons">
-                        <a href="{{ route('kiosk.main', ['orderType' => session('orderType', 'dine-in')]) }}"
+                        <a href="<?php echo e(route('kiosk.main', ['orderType' => session('orderType', 'dine-in')])); ?>"
                             class="btn btn-back">
                             Back to Menu
                         </a>
@@ -1321,7 +1323,7 @@
                         <button type="button" class="btn btn-pay" onclick="showPaymentModal()" id="payButton">PAY</button>
                     </div>
                 </footer>
-            @endif
+            <?php endif; ?>
         </main>
     </div>
 
@@ -1338,7 +1340,8 @@
                 <div class="payment-amount-display">
                     <div class="payment-amount-label">Total Amount to Pay:</div>
                     <div class="payment-amount-value" id="paymentTotalAmount">
-                        PHP {{ number_format($total ?? 0, 2) }}
+                        PHP <?php echo e(number_format($total ?? 0, 2)); ?>
+
                     </div>
                 </div>
 
@@ -1400,7 +1403,8 @@
                 <div class="payment-amount-display">
                     <div class="payment-amount-label">Amount to Pay:</div>
                     <div class="payment-amount-value" id="gcashPaymentAmount">
-                        PHP {{ number_format($total ?? 0, 2) }}
+                        PHP <?php echo e(number_format($total ?? 0, 2)); ?>
+
                     </div>
                 </div>
 
@@ -1625,13 +1629,13 @@
         // Global variables
         let cart = [];
         let selectedPaymentMethod = null;
-        let totalAmount = {{ $total ?? 0 }};
+        let totalAmount = <?php echo e($total ?? 0); ?>;
         let gcashPaymentIntentId = null;
         let gcashPollInterval = null;
 
         // Safely parse cart data
         try {
-            const rawCart = {!! json_encode(session('cart', [])) !!};
+            const rawCart = <?php echo json_encode(session('cart', [])); ?>;
             cart = Array.isArray(rawCart) ? rawCart : Object.values(rawCart || {});
             console.log('Cart loaded:', cart.length, 'items');
         } catch (e) {
@@ -1645,7 +1649,7 @@
         }
 
         function updateItemQuantity(index, change) {
-            fetch('{{ route("kiosk.updateCartItem") }}', {
+            fetch('<?php echo e(route("kiosk.updateCartItem")); ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1672,7 +1676,7 @@
 
         function removeItem(index) {
             if (confirm('Are you sure you want to remove this item?')) {
-                fetch('{{ route("kiosk.removeCartItem") }}', {
+                fetch('<?php echo e(route("kiosk.removeCartItem")); ?>', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1942,7 +1946,7 @@
                 .then(data => {
                     if (data.success) {
                         // Order sent to cashier, redirect to kiosk home
-                        window.location.href = '{{ route("kiosk.index") }}';
+                        window.location.href = '<?php echo e(route("kiosk.index")); ?>';
                     } else {
                         alert('Error processing order: ' + (data.message || 'Unknown error'));
                     }
@@ -2019,7 +2023,7 @@
                 .then(data => {
                     if (data.success) {
                         // Redirect to your order confirmation success page
-                        window.location.href = data.redirect_url || '{{ route("kiosk.orderConfirmationSuccess") }}';
+                        window.location.href = data.redirect_url || '<?php echo e(route("kiosk.orderConfirmationSuccess")); ?>';
                     } else {
                         hideGCashModal();
                         alert('Payment was successful but there was an error processing your order. Please contact support.');
@@ -2194,11 +2198,11 @@
         }
 
         function orderMore() {
-            window.location.href = '{{ route("kiosk.main") }}';
+            window.location.href = '<?php echo e(route("kiosk.main")); ?>';
         }
 
         function completeOrder() {
-            window.location.href = '{{ route("kiosk.index") }}';
+            window.location.href = '<?php echo e(route("kiosk.index")); ?>';
         }
 
         function showCancelModal() {
@@ -2218,7 +2222,7 @@
         }
 
         function confirmCancelOrder() {
-            fetch('{{ route("kiosk.cancelOrder") }}', {
+            fetch('<?php echo e(route("kiosk.cancelOrder")); ?>', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': getCsrfToken()
@@ -2227,12 +2231,12 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        window.location.href = '{{ route("kiosk.index") }}';
+                        window.location.href = '<?php echo e(route("kiosk.index")); ?>';
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    window.location.href = '{{ route("kiosk.index") }}';
+                    window.location.href = '<?php echo e(route("kiosk.index")); ?>';
                 });
         }
 
@@ -2264,9 +2268,9 @@
             console.log('DOM loaded, initializing...');
 
             // Check for payment error from Laravel session
-            @if(session('payment_error'))
-                showPaymentErrorModal('{{ session("payment_error") }}');
-            @endif
+            <?php if(session('payment_error')): ?>
+                showPaymentErrorModal('<?php echo e(session("payment_error")); ?>');
+            <?php endif; ?>
             
             const cashInput = document.getElementById('cashAmountInput');
             if (cashInput) {
@@ -2283,4 +2287,4 @@
     </script>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/kioskOrderConfirmation.blade.php ENDPATH**/ ?>

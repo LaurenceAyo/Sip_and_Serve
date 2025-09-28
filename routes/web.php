@@ -106,6 +106,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/payment', [KioskController::class, 'payment'])->name('payment');
     Route::post('/process-payment', [KioskController::class, 'processPayment'])->name('processPayment');
     Route::post('/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('processCashPayment');
+    Route::post('/process-maya-payment', [KioskController::class, 'processMayaPayment'])->name('processMayaPayment');
     Route::post('/process-gcash-payment', [KioskController::class, 'processGCashPayment'])->name('processGCashPayment');
 
     // Payment Result Pages
@@ -250,7 +251,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':cashie
 
     // Maya Payment Routes
     Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
-
+    Route::post('/kiosk/process-maya-payment', [KioskController::class, 'processMayaPayment'])->name('kiosk.processMayaPayment');
     // Receipt and Printer Routes
     Route::get('/simple-thermer/{id}', [App\Http\Controllers\CashierController::class, 'simpleThermerTest']);
     Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
@@ -294,6 +295,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':kitche
 // =============================================================================
 Route::middleware(['auth'])->group(function () {
     // Basic kiosk access for authenticated staff
+    Route::post('/cashier/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment']);
     Route::prefix('kiosk')->name('kiosk.')->group(function () {
         Route::get('/', [KioskController::class, 'index'])->name('index');
         Route::get('/main', [KioskController::class, 'main'])->name('main');
@@ -401,7 +403,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':staff'
         }
     });
 });
-
+Route::middleware(['auth'])->post('/cashier/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment']);
 // =============================================================================
 // DEBUG & TESTING ROUTES (Remove in Production)
 // =============================================================================

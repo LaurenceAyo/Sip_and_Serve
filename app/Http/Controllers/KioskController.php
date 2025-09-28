@@ -250,7 +250,107 @@ class KioskController extends Controller
             }
         }
     }
+    public function processMayaPayment(Request $request)
+    {
+        // Validate incoming data
+        $validated = $request->validate([
+            'total_amount' => 'required|numeric|min:0',
+            'payment_method' => 'required|string|in:maya'
+        ]);
 
+        try {
+            $cart = Session::get('cart', []);
+            $orderType = Session::get('orderType', 'dine-in');
+            $totalAmount = floatval($validated['total_amount']);
+
+            if (empty($cart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Your cart is empty. Please add items before proceeding.'
+                ], 400);
+            }
+
+            // Check stock availability
+            $stockCheck = $this->checkStockAvailability($cart);
+            if (!empty($stockCheck)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sorry, this item is currently unavailable due to ingredient shortage. Please select a different item or contact staff for assistance.'
+                ], 400);
+            }
+
+            DB::transaction(function () use ($cart, $orderType, $totalAmount, &$order) {
+                // Create the order with Maya payment method
+                $order = Order::create([
+                    'subtotal' => $totalAmount,
+                    'tax_amount' => 0.00,
+                    'discount_amount' => 0.00,
+                    'total_amount' => $totalAmount,
+                    'payment_method' => 'maya', // Explicitly set to maya
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                    'cash_amount' => $totalAmount, // For Maya, set to total amount
+                    'change_amount' => 0,
+                    'order_type' => $orderType,
+                    'notes' => "Kiosk order - Type: {$orderType} - Maya Payment",
+                ]);
+
+                // Create order items AND deduct ingredients
+                foreach ($cart as $id => $item) {
+                    $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
+                    $orderItem = OrderItem::create([
+                        'order_id' => $order->id,
+                        'menu_item_id' => $item['menu_item_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $itemPrice,
+                        'total_price' => $itemPrice * $item['quantity'],
+                        'special_instructions' => isset($item['modifiers']) && is_array($item['modifiers']) ? implode(', ', $item['modifiers']) : null,
+                        'status' => 'pending'
+                    ]);
+
+                    // Deduct ingredients for each item
+                    $this->deductIngredients($orderItem->id, $orderItem->quantity);
+                }
+
+                // Deduct packaging supplies for takeout orders
+                if ($orderType === 'take-out') {
+                    $this->deductPackagingSupplies($cart, $orderType);
+                }
+            });
+
+            // Clear the cart and store the last order ID
+            Session::forget('cart');
+            if ($order) {
+                Session::put('last_order_id', $order->id);
+                Log::info('Maya payment processed successfully for Order ID: ' . $order->id);
+                $orderNumber = 'M' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+            } else {
+                Log::error('Order object is null after transaction.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order could not be created. Please try again.'
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order->id,
+                'order_number' => $orderNumber,
+                'total_amount' => $totalAmount,
+                'payment_method' => 'maya',
+                'message' => 'Maya order processed successfully. Order sent to cashier.'
+            ]);
+        } catch (Exception $e) {
+            Log::error('Maya payment failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please contact staff for assistance.'
+            ], 500);
+        }
+    }
     /**
      * Process cash payment - TAX-INCLUSIVE PRICING
      */

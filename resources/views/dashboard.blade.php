@@ -1227,7 +1227,9 @@
                 </div>
                 <div class="add-modal-actions">
                     <button type="button" class="btn-cancel-add" onclick="closeShoppingListModal()">CANCEL</button>
-                    <button type="button" class="btn-save-add" onclick="printShoppingList()">PRINT</button>
+                    <button type="button" class="btn-save-add" onclick="printShoppingList()">THERMAL PRINT</button>
+                    <button type="button" class="btn-save-add" onclick="printShoppingListBrowser()"
+                        style="background: #6b7280; margin-left: 0.5rem;">BROWSER PRINT</button>
                 </div>
             </div>
         </div>
@@ -1461,15 +1463,6 @@
                 }
             }
 
-            // Test route accessibility
-            function testRoutes() {
-                console.log('Testing route accessibility...');
-
-                // You can uncomment these to test if routes work
-                // fetch('/sales').then(response => console.log('Sales route status:', response.status));
-                // fetch('/product').then(response => console.log('Product route status:', response.status));
-            }
-
             function selectItem(name, unit, currentStock, minimumStock = null) {
                 document.getElementById('editItemName').value = name;
                 document.getElementById('editQuantity').value = currentStock;
@@ -1586,7 +1579,7 @@
 
             function showSuccessPopup(message) {
                 const popup = document.getElementById('successPopup');
-                popup.textContent = message;
+                popup.textContent = message || 'ITEM ADDED TO INVENTORY';
                 popup.style.display = 'block';
                 setTimeout(() => {
                     popup.style.display = 'none';
@@ -1713,41 +1706,74 @@
                 });
             }
 
+            // Thermal printing function (primary)
             function printShoppingList() {
+                // Debug: Check what Android methods are available
+                if (typeof Android !== 'undefined') {
+                    console.log('Available Android methods:', Object.getOwnPropertyNames(Android));
+
+                    // Try common Thermer methods
+                    if (Android.print) {
+                        Android.print(window.location.origin + '/thermer-shopping-list.php');
+                    } else if (Android.openThermer) {
+                        Android.openThermer(window.location.origin + '/thermer-shopping-list.php');
+                    } else if (Android.printUrl) {
+                        Android.printUrl(window.location.origin + '/thermer-shopping-list.php');
+                    } else {
+                        console.log('No known print methods found');
+                        window.open(window.location.origin + '/thermer-shopping-list.php', '_blank');
+                    }
+                } else {
+                    console.log('Android interface not available');
+                    window.open(window.location.origin + '/thermer-shopping-list.php', '_blank');
+                }
+
+                showSuccessPopup('Debug: check console');
+                closeShoppingListModal();
+            }
+            // Fallback function
+            function fallbackPrint() {
+                const thermerUrl = window.location.origin + '/thermer-shopping-list.php';
+                window.open(thermerUrl, '_blank');
+                showSuccessPopup('Thermer file opened (test mode)');
+            }
+
+            // Browser printing fallback
+            function printShoppingListBrowser() {
                 const printWindow = window.open('', '_blank');
                 const shoppingListContent = document.getElementById('shoppingListBody').innerHTML;
 
                 printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Shopping List - Sip & Serve</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        h1 { color: #8b4513; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { padding: 10px; border: 1px solid #d1d5db; text-align: left; }
-                        th { background: #f3f4f6; font-weight: bold; }
-                        .date { text-align: right; margin-bottom: 20px; color: #6b7280; }
-                    </style>
-                </head>
-                <body>
-                    <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
-                    <h1>Sip & Serve - Shopping List</h1>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Current Stock</th>
-                                <th>Amount Needed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${shoppingListContent}
-                        </tbody>
-                    </table>
-                </body>
-                </html>
-            `);
+                    <html>
+                    <head>
+                        <title>Shopping List - Sip & Serve</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            h1 { color: #8b4513; text-align: center; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { padding: 10px; border: 1px solid #d1d5db; text-align: left; }
+                            th { background: #f3f4f6; font-weight: bold; }
+                            .date { text-align: right; margin-bottom: 20px; color: #6b7280; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="date">Generated: ${new Date().toLocaleDateString()}</div>
+                        <h1>Sip & Serve - Shopping List</h1>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Current Stock</th>
+                                    <th>Amount Needed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${shoppingListContent}
+                            </tbody>
+                        </table>
+                    </body>
+                    </html>
+                `);
 
                 printWindow.document.close();
                 printWindow.print();
@@ -1818,14 +1844,6 @@
                     showSuccessPopup();
                 }
             });
-
-            function showSuccessPopup() {
-                const popup = document.getElementById('successPopup');
-                popup.style.display = 'block';
-                setTimeout(() => {
-                    popup.style.display = 'none';
-                }, 2000);
-            }
 
             // Close add modal when clicking outside
             document.getElementById('addItemModal').addEventListener('click', function (e) {
@@ -1904,6 +1922,7 @@
                     });
                 });
             });
+
             // Backup method using direct button selection
             function setupDirectButtonHandlers() {
                 console.log('Setting up direct button handlers...');
