@@ -1,7 +1,17 @@
 <?php
-// thermer-shopping-list.php - Corrected for actual database structure
-header('Content-Type: application/json');
-header('Cache-Control: no-cache');
+// Clear any output buffers
+while (ob_get_level()) {
+    ob_end_clean();
+}
+
+// Start clean output buffering  
+ob_start();
+
+// Set headers
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 try {
     // Load environment variables
@@ -24,6 +34,7 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$database", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
+    // Remove the current_stock > 0 filter to include zero-stock items
     $sql = "SELECT 
                 i.id,
                 i.menu_item_id,
@@ -35,7 +46,6 @@ try {
                 ing.name as ingredient_name
             FROM inventory i
             LEFT JOIN ingredients ing ON i.menu_item_id = ing.id
-            WHERE i.current_stock > 0
             ORDER BY i.current_stock ASC";
     
     $stmt = $pdo->prepare($sql);
@@ -47,21 +57,24 @@ try {
         $currentStock = floatval($item['current_stock']);
         $minimumStock = floatval($item['minimum_stock']) ?: 10;
         
+        // Match JavaScript logic: critical if at or below minimum, low if at or below 1.5x minimum
         $isCritical = $currentStock <= $minimumStock;
         $isLow = $currentStock <= ($minimumStock * 1.5);
         
         if ($isCritical || $isLow) {
-            $item['calculated_status'] = $isCritical ? 'critical' : 'low';
+            $item['is_critical'] = $isCritical;
             $lowStockItems[] = $item;
         }
     }
     
+    // Create array exactly like the documentation example
     $a = array();
     
+    // Header
     $obj1 = new stdClass();
     $obj1->type = 0;
     $obj1->content = 'SIP & SERVE CAFE';
-    $obj1->bold = 1;
+    $obj1->bold = 2;
     $obj1->align = 1;
     $obj1->format = 2;
     array_push($a, $obj1);
@@ -100,183 +113,211 @@ try {
 
     if (empty($lowStockItems)) {
         // No items need restocking
-        $obj_empty = new stdClass();
-        $obj_empty->type = 0;
-        $obj_empty->content = 'No items need restocking';
-        $obj_empty->bold = 1;
-        $obj_empty->align = 1;
-        $obj_empty->format = 0;
-        array_push($a, $obj_empty);
+        $objEmpty = new stdClass();
+        $objEmpty->type = 0;
+        $objEmpty->content = 'No items need restocking';
+        $objEmpty->bold = 1;
+        $objEmpty->align = 1;
+        $objEmpty->format = 0;
+        array_push($a, $objEmpty);
 
-        $obj_good = new stdClass();
-        $obj_good->type = 0;
-        $obj_good->content = 'All inventory levels are good!';
-        $obj_good->bold = 0;
-        $obj_good->align = 1;
-        $obj_good->format = 0;
-        array_push($a, $obj_good);
+        $objGood = new stdClass();
+        $objGood->type = 0;
+        $objGood->content = 'All inventory levels are good!';
+        $objGood->bold = 0;
+        $objGood->align = 1;
+        $objGood->format = 0;
+        array_push($a, $objGood);
     } else {
         // Items header
-        $obj_header = new stdClass();
-        $obj_header->type = 0;
-        $obj_header->content = 'ITEMS TO RESTOCK (' . count($lowStockItems) . ')';
-        $obj_header->bold = 1;
-        $obj_header->align = 1;
-        $obj_header->format = 0;
-        array_push($a, $obj_header);
+        $objHeader = new stdClass();
+        $objHeader->type = 0;
+        $objHeader->content = 'ITEMS TO RESTOCK (' . count($lowStockItems) . ')';
+        $objHeader->bold = 1;
+        $objHeader->align = 1;
+        $objHeader->format = 0;
+        array_push($a, $objHeader);
 
-        $obj_sep = new stdClass();
-        $obj_sep->type = 0;
-        $obj_sep->content = '--------------------------------';
-        $obj_sep->bold = 0;
-        $obj_sep->align = 0;
-        $obj_sep->format = 0;
-        array_push($a, $obj_sep);
+        $objSep = new stdClass();
+        $objSep->type = 0;
+        $objSep->content = '--------------------------------';
+        $objSep->bold = 0;
+        $objSep->align = 0;
+        $objSep->format = 0;
+        array_push($a, $objSep);
 
         // List each item
         foreach ($lowStockItems as $index => $item) {
             $itemName = $item['ingredient_name'] ?: ('Item ID: ' . $item['menu_item_id']);
-            $currentStock = number_format($item['current_stock'], 1);
+            $currentStock = $item['current_stock'];
             $unit = $item['unit'] ?: 'units';
             
-            // Calculate needed amount
-            $neededAmount = $item['calculated_status'] === 'critical' 
-                ? max($item['current_stock'] * 3, 10)
-                : max($item['current_stock'] * 2, 5);
-            $neededFormatted = number_format($neededAmount, 1);
+            // Match JavaScript calculation logic
+            $neededAmount = $item['is_critical'] 
+                ? max($currentStock * 3, 10)
+                : max($currentStock * 2, 5);
 
-            $priority = $item['calculated_status'] === 'critical' ? 'URGENT' : 'LOW';
+            $priority = $item['is_critical'] ? 'URGENT' : 'LOW';
 
-            // Item number and name (truncate to fit thermal printer)
-            $obj_item = new stdClass();
-            $obj_item->type = 0;
-            $obj_item->content = ($index + 1) . '. ' . substr($itemName, 0, 22);
-            $obj_item->bold = 1;
-            $obj_item->align = 0;
-            $obj_item->format = 0;
-            array_push($a, $obj_item);
+            // Item number and name
+            $objItem = new stdClass();
+            $objItem->type = 0;
+            $objItem->content = ($index + 1) . '. ' . substr($itemName, 0, 22);
+            $objItem->bold = 1;
+            $objItem->align = 0;
+            $objItem->format = 0;
+            array_push($a, $objItem);
 
             // Current stock
-            $obj_current = new stdClass();
-            $obj_current->type = 0;
-            $obj_current->content = '   Current: ' . $currentStock . ' ' . $unit;
-            $obj_current->bold = 0;
-            $obj_current->align = 0;
-            $obj_current->format = 0;
-            array_push($a, $obj_current);
+            $objCurrent = new stdClass();
+            $objCurrent->type = 0;
+            $objCurrent->content = '   Current: ' . number_format($currentStock, 1) . ' ' . $unit;
+            $objCurrent->bold = 0;
+            $objCurrent->align = 0;
+            $objCurrent->format = 0;
+            array_push($a, $objCurrent);
 
             // Needed amount
-            $obj_needed = new stdClass();
-            $obj_needed->type = 0;
-            $obj_needed->content = '   Need: ' . $neededFormatted . ' ' . $unit . ' (' . $priority . ')';
-            $obj_needed->bold = 0;
-            $obj_needed->align = 0;
-            $obj_needed->format = 0;
-            array_push($a, $obj_needed);
+            $objNeeded = new stdClass();
+            $objNeeded->type = 0;
+            $objNeeded->content = '   Need: ' . number_format($neededAmount, 1) . ' ' . $unit . ' (' . $priority . ')';
+            $objNeeded->bold = 0;
+            $objNeeded->align = 0;
+            $objNeeded->format = 0;
+            array_push($a, $objNeeded);
 
             // Space between items
             if ($index < count($lowStockItems) - 1) {
-                $obj_space = new stdClass();
-                $obj_space->type = 0;
-                $obj_space->content = '';
-                $obj_space->bold = 0;
-                $obj_space->align = 0;
-                $obj_space->format = 0;
-                array_push($a, $obj_space);
+                $objSpace = new stdClass();
+                $objSpace->type = 0;
+                $objSpace->content = '';
+                $objSpace->bold = 0;
+                $objSpace->align = 0;
+                $objSpace->format = 0;
+                array_push($a, $objSpace);
             }
         }
 
         // Summary
-        $obj_sep2 = new stdClass();
-        $obj_sep2->type = 0;
-        $obj_sep2->content = '--------------------------------';
-        $obj_sep2->bold = 0;
-        $obj_sep2->align = 0;
-        $obj_sep2->format = 0;
-        array_push($a, $obj_sep2);
+        $objSep2 = new stdClass();
+        $objSep2->type = 0;
+        $objSep2->content = '--------------------------------';
+        $objSep2->bold = 0;
+        $objSep2->align = 0;
+        $objSep2->format = 0;
+        array_push($a, $objSep2);
 
         $criticalCount = count(array_filter($lowStockItems, function($item) {
-            return $item['calculated_status'] === 'critical';
+            return $item['is_critical'];
         }));
         
-        $lowCount = count(array_filter($lowStockItems, function($item) {
-            return $item['calculated_status'] === 'low';
-        }));
+        $lowCount = count($lowStockItems) - $criticalCount;
 
-        $obj_summary = new stdClass();
-        $obj_summary->type = 0;
-        $obj_summary->content = 'SUMMARY';
-        $obj_summary->bold = 1;
-        $obj_summary->align = 1;
-        $obj_summary->format = 0;
-        array_push($a, $obj_summary);
+        $objSummary = new stdClass();
+        $objSummary->type = 0;
+        $objSummary->content = 'SUMMARY';
+        $objSummary->bold = 1;
+        $objSummary->align = 1;
+        $objSummary->format = 0;
+        array_push($a, $objSummary);
 
         if ($criticalCount > 0) {
-            $obj_critical = new stdClass();
-            $obj_critical->type = 0;
-            $obj_critical->content = 'Critical Items: ' . $criticalCount;
-            $obj_critical->bold = 1;
-            $obj_critical->align = 0;
-            $obj_critical->format = 0;
-            array_push($a, $obj_critical);
+            $objCritical = new stdClass();
+            $objCritical->type = 0;
+            $objCritical->content = 'Critical Items: ' . $criticalCount;
+            $objCritical->bold = 1;
+            $objCritical->align = 0;
+            $objCritical->format = 0;
+            array_push($a, $objCritical);
         }
 
         if ($lowCount > 0) {
-            $obj_low = new stdClass();
-            $obj_low->type = 0;
-            $obj_low->content = 'Low Stock Items: ' . $lowCount;
-            $obj_low->bold = 0;
-            $obj_low->align = 0;
-            $obj_low->format = 0;
-            array_push($a, $obj_low);
+            $objLow = new stdClass();
+            $objLow->type = 0;
+            $objLow->content = 'Low Stock Items: ' . $lowCount;
+            $objLow->bold = 0;
+            $objLow->align = 0;
+            $objLow->format = 0;
+            array_push($a, $objLow);
         }
 
-        $obj_total = new stdClass();
-        $obj_total->type = 0;
-        $obj_total->content = 'Total Items: ' . count($lowStockItems);
-        $obj_total->bold = 1;
-        $obj_total->align = 0;
-        $obj_total->format = 0;
-        array_push($a, $obj_total);
+        $objTotal = new stdClass();
+        $objTotal->type = 0;
+        $objTotal->content = 'Total Items: ' . count($lowStockItems);
+        $objTotal->bold = 1;
+        $objTotal->align = 0;
+        $objTotal->format = 0;
+        array_push($a, $objTotal);
     }
 
     // Footer
-    $obj_footer1 = new stdClass();
-    $obj_footer1->type = 0;
-    $obj_footer1->content = '================================';
-    $obj_footer1->bold = 0;
-    $obj_footer1->align = 1;
-    $obj_footer1->format = 0;
-    array_push($a, $obj_footer1);
+    $objFooter1 = new stdClass();
+    $objFooter1->type = 0;
+    $objFooter1->content = '================================';
+    $objFooter1->bold = 0;
+    $objFooter1->align = 1;
+    $objFooter1->format = 0;
+    array_push($a, $objFooter1);
 
-    $obj_footer2 = new stdClass();
-    $obj_footer2->type = 0;
-    $obj_footer2->content = 'L PRIMERO CAFE';
-    $obj_footer2->bold = 0;
-    $obj_footer2->align = 1;
-    $obj_footer2->format = 0;
-    array_push($a, $obj_footer2);
+    $objFooter2 = new stdClass();
+    $objFooter2->type = 0;
+    $objFooter2->content = 'L PRIMERO CAFE';
+    $objFooter2->bold = 0;
+    $objFooter2->align = 1;
+    $objFooter2->format = 0;
+    array_push($a, $objFooter2);
 
-    $obj_footer3 = new stdClass();
-    $obj_footer3->type = 0;
-    $obj_footer3->content = 'Inventory Management';
-    $obj_footer3->bold = 0;
-    $obj_footer3->align = 1;
-    $obj_footer3->format = 0;
-    array_push($a, $obj_footer3);
+    $objFooter3 = new stdClass();
+    $objFooter3->type = 0;
+    $objFooter3->content = 'Inventory Management';
+    $objFooter3->bold = 0;
+    $objFooter3->align = 1;
+    $objFooter3->format = 4;
+    array_push($a, $objFooter3);
+    
+    $objFooter4 = new stdClass();
+    $objFooter4->type = 0;
+    $objFooter4->content = 'Printed: ' . date('Y-m-d H:i:s');
+    $objFooter4->bold = 0;
+    $objFooter4->align = 1;
+    $objFooter4->format = 4;
+    array_push($a, $objFooter4);
 
+    // Output exactly like the documentation
+    ob_clean();
     echo json_encode($a, JSON_FORCE_OBJECT);
-
+    
 } catch (Exception $e) {
-    $response = [
-        [
-            'type' => 0,
-            'content' => 'Error: ' . $e->getMessage(),
-            'bold' => 1,
-            'align' => 1,
-            'format' => 0
-        ]
-    ];
-    echo json_encode($response, JSON_FORCE_OBJECT);
+    // Error response using stdClass like receipt
+    $a = array();
+    
+    $objErr1 = new stdClass();
+    $objErr1->type = 0;
+    $objErr1->content = 'Shopping List Error';
+    $objErr1->bold = 1;
+    $objErr1->align = 1;
+    $objErr1->format = 0;
+    array_push($a, $objErr1);
+    
+    $objErr2 = new stdClass();
+    $objErr2->type = 0;
+    $objErr2->content = 'Database connection failed';
+    $objErr2->bold = 0;
+    $objErr2->align = 1;
+    $objErr2->format = 0;
+    array_push($a, $objErr2);
+    
+    $objErr3 = new stdClass();
+    $objErr3->type = 0;
+    $objErr3->content = 'Please check server settings';
+    $objErr3->bold = 0;
+    $objErr3->align = 1;
+    $objErr3->format = 0;
+    array_push($a, $objErr3);
+    
+    ob_clean();
+    echo json_encode($a, JSON_FORCE_OBJECT);
 }
+
+exit;
 ?>

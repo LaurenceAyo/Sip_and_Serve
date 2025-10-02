@@ -1711,30 +1711,32 @@
                 });
             }
 
-            // Thermal printing function (primary)
             function printShoppingList() {
-                // Debug: Check what Android methods are available
-                if (typeof Android !== 'undefined') {
-                    console.log('Available Android methods:', Object.getOwnPropertyNames(Android));
+                const shoppingListUrl = `${window.location.origin}/thermer-shopping-list.php`;
+                const thermerUrl = `my.bluetoothprint.scheme://${shoppingListUrl}`;
 
-                    // Try common Thermer methods
-                    if (Android.print) {
-                        Android.print(window.location.origin + '/thermer-shopping-list.php');
-                    } else if (Android.openThermer) {
-                        Android.openThermer(window.location.origin + '/thermer-shopping-list.php');
-                    } else if (Android.printUrl) {
-                        Android.printUrl(window.location.origin + '/thermer-shopping-list.php');
-                    } else {
-                        console.log('No known print methods found');
-                        window.open(window.location.origin + '/thermer-shopping-list.php', '_blank');
-                    }
-                } else {
-                    console.log('Android interface not available');
-                    window.open(window.location.origin + '/thermer-shopping-list.php', '_blank');
+                console.log('Thermer URL:', thermerUrl);
+
+                try {
+                    // Create temporary link for Thermer
+                    const link = document.createElement('a');
+                    link.href = thermerUrl;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+
+                    // Trigger Thermer
+                    link.click();
+
+                    // Clean up
+                    document.body.removeChild(link);
+
+                    showSuccessPopup('Shopping list sent to Thermer app');
+                    closeShoppingListModal();
+
+                } catch (error) {
+                    console.error('Error triggering Thermer:', error);
+                    showSuccessPopup('Failed to trigger Thermer printing');
                 }
-
-                showSuccessPopup('Debug: check console');
-                closeShoppingListModal();
             }
             // Fallback function
             function fallbackPrint() {
