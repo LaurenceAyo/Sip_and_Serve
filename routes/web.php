@@ -205,7 +205,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'
 // =============================================================================
 // MANAGER ROUTES (Manager and Administrator) (Sub routes for Product Management and Sales Management)
 // =============================================================================
-
+Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
 // Dashboard (Inventory Management)
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');

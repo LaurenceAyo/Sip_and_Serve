@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Carbon\Carbon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -854,57 +854,60 @@ class CashierController extends Controller
     }
 
     public function completeOrder(Request $request)
-    {
-        $validated = $request->validate([
-            'order_id' => 'required|integer|exists:orders,id',
-            'order_number' => 'required|string',
-            'completion_time' => 'required|string',
-            'change_given' => 'required|numeric',
-            'receipt_printed' => 'required|boolean'
+{
+    $validated = $request->validate([
+        'order_id' => 'required|integer|exists:orders,id',
+        'order_number' => 'required|string',
+        'completion_time' => 'required|string',
+        'change_given' => 'required|numeric',
+        'receipt_printed' => 'required|boolean'
+    ]);
+
+    try {
+        // Convert ISO format to MySQL datetime format
+        $completionTime = Carbon::parse($validated['completion_time'])->format('Y-m-d H:i:s');
+        
+        // Update order status to completed
+        $order = Order::findOrFail($validated['order_id']);
+        $order->update([
+            'status' => 'completed',
+            'completed_at' => $completionTime  // Changed
         ]);
 
-        try {
-            // Update order status to completed
-            $order = Order::findOrFail($validated['order_id']);
-            $order->update([
-                'status' => 'completed',
-                'completed_at' => $validated['completion_time']
-            ]);
+        // Insert into daily_sales table
+        DB::table('daily_sales')->insert([
+            'order_id' => $validated['order_id'],
+            'order_number' => $validated['order_number'],
+            'total_amount' => $order->total_amount,
+            'cash_received' => $order->cash_amount,
+            'change_given' => $validated['change_given'],
+            'completion_time' => $completionTime,  // Changed
+            'receipt_printed' => $validated['receipt_printed'],
+            'printer_used' => 'GOOJPRT PT-210',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
 
-            // Insert into daily_sales table
-            DB::table('daily_sales')->insert([
-                'order_id' => $validated['order_id'],
-                'order_number' => $validated['order_number'],
-                'total_amount' => $order->total_amount,
-                'cash_received' => $order->cash_amount,
-                'change_given' => $validated['change_given'],
-                'completion_time' => $validated['completion_time'],
-                'receipt_printed' => $validated['receipt_printed'],
-                'printer_used' => 'GOOJPRT PT-210',
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+        Log::info('GOOJPRT PT-210 - Order completed and saved to sales', [
+            'order_id' => $validated['order_id']
+        ]);
 
-            Log::info('GOOJPRT PT-210 - Order completed and saved to sales', [
-                'order_id' => $validated['order_id']
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Order completed and saved to sales'
+        ]);
+    } catch (Exception $e) {
+        Log::error('GOOJPRT PT-210 - Error completing order', [
+            'order_id' => $validated['order_id'],
+            'error' => $e->getMessage()
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Order completed and saved to sales'
-            ]);
-        } catch (Exception $e) {
-            Log::error('GOOJPRT PT-210 - Error completing order', [
-                'order_id' => $validated['order_id'],
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to complete order'
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to complete order'
+        ], 500);
     }
+}
 
     public function confirmMayaPayment(Request $request)
     {
