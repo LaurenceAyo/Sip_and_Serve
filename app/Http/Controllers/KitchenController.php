@@ -63,6 +63,18 @@ class KitchenController extends Controller
         return redirect()->back()->with('success', 'Order completed!');
     }
 
-    // Remove the duplicate ingredient deduction since it's now handled in KioskController
-    // Ingredients are already deducted when the order is placed, not when completed
+    public function archiveCompleted()
+    {
+        try {
+            // Update all completed orders that are displayed (within 2 hours) to archived status
+            $archivedCount = Order::where('status', 'completed')
+                ->where('completed_at', '>=', now()->subHours(2))
+                ->update(['status' => 'archived']);
+
+            return redirect()->back()->with('success', "Archived {$archivedCount} completed orders!");
+        } catch (\Exception $e) {
+            Log::error('Archive failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to archive orders');
+        }
+    }
 }

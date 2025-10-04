@@ -38,7 +38,40 @@
             border-radius: 8px 8px 0 0;
             font-weight: bold;
         }
+        .archive-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #d9b41d 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
 
+        .archive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 220, 164, 0.6);
+            background: linear-gradient(135deg, #a7f8bf 0%, #39c88f 100%);
+        }
+
+        .archive-btn:active {
+            transform: translateY(0);
+        }
+
+        .archive-btn svg {
+            flex-shrink: 0;
+        }
+        
         .order-card {
             background-color: white;
             border: 2px solid #ddd;
@@ -355,7 +388,7 @@
             @endforelse
         </div>
 
-        <!-- Processing Section - Update this part -->
+        <!-- Processing Section -->
         <div class="section">
             <div class="section-header">PREPARING</div>
             @forelse($processingOrders as $order)
@@ -417,7 +450,7 @@
             @endforelse
         </div>
 
-        <!-- Completed Orders Section - Update this part -->
+        <!-- Completed Orders Section -->
         <div class="section">
             <div class="section-header">RECENTLY COMPLETED</div>
             @forelse($completedOrders as $order)
@@ -426,7 +459,6 @@
                         <div class="order-number">
                             Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
                         </div>
-
                     </div>
 
                     <div class="order-info">
@@ -471,130 +503,175 @@
                     No recently completed orders
                 </div>
             @endforelse
-
         </div>
+    </div>
 
-        <script>
-            // Auto-refresh the page every 10 seconds to get new orders from the cashier
-            setInterval(function () {
-                fetch(window.location.href, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+    <!-- Archive Button (Fixed Bottom Right) -->
+    @if($completedOrders->count() > 0)
+        <button class="archive-btn" onclick="showArchiveModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path>
+            </svg>
+            Move to Database
+        </button>
+    @endif
+
+    <script>
+        // Auto-refresh the page every 10 seconds to get new orders from the cashier
+        setInterval(function () {
+            fetch(window.location.href, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const newDoc = parser.parseFromString(html, 'text/html');
+
+                    // Update all sections
+                    const sections = document.querySelectorAll('.section');
+                    const newSections = newDoc.querySelectorAll('.section');
+
+                    sections.forEach((section, index) => {
+                        if (newSections[index]) {
+                            section.innerHTML = newSections[index].innerHTML;
+                        }
+                    });
+
+                    // Update archive button visibility
+                    const archiveBtn = document.querySelector('.archive-btn');
+                    const newArchiveBtn = newDoc.querySelector('.archive-btn');
+                    if (archiveBtn && !newArchiveBtn) {
+                        archiveBtn.style.display = 'none';
+                    } else if (!archiveBtn && newArchiveBtn) {
+                        document.body.appendChild(newArchiveBtn.cloneNode(true));
                     }
                 })
-                    .then(response => response.text())
-                    .then(html => {
-                        const parser = new DOMParser();
-                        const newDoc = parser.parseFromString(html, 'text/html');
+                .catch(error => {
+                    console.log('Refresh failed, will try again:', error);
+                });
+        }, 10000); // Refresh every 10 seconds
 
-                        // Update all sections
-                        const sections = document.querySelectorAll('.section');
-                        const newSections = newDoc.querySelectorAll('.section');
+        // Update processing timers every second
+        function updateTimers() {
+            const timers = document.querySelectorAll('.timer[data-start-time]');
+            timers.forEach(timer => {
+                const startTimeStr = timer.getAttribute('data-start-time');
+                const estimatedMinutes = parseInt(timer.getAttribute('data-estimated-minutes')) || 30;
 
-                        sections.forEach((section, index) => {
-                            if (newSections[index]) {
-                                section.innerHTML = newSections[index].innerHTML;
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.log('Refresh failed, will try again:', error);
-                    });
-            }, 10000); // Refresh every 10 seconds
+                if (!startTimeStr || startTimeStr === '') {
+                    timer.textContent = '00:00';
+                    return;
+                }
 
-            // Update processing timers every second
-            function updateTimers() {
-                const timers = document.querySelectorAll('.timer[data-start-time]');
-                timers.forEach(timer => {
-                    const startTimeStr = timer.getAttribute('data-start-time');
-                    const estimatedMinutes = parseInt(timer.getAttribute('data-estimated-minutes')) || 30;
+                try {
+                    const startTime = new Date(startTimeStr);
 
-                    if (!startTimeStr || startTimeStr === '') {
+                    if (isNaN(startTime.getTime())) {
                         timer.textContent = '00:00';
                         return;
                     }
 
-                    try {
-                        const startTime = new Date(startTimeStr);
+                    const now = new Date();
+                    const diffMs = now.getTime() - startTime.getTime();
+                    const diffSeconds = Math.floor(diffMs / 1000);
 
-                        // Check if date is valid
-                        if (isNaN(startTime.getTime())) {
-                            timer.textContent = '00:00';
-                            return;
-                        }
+                    const minutes = Math.floor(diffSeconds / 60);
+                    const seconds = diffSeconds % 60;
 
-                        const now = new Date();
-                        const diffMs = now.getTime() - startTime.getTime();
-                        const diffSeconds = Math.floor(diffMs / 1000);
+                    timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-                        const minutes = Math.floor(diffSeconds / 60);
-                        const seconds = diffSeconds % 60;
+                    const halfEstimated = estimatedMinutes * 30;
+                    const fullEstimated = estimatedMinutes * 60;
 
-                        timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-                        // Change color based on estimated time
-                        const halfEstimated = estimatedMinutes * 30; // 50% of estimated time in seconds
-                        const fullEstimated = estimatedMinutes * 60; // 100% of estimated time in seconds
-
-                        timer.className = 'timer';
-                        if (diffSeconds > fullEstimated) {
-                            timer.classList.add('danger');
-                        } else if (diffSeconds > halfEstimated) {
-                            timer.classList.add('warning');
-                        }
-                    } catch (error) {
-                        console.error('Error parsing date:', startTimeStr, error);
-                        timer.textContent = '00:00';
+                    timer.className = 'timer';
+                    if (diffSeconds > fullEstimated) {
+                        timer.classList.add('danger');
+                    } else if (diffSeconds > halfEstimated) {
+                        timer.classList.add('warning');
                     }
-                });
-            }
-
-            // Update timers every second
-            setInterval(updateTimers, 1000);
-
-            // Initial timer update
-            updateTimers();
-
-            // Play notification when new order arrives
-            let lastOrderCount = {{ ($pendingOrders->count() + $processingOrders->count()) ?? 0 }};
-
-            function checkForNewOrders() {
-                const currentOrderCount = document.querySelectorAll('.order-card').length;
-                if (currentOrderCount > lastOrderCount) {
-                    console.log('New order received!');
-
+                } catch (error) {
+                    console.error('Error parsing date:', startTimeStr, error);
+                    timer.textContent = '00:00';
                 }
-                lastOrderCount = currentOrderCount;
-            }
+            });
+        }
 
-            // Check for new orders every time we refresh
-            setInterval(checkForNewOrders, 10000);
+        setInterval(updateTimers, 1000);
+        updateTimers();
 
-            //Logout Functions
-            function logout() {
-                document.getElementById('logoutModal').classList.add('show');
-            }
+        let lastOrderCount = {{ ($pendingOrders->count() + $processingOrders->count()) ?? 0 }};
 
-            function hideLogoutModal() {
-                document.getElementById('logoutModal').classList.remove('show');
+        function checkForNewOrders() {
+            const currentOrderCount = document.querySelectorAll('.order-card').length;
+            if (currentOrderCount > lastOrderCount) {
+                console.log('New order received!');
             }
+            lastOrderCount = currentOrderCount;
+        }
 
-            function confirmLogout() {
-                fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
-                    .then(() => window.location.href = '/')
-                    .catch(() => window.location.href = '/');
-            }
-        </script>
-        <div class="logout-modal-overlay" id="logoutModal">
-            <div class="logout-modal">
-                <h3>Confirm Logout</h3>
-                <p>Are you sure you want to logout?</p>
-                <div class="logout-modal-actions">
-                    <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideLogoutModal()">Cancel</button>
-                    <button class="logout-modal-btn logout-modal-btn-confirm" onclick="confirmLogout()">Logout</button>
-                </div>
+        setInterval(checkForNewOrders, 10000);
+
+        // Logout Functions
+        function logout() {
+            document.getElementById('logoutModal').classList.add('show');
+        }
+
+        function hideLogoutModal() {
+            document.getElementById('logoutModal').classList.remove('show');
+        }
+
+        function confirmLogout() {
+            fetch('/logout', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                .then(() => window.location.href = '/')
+                .catch(() => window.location.href = '/');
+        }
+
+        // Archive Functions
+        function showArchiveModal() {
+            document.getElementById('archiveModal').classList.add('show');
+        }
+
+        function hideArchiveModal() {
+            document.getElementById('archiveModal').classList.remove('show');
+        }
+
+        function confirmArchive() {
+            const form = document.getElementById('archiveForm');
+            form.submit();
+        }
+    </script>
+
+    <!-- Logout Modal -->
+    <div class="logout-modal-overlay" id="logoutModal">
+        <div class="logout-modal">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to logout?</p>
+            <div class="logout-modal-actions">
+                <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideLogoutModal()">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" onclick="confirmLogout()">Logout</button>
             </div>
         </div>
+    </div>
+
+    <!-- Archive Modal -->
+    <div class="logout-modal-overlay" id="archiveModal">
+        <div class="logout-modal">
+            <h3>Archive Completed Orders</h3>
+            <p>This will move all completed orders to the database archive. Continue?</p>
+            <div class="logout-modal-actions">
+                <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideArchiveModal()">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" onclick="confirmArchive()">Archive</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Archive Form -->
+    <form id="archiveForm" action="{{ route('kitchen.archive') }}" method="POST" style="display: none;">
+        @csrf
+    </form>
+    
 </body>
 
 </html>

@@ -280,6 +280,7 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':cashie
 // =============================================================================
 // KITCHEN ROUTES (Kitchen Staff, Manager, and Administrator)
 // =============================================================================
+Route::post('/kitchen/archive', [KitchenController::class, 'archiveCompleted'])->name('kitchen.archive');
 Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':kitchen'])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
