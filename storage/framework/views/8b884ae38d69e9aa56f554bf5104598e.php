@@ -145,7 +145,7 @@
             }
 
             .tab-section {
-                bottom: 27px;
+                bottom: 20px;
                 position: fixed;
                 transform: none;
                 width: auto;
@@ -178,8 +178,8 @@
 
             .logout-btn {
                 position: fixed;
-                right: 27px;
-                bottom: 27px;
+                right: 17px;
+                bottom: 22px;
                 width: auto;
                 padding: 20px 32px;
                 font-size: 1.3rem;
@@ -771,11 +771,20 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="report-item" style="margin: 0 auto; max-width: 300px;">
-                            <div class="report-item-label">Average Order</div>
-                            <div class="report-item-value" id="reportAverageOrder">PHP
-                                <?php echo e(number_format($averageOrder, 2)); ?>
+                        <div class="report-data">
+                            <div class="report-item">
+                                <div class="report-item-label">Items Sold</div>
+                                <div class="report-item-value" id="reportItemsSold">
+                                    <?php echo e($TopItems->sum('quantity')); ?>
 
+                                </div>
+                            </div>
+                            <div class="report-item">
+                                <div class="report-item-label">Average Order</div>
+                                <div class="report-item-value" id="reportAverageOrder">PHP
+                                    <?php echo e(number_format($averageOrder, 2)); ?>
+
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -784,7 +793,7 @@
                     <div class="report-section">
                         <h3>🏆 Top Selling Items</h3>
                         <ul class="top-items-list">
-                            <?php $__currentLoopData = $formattedTopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php $__currentLoopData = $TopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <li>
                                     <div class="item-rank"><?php echo e($index + 1); ?></div>
                                     <div class="item-details">
@@ -858,7 +867,7 @@
             <div class="report-section">
                 <h3>🏆 Top Selling Items</h3>
                 <ul class="top-items-list">
-                    <?php $__currentLoopData = $formattedTopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <?php $__currentLoopData = $TopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li>
                             <div class="item-rank"><?php echo e($index + 1); ?></div>
                             <div class="item-details">
@@ -873,7 +882,7 @@
 
 
             <!-- Bottom Navigation -->
-            <div class="bottom-nav flex justify-between items-center">
+            <div class="bottom-nav flex justify-between items-center" style="margin-top: 2px;">
                 <div class="tab-section flex space-x-5">
                     <button class="tab-button">INVENTORY</button>
                     <button class="tab-button active">SALES</button>
@@ -888,6 +897,7 @@
     </div>
 
     <script>
+        const TopItems = <?php echo json_encode($TopItems, 15, 512) ?>;
         // Define helper functions first
         function debugLog(message, data = null) {
             console.log('[DEBUG]', message, data !== null ? data : '');
@@ -1004,7 +1014,7 @@
                     orders: totalOrders,
                     items: totalItems,
                     avg: avgOrderValue,
-                    top_items: JSON.stringify(topItems)
+                    top_items: JSON.stringify(TopItems)
                 });
 
                 const reportUrl = `${window.location.origin}/thermer-report.php?${params.toString()}`;

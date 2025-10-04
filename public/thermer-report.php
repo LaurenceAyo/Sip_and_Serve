@@ -225,7 +225,7 @@ try {
             // Quantity Sold
             $objQty = new stdClass();
             $objQty->type = 0;
-            $objQty->content = '   Sold: ' . $quantity . ' units';
+            $objQty->content = '   Sold: ';
             $objQty->bold = 0;
             $objQty->align = 0;
             $objQty->format = 0;

@@ -1493,11 +1493,27 @@
             // Default for other categories
             'default': {
                 'Extras': [
-                    { name: 'Extra Sauce', description: 'Additional flavor sauce', price: 10 },
+                    { name: 'Extra Sauce', description: 'Additional sauce amount', price: 10 },
                     { name: 'Extra Serving', description: 'Larger portion size', price: 30 }
                 ]
             }
         };
+        function closeAddonModal() {
+            const modal = document.getElementById('addonModal');
+            modal.style.display = 'none';
+
+            // Clear selected addons when closing without confirming
+            selectedAddons = [];
+
+            // Remove 'selected' class from all addon options
+            document.querySelectorAll('.addon-option.selected').forEach(option => {
+                option.classList.remove('selected');
+            });
+
+            updateAddonTotal();
+        }
+
+        
 
         function openItemModal(item) {
             // Check if item is available
@@ -1531,17 +1547,133 @@
             addonTotal = 0;
         }
 
+
         function openAddonModal() {
             if (!currentItem) return;
+
+            // Check if this is a rice item that shouldn't have add-ons
+            const itemName = currentItem.name.toLowerCase();
+            if (itemName.includes('steamed rice') || itemName.includes('rice platter') ||
+                itemName === 'rice' || itemName.includes('plain rice')) {
+
+                // Create a styled modal overlay with unique class
+                const noAddonModal = document.createElement('div');
+                noAddonModal.className = 'no-addon-modal-overlay';
+                noAddonModal.id = 'noAddonModal';
+                noAddonModal.style.cssText = `
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        `;
+                noAddonModal.innerHTML = `
+            <div class="modal-content" style="background: white; border-radius: 12px; padding: 20px; max-width: 450px; text-align: center; animation: slideIn 0.3s ease;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            padding: 40px 30px; border-radius: 12px 12px 0 0; margin: -20px -20px 20px -20px;">
+                    <svg width="80" height="80" viewBox="0 0 100 100" style="margin-bottom: 15px;">
+                        <circle cx="50" cy="50" r="45" fill="white" opacity="0.2"/>
+                        <path d="M50 25 L50 55 M35 50 L50 50 L65 50" stroke="white" stroke-width="6" 
+                              stroke-linecap="round" fill="none"/>
+                        <circle cx="50" cy="70" r="4" fill="white"/>
+                    </svg>
+                    <h3 style="color: white; font-size: 1.8rem; margin: 0; font-weight: 600;">
+                        No Add-ons Available
+                    </h3>
+                </div>
+                <p style="font-size: 1.1rem; color: #555; margin-bottom: 30px; line-height: 1.6;">
+                    This rice item does not have customization options.<br>
+                    Please proceed to add it to your cart.
+                </p>
+                <button class="modal-btn modal-btn-no" 
+                        style="width: 100%; padding: 15px; font-size: 1.1rem; font-weight: 600; 
+                               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; border: none; border-radius: 8px; cursor: pointer;
+                               transition: transform 0.2s ease;">
+                    GOT IT
+                </button>
+            </div>
+        `;
+
+                document.body.appendChild(noAddonModal);
+
+                // Add click event listener to button
+                const button = noAddonModal.querySelector('button');
+                button.addEventListener('click', () => noAddonModal.remove());
+                button.addEventListener('mouseenter', () => button.style.transform = 'scale(1.02)');
+                button.addEventListener('mouseleave', () => button.style.transform = 'scale(1)');
+
+                // Close on overlay click
+                noAddonModal.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        this.remove();
+                    }
+                });
+
+                return;
+            }
 
             const modal = document.getElementById('addonModal');
             const content = document.getElementById('addonModalContent');
 
-            // Determine which add-ons to show based on item category
+            // Debug: Log the current item to see what category data we have
+            console.log('Current item:', currentItem);
+            console.log('Current item category:', currentItem.category);
+            console.log('Current item name:', currentItem.name);
+
+            // Determine which add-ons to show based on item category OR item name
             let itemCategory = 'default';
+
+            // First try to use the category
             if (currentItem.category) {
-                itemCategory = currentItem.category.toLowerCase().replace(' ', '_');
+                const categoryName = currentItem.category.toLowerCase().replace(/\s+/g, '_');
+
+                if (categoryName.includes('coffee') || categoryName === 'coffee') {
+                    itemCategory = 'coffee';
+                } else if (categoryName.includes('sweet') || categoryName.includes('treats') ||
+                    categoryName.includes('dessert') || categoryName.includes('pastry') ||
+                    categoryName.includes('pastries') || categoryName.includes('bakery') ||
+                    categoryName.includes('baked')) {
+                    itemCategory = 'sweet_treats';
+                } else if (categoryName.includes('rice') || categoryName.includes('meal')) {
+                    itemCategory = 'rice_meals';
+                }
             }
+
+            // If still default, try using the item name as fallback
+            if (itemCategory === 'default' && currentItem.name) {
+                const itemNameLower = currentItem.name.toLowerCase();
+
+                // Check if item name suggests it's coffee
+                if (itemNameLower.includes('coffee') || itemNameLower.includes('latte') ||
+                    itemNameLower.includes('cappuccino') || itemNameLower.includes('espresso') ||
+                    itemNameLower.includes('americano') || itemNameLower.includes('mocha')) {
+                    itemCategory = 'coffee';
+                }
+                // Check if item name suggests it's a sweet treat/pastry
+                else if (itemNameLower.includes('cake') || itemNameLower.includes('cookie') ||
+                    itemNameLower.includes('pastry') || itemNameLower.includes('dessert') ||
+                    itemNameLower.includes('brownie') || itemNameLower.includes('muffin') ||
+                    itemNameLower.includes('croissant') || itemNameLower.includes('donut') ||
+                    itemNameLower.includes('danish') || itemNameLower.includes('scone') ||
+                    itemNameLower.includes('biscuit')) {
+                    itemCategory = 'sweet_treats';
+                }
+                // Check if item name suggests it's a rice meal
+                else if (itemNameLower.includes('rice') || itemNameLower.includes('meal') ||
+                    itemNameLower.includes('chicken') || itemNameLower.includes('pork') ||
+                    itemNameLower.includes('beef')) {
+                    itemCategory = 'rice_meals';
+                }
+            }
+
+            console.log('Selected addon category:', itemCategory);
 
             // Get add-ons for this category, fallback to default
             const addons = menuAddons[itemCategory] || menuAddons['default'];
@@ -1569,13 +1701,13 @@
                     optionDiv.dataset.index = index;
 
                     optionDiv.innerHTML = `
-                        <div class="addon-option-checkbox"></div>
-                        <div class="addon-option-info">
-                            <div class="addon-option-name">${addon.name}</div>
-                            <div class="addon-option-description">${addon.description}</div>
-                        </div>
-                        <div class="addon-option-price">+PHP ${addon.price.toFixed(2)}</div>
-                    `;
+                <div class="addon-option-checkbox"></div>
+                <div class="addon-option-info">
+                    <div class="addon-option-name">${addon.name}</div>
+                    <div class="addon-option-description">${addon.description}</div>
+                </div>
+                <div class="addon-option-price">+PHP ${addon.price.toFixed(2)}</div>
+            `;
 
                     optionDiv.addEventListener('click', function () {
                         toggleAddon(this, addon);
@@ -1592,45 +1724,9 @@
             updateAddonTotal();
         }
 
-        function closeAddonModal() {
-            document.getElementById('addonModal').style.display = 'none';
-        }
 
 
-        // Add this JavaScript to fix touch events
-        document.addEventListener('DOMContentLoaded', function () {
-            // Fix touch events for all buttons
-            const buttons = document.querySelectorAll('button, .btn, .action-btn');
 
-            buttons.forEach(button => {
-                // Add touch event listeners
-                button.addEventListener('touchstart', function (e) {
-                    e.preventDefault();
-                    this.style.transform = 'scale(0.98)';
-                });
-
-                button.addEventListener('touchend', function (e) {
-                    e.preventDefault();
-                    this.style.transform = 'scale(1)';
-
-                    // Trigger click after a short delay
-                    setTimeout(() => {
-                        this.click();
-                    }, 50);
-                });
-
-                // Add visual feedback
-                button.addEventListener('touchstart', function () {
-                    this.classList.add('active');
-                });
-
-                button.addEventListener('touchend', function () {
-                    setTimeout(() => {
-                        this.classList.remove('active');
-                    }, 150);
-                });
-            });
-        });
 
         function toggleAddon(element, addon) {
             element.classList.toggle('selected');
@@ -1662,8 +1758,13 @@
         }
 
         function confirmAddons() {
-            closeAddonModal();
-            // Update the total price in the main modal
+            const modal = document.getElementById('addonModal');
+            modal.style.display = 'none';
+
+            // Update the addon total
+            updateAddonTotal();
+            
+            // Update the total price in the item details modal
             updateTotalPriceWithAddons();
         }
 
