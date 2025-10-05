@@ -30,7 +30,14 @@ class KitchenController extends Controller
             ->limit(10)
             ->get();
 
-        return view('kitchen', compact('pendingOrders', 'processingOrders', 'completedOrders'));
+        // ADD THIS - Get cancelled orders
+        $cancelledOrders = Order::with('orderItems.menuItem')
+            ->where('status', 'cancelled')
+            ->where('updated_at', '>=', now()->subHours(2))
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('kitchen', compact('pendingOrders', 'processingOrders', 'completedOrders', 'cancelledOrders'));
     }
 
     // Add the missing start method
@@ -42,7 +49,7 @@ class KitchenController extends Controller
     public function startOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
-        
+
         $order->update([
             'status' => 'processing',
             'started_at' => now()
@@ -54,24 +61,31 @@ class KitchenController extends Controller
     public function completeOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
-        
+
         $order->update([
             'status' => 'completed',
             'completed_at' => now()
         ]);
-        
+
         return redirect()->back()->with('success', 'Order completed!');
     }
 
     public function archiveCompleted()
     {
         try {
-            // Update all completed orders that are displayed (within 2 hours) to archived status
-            $archivedCount = Order::where('status', 'completed')
+            // Archive completed orders from last 2 hours
+            $completedCount = Order::where('status', 'completed')
                 ->where('completed_at', '>=', now()->subHours(2))
                 ->update(['status' => 'archived']);
 
-            return redirect()->back()->with('success', "Archived {$archivedCount} completed orders!");
+            // Archive cancelled orders from last 2 hours
+            $cancelledCount = Order::where('status', 'cancelled')
+                ->where('updated_at', '>=', now()->subHours(2))
+                ->update(['status' => 'archived']);
+
+            $totalArchived = $completedCount + $cancelledCount;
+
+            return redirect()->back()->with('success', "Archived {$totalArchived} orders!");
         } catch (\Exception $e) {
             Log::error('Archive failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to archive orders');

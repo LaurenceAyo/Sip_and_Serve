@@ -18,25 +18,62 @@
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background:
-                url('<?php echo e(asset('assets/bg1_sandwich.png')); ?>') no-repeat center center fixed,
-                linear-gradient(to bottom, #fff7e6 0%, #c2a477 100%);
-            background-size: contain, cover;
-            background-blend-mode: normal;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background slideshow container */
+        .background-slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .background-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #c2a477;
+            opacity: 0;
+            transition: opacity 6s ease-in-out;
+        }
+
+        .background-slide.active {
+            opacity: 1;
+        }
+
+        .background-slide::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 247, 230, 0.3) 0%, rgba(194, 164, 119, 0.5) 100%);
         }
 
         .login-container {
-            background-color: rgba(0, 0, 0, 0.65);
-            padding: 2rem;
+            opacity: 0.95;
+            background-color: rgba(0, 0, 0, 0.25);
+            padding: 20px;
             border-radius: 15px;
             text-align: center;
             width: 90%;
             max-width: 400px;
+            z-index: 1;
         }
 
         h1 {
@@ -181,8 +218,15 @@
 </head>
 
 <body>
+    <!-- Background slideshow -->
+    <div class="background-slideshow">
+        <div class="background-slide active" style="background-image: url('<?php echo e(asset('assets/background_main_2.jpg')); ?>');"></div>
+        <div class="background-slide" style="background-image: url('<?php echo e(asset('assets/background_main_3.jpg')); ?>');"></div>
+        <div class="background-slide" style="background-image: url('<?php echo e(asset('assets/background_main_4.jpg')); ?>');"></div>
+    </div>
+
     <div class="login-container">
-        <h1>L' PRIMERO CAFE</h1>
+        <h2 style="opacity: 0.7;">L' PRIMERO CAFE</h2>
         <div class="welcome">Welcome Back!</div>
 
         <!-- Display error messages -->
@@ -262,10 +306,26 @@
             btn.disabled = true;
             buttonText.style.opacity = '0';
             loadingSpinner.style.display = 'block';
-
         });
 
+        // Background slideshow functionality
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.background-slide');
+        const totalSlides = slides.length;
 
+        function changeBackground() {
+            // Remove active class from current slide
+            slides[currentSlide].classList.remove('active');
+            
+            // Move to next slide
+            currentSlide = (currentSlide + 1) % totalSlides;
+            
+            // Add active class to new slide
+            slides[currentSlide].classList.add('active');
+        }
+
+        // Change background every seconds
+        setInterval(changeBackground, 10000);
     </script>
 </body>
 

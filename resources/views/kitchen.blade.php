@@ -38,6 +38,7 @@
             border-radius: 8px 8px 0 0;
             font-weight: bold;
         }
+
         .archive-btn {
             position: fixed;
             bottom: 30px;
@@ -71,7 +72,7 @@
         .archive-btn svg {
             flex-shrink: 0;
         }
-        
+
         .order-card {
             background-color: white;
             border: 2px solid #ddd;
@@ -321,6 +322,37 @@
             font-style: italic;
             padding: 20px;
         }
+
+
+        .order-card.cancelled {
+            background: #ffebee !important;
+            border: 2px solid #ef5350 !important;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .order-card.cancelled .order-header {
+            background: #ef5350 !important;
+        }
+
+        .order-card.cancelled .order-number {
+            color: white;
+        }
+
+        .order-card.cancelled .start-button,
+        .order-card.cancelled .complete-button {
+            display: none;
+        }
+
+        .cancelled-badge {
+            background: #d32f2f;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
@@ -336,21 +368,30 @@
         <!-- Pending Orders Section -->
         <div class="section">
             <div class="section-header">PENDING ORDERS</div>
-            @forelse($pendingOrders as $order)
-                <div class="order-card" data-order-id="{{ $order->id }}">
+            @php
+                $allPendingOrders = $pendingOrders->concat($cancelledOrders ?? collect())->sortBy('created_at');
+            @endphp
+            @forelse($allPendingOrders as $order)
+                <div class="order-card {{ $order->status === 'cancelled' ? 'cancelled' : '' }}"
+                    data-order-id="{{ $order->id }}">
                     <div class="order-header">
                         <div class="order-number">
-                            Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}</div>
+                            Order#{{ $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT) }}
+                            @if($order->status === 'cancelled')
+                                <span class="cancelled-badge">CANCELLED</span>
+                            @endif
+                        </div>
                         <div class="order-type">{{ ucfirst($order->order_type) }}</div>
                     </div>
                     <div class="order-info">
-                        <span>Ordered: {{ $order->created_at->format('g:i A') }}</span>
+                        <span>{{ $order->status === 'cancelled' ? 'Cancelled' : 'Ordered' }}:
+                            {{ $order->status === 'cancelled' ? $order->updated_at->format('g:i A') : $order->created_at->format('g:i A') }}</span>
                         @if($order->order_type === 'dine-in' && $order->table_number)
                             <span>Table {{ $order->table_number }}</span>
                         @elseif($order->order_type === 'takeout')
                             <span>Takeout</span>
                         @endif
-                        @if($order->estimated_prep_time)
+                        @if($order->estimated_prep_time && $order->status !== 'cancelled')
                             <span>Est: {{ $order->estimated_prep_time }} min</span>
                         @endif
                     </div>
@@ -370,16 +411,18 @@
                     <div class="order-total">
                         Total: ₱{{ number_format($order->total_amount, 2) }}
                         @if($order->payment_method === 'cash')
-                            <small>(Cash: ₱{{ number_format($order->cash_amount, 2) }}, Change:
-                                ₱{{ number_format($order->change_amount, 2) }})</small>
+                            <small>(Cash: ₱{{ number_format($order->cash_amount ?? 0, 2) }}, Change:
+                                ₱{{ number_format($order->change_amount ?? 0, 2) }})</small>
                         @else
-                            <small>({{ strtoupper($order->payment_method) }})</small>
+                            <small>({{ strtoupper($order->payment_method ?? 'N/A') }})</small>
                         @endif
                     </div>
-                    <form action="{{ route('kitchen.start', $order->id) }}" method="POST" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="start-button">Start Cooking</button>
-                    </form>
+                    @if($order->status !== 'cancelled')
+                        <form action="{{ route('kitchen.start', $order->id) }}" method="POST" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="start-button">Start Cooking</button>
+                        </form>
+                    @endif
                 </div>
             @empty
                 <div class="empty-section">
@@ -452,7 +495,7 @@
 
         <!-- Completed Orders Section -->
         <div class="section">
-            <div class="section-header">RECENTLY COMPLETED</div>
+            <div class="section-header">COMPLETED ORDERS</div>
             @forelse($completedOrders as $order)
                 <div class="order-card completed-card" data-order-id="{{ $order->id }}">
                     <div class="order-header">
@@ -506,8 +549,8 @@
         </div>
     </div>
 
-    <!-- Archive Button (Fixed Bottom Right) -->
-    @if($completedOrders->count() > 0)
+    <!-- Archive Button -->
+    @if($completedOrders->count() > 0 || ($cancelledOrders ?? collect())->count() > 0)
         <button class="archive-btn" onclick="showArchiveModal()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path>
@@ -517,29 +560,21 @@
     @endif
 
     <script>
-        // Auto-refresh the page every 10 seconds to get new orders from the cashier
         setInterval(function () {
             fetch(window.location.href, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const newDoc = parser.parseFromString(html, 'text/html');
-
-                    // Update all sections
                     const sections = document.querySelectorAll('.section');
                     const newSections = newDoc.querySelectorAll('.section');
-
                     sections.forEach((section, index) => {
                         if (newSections[index]) {
                             section.innerHTML = newSections[index].innerHTML;
                         }
                     });
-
-                    // Update archive button visibility
                     const archiveBtn = document.querySelector('.archive-btn');
                     const newArchiveBtn = newDoc.querySelector('.archive-btn');
                     if (archiveBtn && !newArchiveBtn) {
@@ -548,12 +583,9 @@
                         document.body.appendChild(newArchiveBtn.cloneNode(true));
                     }
                 })
-                .catch(error => {
-                    console.log('Refresh failed, will try again:', error);
-                });
-        }, 10000); // Refresh every 10 seconds
+                .catch(error => console.log('Refresh failed:', error));
+        }, 10000);
 
-        // Update processing timers every second
         function updateTimers() {
             const timers = document.querySelectorAll('.timer[data-start-time]');
             timers.forEach(timer => {
@@ -658,8 +690,8 @@
     <!-- Archive Modal -->
     <div class="logout-modal-overlay" id="archiveModal">
         <div class="logout-modal">
-            <h3>Archive Completed Orders</h3>
-            <p>This will move all completed orders to the database archive. Continue?</p>
+            <h3>Archive Orders</h3>
+            <p>This will move all completed and cancelled orders to the database archive. Continue?</p>
             <div class="logout-modal-actions">
                 <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideArchiveModal()">Cancel</button>
                 <button class="logout-modal-btn logout-modal-btn-confirm" onclick="confirmArchive()">Archive</button>
@@ -671,7 +703,7 @@
     <form id="archiveForm" action="{{ route('kitchen.archive') }}" method="POST" style="display: none;">
         @csrf
     </form>
-    
+
 </body>
 
 </html>

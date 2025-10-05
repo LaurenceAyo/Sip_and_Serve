@@ -1469,10 +1469,6 @@
                         <span>Order Total:</span>
                         <span id="confirmationTotal">PHP 0.00</span>
                     </div>
-                    <div class="payment-detail-row">
-                        <span>You're Paying:</span>
-                        <span id="confirmationCash">PHP 0.00</span>
-                    </div>
                     <div class="payment-detail-row change-highlight" id="confirmationChangeRow">
                         <span>💰 Your Change:</span>
                         <span id="confirmationChange">PHP 0.00</span>
@@ -1491,11 +1487,11 @@
                     </div>
                     <div class="step-item">
                         <div class="step-number">3</div>
-                        <div class="step-text" id="step3Text">Pay PHP 0.00 and collect your change</div>
+                        <div class="step-text" id="step3Text">Pay and collect your change</div>
                     </div>
                     <div class="step-item">
                         <div class="step-number">4</div>
-                        <div class="step-text">Wait for your order to be prepared and served</div>
+                        <div class="step-text">Wait for your order to be served</div>
                     </div>
                 </div>
 

@@ -38,6 +38,7 @@
             border-radius: 8px 8px 0 0;
             font-weight: bold;
         }
+
         .archive-btn {
             position: fixed;
             bottom: 30px;
@@ -71,7 +72,7 @@
         .archive-btn svg {
             flex-shrink: 0;
         }
-        
+
         .order-card {
             background-color: white;
             border: 2px solid #ddd;
@@ -321,6 +322,37 @@
             font-style: italic;
             padding: 20px;
         }
+
+
+        .order-card.cancelled {
+            background: #ffebee !important;
+            border: 2px solid #ef5350 !important;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .order-card.cancelled .order-header {
+            background: #ef5350 !important;
+        }
+
+        .order-card.cancelled .order-number {
+            color: white;
+        }
+
+        .order-card.cancelled .start-button,
+        .order-card.cancelled .complete-button {
+            display: none;
+        }
+
+        .cancelled-badge {
+            background: #d32f2f;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
@@ -336,21 +368,31 @@
         <!-- Pending Orders Section -->
         <div class="section">
             <div class="section-header">PENDING ORDERS</div>
-            <?php $__empty_1 = true; $__currentLoopData = $pendingOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <div class="order-card" data-order-id="<?php echo e($order->id); ?>">
+            <?php
+                $allPendingOrders = $pendingOrders->concat($cancelledOrders ?? collect())->sortBy('created_at');
+            ?>
+            <?php $__empty_1 = true; $__currentLoopData = $allPendingOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <div class="order-card <?php echo e($order->status === 'cancelled' ? 'cancelled' : ''); ?>"
+                    data-order-id="<?php echo e($order->id); ?>">
                     <div class="order-header">
                         <div class="order-number">
-                            Order#<?php echo e($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)); ?></div>
+                            Order#<?php echo e($order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT)); ?>
+
+                            <?php if($order->status === 'cancelled'): ?>
+                                <span class="cancelled-badge">CANCELLED</span>
+                            <?php endif; ?>
+                        </div>
                         <div class="order-type"><?php echo e(ucfirst($order->order_type)); ?></div>
                     </div>
                     <div class="order-info">
-                        <span>Ordered: <?php echo e($order->created_at->format('g:i A')); ?></span>
+                        <span><?php echo e($order->status === 'cancelled' ? 'Cancelled' : 'Ordered'); ?>:
+                            <?php echo e($order->status === 'cancelled' ? $order->updated_at->format('g:i A') : $order->created_at->format('g:i A')); ?></span>
                         <?php if($order->order_type === 'dine-in' && $order->table_number): ?>
                             <span>Table <?php echo e($order->table_number); ?></span>
                         <?php elseif($order->order_type === 'takeout'): ?>
                             <span>Takeout</span>
                         <?php endif; ?>
-                        <?php if($order->estimated_prep_time): ?>
+                        <?php if($order->estimated_prep_time && $order->status !== 'cancelled'): ?>
                             <span>Est: <?php echo e($order->estimated_prep_time); ?> min</span>
                         <?php endif; ?>
                     </div>
@@ -372,16 +414,18 @@
                         Total: ₱<?php echo e(number_format($order->total_amount, 2)); ?>
 
                         <?php if($order->payment_method === 'cash'): ?>
-                            <small>(Cash: ₱<?php echo e(number_format($order->cash_amount, 2)); ?>, Change:
-                                ₱<?php echo e(number_format($order->change_amount, 2)); ?>)</small>
+                            <small>(Cash: ₱<?php echo e(number_format($order->cash_amount ?? 0, 2)); ?>, Change:
+                                ₱<?php echo e(number_format($order->change_amount ?? 0, 2)); ?>)</small>
                         <?php else: ?>
-                            <small>(<?php echo e(strtoupper($order->payment_method)); ?>)</small>
+                            <small>(<?php echo e(strtoupper($order->payment_method ?? 'N/A')); ?>)</small>
                         <?php endif; ?>
                     </div>
-                    <form action="<?php echo e(route('kitchen.start', $order->id)); ?>" method="POST" style="display: inline;">
-                        <?php echo csrf_field(); ?>
-                        <button type="submit" class="start-button">Start Cooking</button>
-                    </form>
+                    <?php if($order->status !== 'cancelled'): ?>
+                        <form action="<?php echo e(route('kitchen.start', $order->id)); ?>" method="POST" style="display: inline;">
+                            <?php echo csrf_field(); ?>
+                            <button type="submit" class="start-button">Start Cooking</button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <div class="empty-section">
@@ -458,7 +502,7 @@
 
         <!-- Completed Orders Section -->
         <div class="section">
-            <div class="section-header">RECENTLY COMPLETED</div>
+            <div class="section-header">COMPLETED ORDERS</div>
             <?php $__empty_1 = true; $__currentLoopData = $completedOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $order): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <div class="order-card completed-card" data-order-id="<?php echo e($order->id); ?>">
                     <div class="order-header">
@@ -514,8 +558,8 @@
         </div>
     </div>
 
-    <!-- Archive Button (Fixed Bottom Right) -->
-    <?php if($completedOrders->count() > 0): ?>
+    <!-- Archive Button -->
+    <?php if($completedOrders->count() > 0 || ($cancelledOrders ?? collect())->count() > 0): ?>
         <button class="archive-btn" onclick="showArchiveModal()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"></path>
@@ -525,29 +569,21 @@
     <?php endif; ?>
 
     <script>
-        // Auto-refresh the page every 10 seconds to get new orders from the cashier
         setInterval(function () {
             fetch(window.location.href, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
                 .then(response => response.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const newDoc = parser.parseFromString(html, 'text/html');
-
-                    // Update all sections
                     const sections = document.querySelectorAll('.section');
                     const newSections = newDoc.querySelectorAll('.section');
-
                     sections.forEach((section, index) => {
                         if (newSections[index]) {
                             section.innerHTML = newSections[index].innerHTML;
                         }
                     });
-
-                    // Update archive button visibility
                     const archiveBtn = document.querySelector('.archive-btn');
                     const newArchiveBtn = newDoc.querySelector('.archive-btn');
                     if (archiveBtn && !newArchiveBtn) {
@@ -556,12 +592,9 @@
                         document.body.appendChild(newArchiveBtn.cloneNode(true));
                     }
                 })
-                .catch(error => {
-                    console.log('Refresh failed, will try again:', error);
-                });
-        }, 10000); // Refresh every 10 seconds
+                .catch(error => console.log('Refresh failed:', error));
+        }, 10000);
 
-        // Update processing timers every second
         function updateTimers() {
             const timers = document.querySelectorAll('.timer[data-start-time]');
             timers.forEach(timer => {
@@ -666,8 +699,8 @@
     <!-- Archive Modal -->
     <div class="logout-modal-overlay" id="archiveModal">
         <div class="logout-modal">
-            <h3>Archive Completed Orders</h3>
-            <p>This will move all completed orders to the database archive. Continue?</p>
+            <h3>Archive Orders</h3>
+            <p>This will move all completed and cancelled orders to the database archive. Continue?</p>
             <div class="logout-modal-actions">
                 <button class="logout-modal-btn logout-modal-btn-cancel" onclick="hideArchiveModal()">Cancel</button>
                 <button class="logout-modal-btn logout-modal-btn-confirm" onclick="confirmArchive()">Archive</button>
@@ -679,7 +712,7 @@
     <form id="archiveForm" action="<?php echo e(route('kitchen.archive')); ?>" method="POST" style="display: none;">
         <?php echo csrf_field(); ?>
     </form>
-    
+
 </body>
 
 </html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/kitchen.blade.php ENDPATH**/ ?>

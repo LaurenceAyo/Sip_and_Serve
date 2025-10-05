@@ -2,7 +2,7 @@
 // app/Http/Kernel.php
 
 namespace App\Http;
-
+use App\Models\BackupSetting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
@@ -61,9 +61,4 @@ class Kernel extends HttpKernel
         'pin.auth' => \App\Http\Middleware\PinAuthentication::class,
         'pos.security' => \App\Http\Middleware\PosSecurityMiddleware::class,
     ];
-
-    protected function schedule(Schedule $schedule)
-    {
-        $schedule->command('backup:auto')->hourly();
-    }
 }
