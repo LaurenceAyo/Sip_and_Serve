@@ -100,6 +100,10 @@ class User extends Authenticatable
     {
         return $this->role === 'kitchen';
     }
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
+    }
 
     // Fixed hasRole method - supports both single role and array of roles
     public function hasRole($roles)
@@ -135,7 +139,7 @@ class User extends Authenticatable
     {
         return $this->status === 'active';
     }
-    
+
     public function canAccess($area)
     {
         if (!$this->isActive()) {

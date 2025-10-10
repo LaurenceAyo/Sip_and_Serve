@@ -262,41 +262,7 @@
             }
         }
 
-        /* Decorative Elements */
-        .decoration {
-            position: absolute;
-            opacity: 0.1;
-        }
 
-        .decoration-1 {
-            top: 20%;
-            right: 10%;
-            width: 50px;
-            height: 50px;
-            background: #f39c12;
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .decoration-2 {
-            bottom: 20%;
-            right: 20%;
-            width: 30px;
-            height: 30px;
-            background: #27ae60;
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite reverse;
-        }
-
-        .decoration-3 {
-            top: 40%;
-            right: 5%;
-            width: 20px;
-            height: 20px;
-            background: #e74c3c;
-            border-radius: 50%;
-            animation: float 7s ease-in-out infinite;
-        }
 
         @keyframes float {
 
@@ -693,6 +659,188 @@
             console.log('Connection lost');
         });
     </script>
+    <!-- Logout Button for Customers -->
+    <?php if(auth()->guard()->check()): ?>
+        <form method="POST" action="<?php echo e(route('logout')); ?>"
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+            <?php echo csrf_field(); ?>
+            <button type="submit" style="
+                    background: rgba(231, 76, 60, 0.9);
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(192, 57, 43, 0.9)'"
+                onmouseout="this.style.background='rgba(231, 76, 60, 0.9)'">
+                🚪 Logout
+            </button>
+        </form>
+    <?php endif; ?>
+
+    <!-- Restricted Access Popup -->
+    <?php if(session('restricted_access')): ?>
+        <div id="restrictedPopup" class="restricted-popup-overlay">
+            <div class="restricted-popup">
+                <div class="restricted-icon">🔒</div>
+                <h2>Access Restricted</h2>
+                <p>This area is restricted.</p>
+                <p><strong>Need access? Contact your administrator.</strong></p>
+                <div class="popup-timer">
+                    <div class="timer-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .restricted-popup-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 99999;
+                animation: fadeIn 0.3s ease-out;
+            }
+
+            .restricted-popup {
+                background: white;
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                max-width: 500px;
+                box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+                animation: slideDown 0.4s ease-out;
+                position: relative;
+            }
+
+            .restricted-icon {
+                font-size: 80px;
+                margin-bottom: 20px;
+                animation: shake 0.5s ease-in-out;
+            }
+
+            .restricted-popup h2 {
+                color: #e74c3c;
+                font-size: 28px;
+                margin-bottom: 15px;
+                font-weight: bold;
+            }
+
+            .restricted-popup p {
+                color: #555;
+                font-size: 18px;
+                margin: 10px 0;
+                line-height: 1.5;
+            }
+
+            .restricted-popup p strong {
+                color: #2c3e50;
+                font-size: 20px;
+            }
+
+            .popup-timer {
+                width: 100%;
+                height: 6px;
+                background: #ecf0f1;
+                border-radius: 3px;
+                margin-top: 30px;
+                overflow: hidden;
+            }
+
+            .timer-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #e74c3c, #c0392b);
+                width: 100%;
+                animation: shrinkTimer 4s linear forwards;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+
+                to {
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideDown {
+                from {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes shake {
+
+                0%,
+                100% {
+                    transform: rotate(0deg);
+                }
+
+                25% {
+                    transform: rotate(-10deg);
+                }
+
+                75% {
+                    transform: rotate(10deg);
+                }
+            }
+
+            @keyframes shrinkTimer {
+                from {
+                    width: 100%;
+                }
+
+                to {
+                    width: 0%;
+                }
+            }
+
+            @keyframes fadeOut {
+                from {
+                    opacity: 1;
+                }
+
+                to {
+                    opacity: 0;
+                }
+            }
+        </style>
+
+        <script>
+            // Auto-close popup after 4 seconds
+            setTimeout(function () {
+                const popup = document.getElementById('restrictedPopup');
+                if (popup) {
+                    popup.style.animation = 'fadeOut 0.5s ease-out';
+                    setTimeout(function () {
+                        popup.remove();
+                    }, 500);
+                }
+            }, 4000); // 4 seconds
+
+            // Optional: Click anywhere to close immediately
+            document.getElementById('restrictedPopup')?.addEventListener('click', function () {
+                this.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => this.remove(), 300);
+            });
+        </script>
+    <?php endif; ?>
 </body>
 
 </html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/kiosk.blade.php ENDPATH**/ ?>

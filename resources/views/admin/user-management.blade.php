@@ -347,6 +347,7 @@
                                 <option value="manager">Manager</option>
                                 <option value="cashier">Cashier</option>
                                 <option value="kitchen">Kitchen Staff</option>
+                                <option value="customer">Customer</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -666,7 +667,9 @@
                 role: formData.get('role'),
                 password: formData.get('password'),
                 password_confirmation: formData.get('password_confirmation'),
+                status: 'active',
                 permissions: ''
+                // DO NOT include password_reset_required - it doesn't exist in your table
             };
 
             try {
@@ -716,7 +719,8 @@
                 'admin': 'bg-danger',
                 'manager': 'bg-warning text-dark',
                 'cashier': 'bg-info',
-                'kitchen': 'bg-success'
+                'kitchen': 'bg-success',
+                'customer': 'bg-primary'
             }[role] || 'bg-secondary';
         }
 

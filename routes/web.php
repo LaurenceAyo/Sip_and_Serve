@@ -21,6 +21,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Pos\PosAuthController;
 use App\Http\Controllers\BackupSettingsController;
+use App\Http\Controllers\PinLockController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -158,8 +159,11 @@ Route::post('/send-receipt', [OrderController::class, 'sendReceipt'])->name('sen
 // =============================================================================
 
 // Basic authenticated routes (any authenticated user)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class])->group(function () {
 
+    // PIN LOCK ROUTES (for inactivity locking)
+    Route::get('/pin-lock', [PinLockController::class, 'showLock'])->name('pin.lock');
+    Route::post('/pin-verify', [PinLockController::class, 'verify'])->name('pin.verify');
     // =============================================================================
     // PIN AUTHENTICATION SYSTEM
     // =============================================================================
@@ -206,33 +210,38 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'
 // =============================================================================
 // MANAGER ROUTES (Manager and Administrator) (Sub routes for Product Management and Sales Management)
 // =============================================================================
-Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
-// Dashboard (Inventory Management)
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 
-// Sales Management
-Route::get('/sales', [SalesController::class, 'index'])->name('sales');
+// Dashboard, Sales, and Product Management - Protected by PIN
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\RoleMiddleware::class . ':manager', \App\Http\Middleware\CheckPinLock::class, \App\Http\Middleware\CheckInactivity::class])->group(function () {
+    // Dashboard (Inventory Management)
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 
-// Product Management
-Route::get('/product', [ProductController::class, 'index'])->name('product');
-Route::post('/product/store', [ProductController::class, 'store'])->name('product.store');
-Route::put('/product/{id}', [ProductController::class, 'update'])->name('product.update');
-Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product.destroy');
+    // Sales Management
+    Route::get('/sales', [SalesController::class, 'index'])->name('sales');
+
+    // Product Management
+    Route::get('/product', [ProductController::class, 'index'])->name('product');
+    Route::post('/product/store', [ProductController::class, 'store'])->name('product.store');
+    Route::put('/product/{id}', [ProductController::class, 'update'])->name('product.update');
+    Route::delete('/product/{id}', [ProductController::class, 'destroy'])->name('product.destroy');
+});
 
 // Menu & Ingredient Management
-Route::post('/menu-items/store', [KioskController::class, 'storeMenuItem'])->name('menu-items.store');
-Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem'])->name('menu-items.update');
-Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem'])->name('menu-items.delete');
-Route::post('/ingredients/update', [IngredientController::class, 'updateStock'])->name('ingredients.update');
-//});
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\RoleMiddleware::class . ':manager'])->group(function () {
+    Route::post('/menu-items/store', [KioskController::class, 'storeMenuItem'])->name('menu-items.store');
+    Route::post('/menu-items/update', [KioskController::class, 'updateMenuItem'])->name('menu-items.update');
+    Route::post('/menu-items/delete', [KioskController::class, 'deleteMenuItem'])->name('menu-items.delete');
+    Route::post('/ingredients/update', [IngredientController::class, 'updateStock'])->name('ingredients.update');
+});
 
 // =============================================================================
 // CASHIER ROUTES (Cashier, Manager, and Administrator)
 // =============================================================================
 
 Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':cashier'])->group(function () {
+
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\CheckPinLock::class, \App\Http\Middleware\RoleMiddleware::class . ':cashier', \App\Http\Middleware\CheckInactivity::class])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
         Route::get('/refresh', [CashierController::class, 'refreshOrders'])->name('refresh');
@@ -282,7 +291,8 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':cashie
 // KITCHEN ROUTES (Kitchen Staff, Manager, and Administrator)
 // =============================================================================
 Route::post('/kitchen/archive', [KitchenController::class, 'archiveCompleted'])->name('kitchen.archive');
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':kitchen'])->group(function () {
+
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\CheckPinLock::class, \App\Http\Middleware\RoleMiddleware::class . ':kitchen', \App\Http\Middleware\CheckInactivity::class])->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
         Route::get('/data', [KitchenController::class, 'getData'])->name('data');
@@ -295,7 +305,8 @@ Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':kitche
 // =============================================================================
 // STAFF ROUTES (Any authenticated staff member)
 // =============================================================================
-Route::middleware(['auth'])->group(function () {
+// Basic kiosk access for authenticated staff
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class])->group(function () {
     // Basic kiosk access for authenticated staff
     Route::post('/cashier/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment']);
     Route::prefix('kiosk')->name('kiosk.')->group(function () {
@@ -313,7 +324,7 @@ Route::middleware(['auth'])->group(function () {
 // =============================================================================
 // PRINTER TESTING ROUTES (Staff only)
 // =============================================================================
-Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':staff'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\RoleMiddleware::class . ':staff'])->group(function () {
     //Thermal app Bridge
     Route::get('/printer/response', [App\Http\Controllers\PrinterController::class, 'response']);
     Route::get('/printer/json/{id}', [App\Http\Controllers\PrinterJsonController::class, 'receipt']);

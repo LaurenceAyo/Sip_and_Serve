@@ -2163,7 +2163,7 @@
             const step2Text = document.getElementById('step2Text');
             const step3Text = document.getElementById('step3Text');
             if (step2Text) step2Text.textContent = `Tell them: "Order #${orderNumber} - Cash Payment"`;
-            if (step3Text) step3Text.textContent = `Pay PHP ${parseFloat(data.cash_amount || 0).toFixed(2)} and collect your change if needed`;
+            if (step3Text) step3Text.textContent = `Pay and collect your change if needed`;
 
             // Update payment amounts
             const totalAmountFromData = parseFloat(data.total_amount) || totalAmount;

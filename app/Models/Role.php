@@ -21,6 +21,7 @@ class Role extends Model
     const MANAGER = 'manager';
     const CASHIER = 'cashier';
     const KITCHEN_STAFF = 'kitchen_staff';
+    const CUSTOMER = 'customer';
 
     public function users()
     {
@@ -46,5 +47,9 @@ class Role extends Model
     public static function getKitchenStaffRole()
     {
         return self::where('name', self::KITCHEN_STAFF)->first();
+    }
+    public static function getCustomerRole()  // NEW
+    {
+        return self::where('name', self::CUSTOMER)->first();
     }
 }

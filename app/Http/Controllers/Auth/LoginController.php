@@ -10,11 +10,15 @@ use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
-    /**
-     * Show the login form
-     */
-    public function showLoginForm()
+
+
+    public function showLoginForm(Request $request)
     {
+        // Store flag if they came from Staff Login button
+        if ($request->query('from') === 'staff') {
+            session(['from_staff_login' => true]);
+        }
+
         return view('welcome');
     }
 
@@ -52,13 +56,38 @@ class LoginController extends Controller
             // Update last login
             $user->updateLastLogin();
 
-            // Role-based redirection
-            return match($user->role) {
+            // Set PIN as verified on fresh login (no PIN needed on login)
+            session([
+                'pin_verified' => true,
+                'last_activity' => time()
+            ]);
+
+            // CUSTOMER REDIRECT - Block customers from staff areas
+            // ⭐ CUSTOMER REDIRECT - Block customers from staff areas
+            if ($user->role === 'customer') {
+                Log::info('Customer logged in, redirecting to kiosk: ' . $user->email);
+
+                // Check if they clicked "Staff Login" button from cover page
+                $fromStaffButton = $request->session()->get('from_staff_login', false);
+
+                if ($fromStaffButton) {
+                    // Clear the flag
+                    $request->session()->forget('from_staff_login');
+                    // Show popup - they tried to use staff login
+                    return redirect()->route('kiosk.index')->with('restricted_access', true);
+                }
+
+                // Normal kiosk login - no popup
+                return redirect()->route('kiosk.index');
+            }
+
+            // Role-based redirection for STAFF
+            return match ($user->role) {
                 'admin' => redirect()->intended(route('dashboard')),
-                'manager' => redirect()->intended(route('dashboard')), 
+                'manager' => redirect()->intended(route('dashboard')),
                 'cashier' => redirect()->intended(route('cashier.index')),
                 'kitchen' => redirect()->intended(route('kitchen.index')),
-                default => redirect()->intended(route('dashboard'))
+                default => redirect()->intended(route('kiosk.index'))
             };
         }
 
@@ -75,6 +104,10 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Clear PIN verification on logout
+        session()->forget('pin_verified');
+        session()->forget('last_activity');
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

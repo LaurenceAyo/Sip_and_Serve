@@ -66,13 +66,14 @@
         }
 
         .cover-container {
+            margin-top: 100px;
             opacity: 0.95;
             background-color: rgba(0, 0, 0, 0.35);
             padding: 2rem 1.5rem;
             border-radius: 20px;
             text-align: center;
-            width: 95%;
-            max-width: 500px;
+            width: 55%;
+            max-width: 50px;
             z-index: 1;
         }
 
@@ -90,6 +91,7 @@
         }
 
         .button-container {
+            opacity: 0.75;
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -265,9 +267,12 @@
 <body>
     <!-- Background slideshow -->
     <div class="background-slideshow">
-        <div class="background-slide active" style="background-image: url('{{ asset('assets/background_main_2.jpg') }}');"></div>
-        <div class="background-slide" style="background-image: url('{{ asset('assets/background_main_3.jpg') }}');"></div>
-        <div class="background-slide" style="background-image: url('{{ asset('assets/background_main_4.jpg') }}');"></div>
+        <div class="background-slide active"
+            style="background-image: url('{{ asset('assets/background_main_2.jpg') }}');"></div>
+        <div class="background-slide" style="background-image: url('{{ asset('assets/background_main_3.jpg') }}');">
+        </div>
+        <div class="background-slide" style="background-image: url('{{ asset('assets/background_main_4.jpg') }}');">
+        </div>
     </div>
 
     <div class="cover-container">
@@ -276,7 +281,7 @@
 
         <div class="button-container">
             <!-- Staff/Admin Login -->
-            <a href="{{ route('login') }}" class="mode-button">
+            <a href="{{ route('login') }}?from=staff" class="mode-button">
                 <span class="button-icon">👤</span>
                 <span class="button-text">Staff Login & POS System</span>
                 <span class="button-description">(Staff Only)</span>
@@ -304,10 +309,10 @@
         function changeBackground() {
             // Remove active class from current slide
             slides[currentSlide].classList.remove('active');
-            
+
             // Move to next slide
             currentSlide = (currentSlide + 1) % totalSlides;
-            
+
             // Add active class to new slide
             slides[currentSlide].classList.add('active');
         }

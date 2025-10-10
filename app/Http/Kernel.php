@@ -1,7 +1,7 @@
 <?php
-// app/Http/Kernel.php
 
 namespace App\Http;
+
 use App\Models\BackupSetting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
@@ -21,6 +21,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        // REMOVED: \App\Http\Middleware\CheckPinLock::class, <- This was wrong!
     ];
 
     /**
@@ -47,6 +48,9 @@ class Kernel extends HttpKernel
      * The application's middleware aliases.
      */
     protected $middlewareAliases = [
+        'block.customer' => \App\Http\Middleware\BlockCustomerAccess::class,
+        'pin.lock' => \App\Http\Middleware\CheckPinLock::class,
+        'check.inactivity' => \App\Http\Middleware\CheckInactivity::class,
         'role' => \App\Http\Middleware\RoleMiddleware::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
@@ -61,4 +65,6 @@ class Kernel extends HttpKernel
         'pin.auth' => \App\Http\Middleware\PinAuthentication::class,
         'pos.security' => \App\Http\Middleware\PosSecurityMiddleware::class,
     ];
+    
+    // REMOVED the duplicate $routeMiddleware array
 }

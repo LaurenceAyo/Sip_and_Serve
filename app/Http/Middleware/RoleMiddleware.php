@@ -29,6 +29,49 @@ class RoleMiddleware
             return redirect()->route('login')->with('error', 'Your account has been deactivated.');
         }
 
+        // **CUSTOMER RESTRICTION: Only allow kiosk routes**
+        if ($user->isCustomer()) {
+            $allowedRoutes = [
+                'kiosk.index',
+                'kiosk.main',
+                'kiosk.dineIn',
+                'kiosk.takeOut',
+                'kiosk.placeOrder',
+                'kiosk.addToCart',
+                'kiosk.removeFromCart',
+                'kiosk.getCart',
+                'kiosk.updateCartItem',
+                'kiosk.removeCartItem',
+                'kiosk.reviewOrder',
+                'kiosk.checkout',
+                'kiosk.cancelOrder',
+                'kiosk.processOrder',
+                'kiosk.submitOrder',
+                'kiosk.orderConfirmation',
+                'kiosk.orderConfirmationSuccess',
+                'kiosk.payment',
+                'kiosk.processPayment',
+                'kiosk.processCashPayment',
+                'kiosk.processMayaPayment',
+                'kiosk.processGCashPayment',
+                'kiosk.paymentSuccess',
+                'kiosk.paymentFailed',
+                'kiosk.payment.success',
+                'kiosk.payment.failed',
+                'kiosk.updateOrderType',
+                'logout',
+                'profile.edit',
+                'profile.update',
+            ];
+
+            // Check if current route is allowed for customers
+            if (!in_array($request->route()->getName(), $allowedRoutes) && 
+                !str_starts_with($request->path(), 'kiosk')) {
+                return redirect()->route('kiosk.index')
+                    ->with('error', 'Customers can only access the kiosk ordering system.');
+            }
+        }
+
         // Admin can access everything
         if ($user->isAdmin()) {
             return $next($request);
@@ -60,8 +103,15 @@ class RoleMiddleware
                 }
                 break;
 
+            case 'customer':
+                // Already handled above with route restrictions
+                if (!$user->isCustomer()) {
+                    return $this->unauthorized($request, 'Customer access required.');
+                }
+                break;
+
             case 'staff':
-                // Any authenticated staff member
+                // Any authenticated staff member (NOT customers)
                 if (!in_array($user->role, ['admin', 'manager', 'cashier', 'kitchen'])) {
                     return $this->unauthorized($request, 'Staff access required.');
                 }
@@ -107,6 +157,7 @@ class RoleMiddleware
             'manager' => 'dashboard',
             'cashier' => 'cashier.index',
             'kitchen' => 'kitchen.index',
+            'customer' => 'kiosk.index',
             default => 'dashboard'
         };
     }

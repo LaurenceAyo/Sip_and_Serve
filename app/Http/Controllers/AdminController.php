@@ -13,8 +13,8 @@ class AdminController extends Controller
 {
     public function userManagement()
     {
-        if (Auth::user()->email !== 'laurenceayo7@gmail.com') {
-            abort(403, 'Access denied');
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Access denied - Admin role required');
         }
         return view('admin.user-management');
     }
@@ -25,7 +25,7 @@ class AdminController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
-                'role' => 'required|in:admin,manager,cashier,kitchen',
+                'role' => 'required|in:admin,manager,cashier,kitchen,customer',
                 'status' => 'required|in:active,inactive',
                 'password' => 'required|string|min:8',
                 'password_confirmation' => 'required|same:password',
@@ -39,7 +39,6 @@ class AdminController extends Controller
                 'status' => $request->status,
                 'password' => Hash::make($request->password),
                 'permissions' => $request->permissions,
-                'password_reset_required' => false,
                 'email_verified_at' => now()
             ]);
 
@@ -117,7 +116,6 @@ class AdminController extends Controller
             $newPassword = 'temp' . rand(1000, 9999);
             $user->update([
                 'password' => Hash::make($newPassword),
-                'password_reset_required' => true
             ]);
             return response()->json([
                 'success' => true,
@@ -172,7 +170,7 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
-                'role' => 'required|in:admin,manager,cashier,kitchen',
+                'role' => 'required|in:admin,manager,cashier,kitchen,customer',
                 'password' => 'nullable|string|min:8',
             ]);
 
