@@ -2480,8 +2480,7 @@
                     showAutoRefreshError(error.message);
                 });
         }
-        'maya_reference' => $order -> maya_reference,
-            'maya_webhook_received_at' => $order -> maya_webhook_received_at,
+        
                 // Listen for Maya reference updates via Pusher
                 document.addEventListener('DOMContentLoaded', function () {
                     const pusherKey = document.querySelector('meta[name="pusher-key"]')?.content;
