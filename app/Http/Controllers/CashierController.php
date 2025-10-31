@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Carbon\Carbon;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -147,32 +148,34 @@ class CashierController extends Controller
         }
     }
 
-
-
-
-
     public function index()
     {
         try {
             Log::info('Cashier index method called - GOOJPRT PT-210 System');
 
-            // Get pending cash orders only (not preparing ones for the pending panel)
             $cashOrders = Order::with([
                 'orderItems',
                 'orderItems.menuItem',
                 'orderItems.menuItem.category'
             ])
                 ->whereIn('payment_method', ['cash', 'maya'])
-                ->where('payment_status', 'pending') // Only pending orders for cashier
-                ->where('status', 'pending') // Changed from 'preparing' to 'pending'
+                ->where(function ($query) {
+                    $query->where('payment_status', 'pending')
+                        ->orWhereNull('payment_status');
+                })
+                ->where('status', 'pending')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             Log::info('GOOJPRT PT-210 Cashier Debug - Orders Found', [
                 'count' => $cashOrders->count(),
                 'order_ids' => $cashOrders->pluck('id')->toArray(),
-                'printer_configured' => env('THERMAL_PRINTER_NAME', 'Not configured'),
-                'printer_path' => env('THERMAL_PRINTER_PATH', 'Not configured')
+                'query_used' => [
+                    'payment_method' => 'cash OR maya',
+                    'payment_status' => 'pending',
+                    'status' => 'pending OR preparing',
+                    'kitchen_received_at' => 'NULL'
+                ]
             ]);
 
             // Get categories for manual order creation
@@ -180,24 +183,21 @@ class CashierController extends Controller
                 $query->where('is_available', true);
             }])->where('is_active', true)->get();
 
-            // Format orders for display with FIXED total calculation
+            // Format orders for display
             $pendingOrders = $cashOrders->map(function ($order) {
-                // Calculate the correct total from order items
                 $calculatedTotal = $this->calculateCorrectTotal($order);
-
-                // Get cash amount and calculate expected change
                 $cashAmount = (float) ($order->cash_amount ?? 0);
                 $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
 
                 return [
-                    'id' => $order->id, // Use actual ID, not padded
+                    'id' => $order->id,
                     'actual_id' => $order->id,
                     'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
                     'time' => $order->created_at->format('H:i'),
-                    'items' => $this->formatOrderItemsFixed($order->orderItems), // Keep 'items' for view compatibility
-                    'order_items' => $this->formatOrderItemsFixed($order->orderItems), // Also provide 'order_items' for JS
-                    'total' => $calculatedTotal, // Use calculated total
-                    'total_amount' => $calculatedTotal, // Ensure consistency
+                    'items' => $this->formatOrderItemsFixed($order->orderItems),
+                    'order_items' => $this->formatOrderItemsFixed($order->orderItems),
+                    'total' => $calculatedTotal,
+                    'total_amount' => $calculatedTotal,
                     'cash_amount' => $cashAmount,
                     'expected_change' => $expectedChange,
                     'order_type' => $order->order_type ?? 'dine-in',
@@ -206,23 +206,22 @@ class CashierController extends Controller
                     'payment_status' => $order->payment_status,
                     'payment_method' => $order->payment_method,
                     'status' => $order->status,
+                    'maya_reference' => $order->maya_reference,
+                    'maya_webhook_received_at' => $order->maya_webhook_received_at,
                     'created_at' => $order->created_at->toISOString()
                 ];
             })->toArray();
 
-            Log::info('GOOJPRT PT-210 system - Pending orders formatted', [
+            Log::info('GOOJPRT PT-210 system - Orders formatted', [
                 'count' => count($pendingOrders),
-                'sample_order' => count($pendingOrders) > 0 ? $pendingOrders[0] : null
             ]);
 
             return view('cashier', compact('pendingOrders', 'categories'));
         } catch (Exception $e) {
             Log::error('Error loading GOOJPRT PT-210 cashier page', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
 
-            // Fallback data
             $pendingOrders = [];
             $categories = collect();
             return view('cashier', compact('pendingOrders', 'categories'));
@@ -355,19 +354,21 @@ class CashierController extends Controller
     public function refreshOrders()
     {
         try {
-            Log::info('GOOJPRT PT-210 - Refresh orders method called');
 
-            // Fix: Use 'status' not 'payment_status' for pending orders
-            $cashOrders = Order::with(['orderItems', 'orderItems.menuItem'])
+            $cashOrders = Order::with([
+                'orderItems',
+                'orderItems.menuItem',
+                'orderItems.menuItem.category'
+            ])
                 ->whereIn('payment_method', ['cash', 'maya'])
-                ->where('status', 'pending')  // Changed from payment_status
+                ->where(function ($query) {
+                    $query->where('payment_status', 'pending')
+                        ->orWhereNull('payment_status');
+                })
+                ->where('status', 'pending')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            Log::info('GOOJPRT PT-210 - Refresh orders found', [
-                'count' => $cashOrders->count(),
-                'orders' => $cashOrders->pluck('id')->toArray()
-            ]);
 
             return response()->json([
                 'success' => true,
@@ -386,8 +387,10 @@ class CashierController extends Controller
                         'expected_change' => $expectedChange,
                         'change_amount' => (float) ($order->change_amount ?? 0),
                         'payment_method' => $order->payment_method,
-                        'payment_status' => 'pending', // Add this for JS compatibility
+                        'payment_status' => $order->payment_status,
                         'status' => $order->status,
+                        'maya_reference' => $order->maya_reference,
+                        'maya_webhook_received_at' => $order->maya_webhook_received_at,
                         'created_at' => $order->created_at->toISOString(),
                         'order_items' => $this->formatOrderItemsFixed($order->orderItems)
                     ];
@@ -407,9 +410,6 @@ class CashierController extends Controller
 
     public function acceptOrder(Request $request)
     {
-        Log::info('Bluetooth Printer + USB Drawer - Accept order called', [
-            'request_data' => $request->all()
-        ]);
 
         try {
             $validated = $request->validate([
@@ -417,8 +417,8 @@ class CashierController extends Controller
                 'cash_amount' => 'required|numeric|min:0',
                 'print_receipt' => 'boolean',
                 'open_drawer' => 'boolean',
-                'payment_method' => 'sometimes|string|in:cash,maya', // Add this
-                'maya_confirmed' => 'sometimes|boolean' // Add this
+                'payment_method' => 'sometimes|string|in:cash,maya',
+                'maya_confirmed' => 'sometimes|boolean'
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -436,7 +436,19 @@ class CashierController extends Controller
 
             // Determine payment method
             $paymentMethod = $validated['payment_method'] ?? 'cash';
+
+            // Initialize $cashAmount for logging to avoid undefined variable; will be recalculated below for Maya payments
+            $cashAmount = $validated['cash_amount'] ?? null;
+
             $isMayaPayment = $paymentMethod === 'maya' || ($validated['maya_confirmed'] ?? false);
+
+            Log::info('🔥 KIOSK PAYMENT DEBUG', [
+                'payment_method_from_request' => $request->input('payment_method'),
+                'payment_method_validated' => $validated['payment_method'] ?? 'NOT SET',
+                'payment_method_final' => $paymentMethod,
+                'all_request_data' => $request->all(),
+                'cash_amount' => $cashAmount
+            ]);
 
             // For Maya payments, set cash_amount to total (no change needed)
             if ($isMayaPayment) {
@@ -454,27 +466,24 @@ class CashierController extends Controller
                 $changeAmount = $validated['cash_amount'] - $calculatedTotal;
             }
 
-            // Update order with proper payment method
+            // CRITICAL FIX: Keep status as 'pending' so kitchen receives the order
             $order->update([
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
                 'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
                 'total_amount' => $calculatedTotal,
-                'payment_status' => 'paid', // Mark as paid for both cash and Maya
-                'status' => 'preparing',
+                'payment_status' => 'paid', // Payment is done
+                'status' => 'pending', // FIXED: Keep as 'pending' for kitchen
                 'paid_at' => now(),
-                'kitchen_received_at' => now(),
+                //'kitchen_received_at' => now(), // Mark when sent to kitchen
             ]);
-            // Add this after the order->update() call
-            Log::info('Payment processed - checking order state', [
+
+            Log::info('Payment processed - Order sent to kitchen', [
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
-                'items_count_before_commit' => $order->orderItems->count(),
-                'order_data' => [
-                    'payment_status' => $order->payment_status,
-                    'status' => $order->status,
-                    'total_amount' => $order->total_amount
-                ]
+                'status' => 'pending', // Confirm it's pending for kitchen
+                'payment_status' => 'paid',
+                'items_count' => $order->orderItems->count()
             ]);
 
             $receiptPrinted = false;
@@ -557,19 +566,20 @@ class CashierController extends Controller
 
             DB::commit();
 
-            Log::info('Order payment processed successfully', [
+            Log::info('Order payment processed and sent to kitchen', [
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
                 'total_amount' => $calculatedTotal,
                 'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
-                'drawer_opened' => $drawerOpened
+                'drawer_opened' => $drawerOpened,
+                'kitchen_status' => 'pending' // Confirm sent to kitchen
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => ($isMayaPayment ? 'Maya' : 'Cash') . ' payment processed successfully',
+                'message' => ($isMayaPayment ? 'Maya' : 'Cash') . ' payment processed - Order sent to kitchen',
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
                 'total_amount' => $calculatedTotal,
@@ -578,7 +588,8 @@ class CashierController extends Controller
                 'receipt_printed' => $receiptPrinted,
                 'drawer_opened' => $drawerOpened,
                 'printer_error' => $printerError,
-                'drawer_error' => $drawerError
+                'drawer_error' => $drawerError,
+                'kitchen_status' => 'Order sent to kitchen'
             ]);
         } catch (Exception $e) {
             DB::rollBack();
@@ -854,60 +865,60 @@ class CashierController extends Controller
     }
 
     public function completeOrder(Request $request)
-{
-    $validated = $request->validate([
-        'order_id' => 'required|integer|exists:orders,id',
-        'order_number' => 'required|string',
-        'completion_time' => 'required|string',
-        'change_given' => 'required|numeric',
-        'receipt_printed' => 'required|boolean'
-    ]);
-
-    try {
-        // Convert ISO format to MySQL datetime format
-        $completionTime = Carbon::parse($validated['completion_time'])->format('Y-m-d H:i:s');
-        
-        // Update order status to completed
-        $order = Order::findOrFail($validated['order_id']);
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => $completionTime  // Changed
+    {
+        $validated = $request->validate([
+            'order_id' => 'required|integer|exists:orders,id',
+            'order_number' => 'required|string',
+            'completion_time' => 'required|string',
+            'change_given' => 'required|numeric',
+            'receipt_printed' => 'required|boolean'
         ]);
 
-        // Insert into daily_sales table
-        DB::table('daily_sales')->insert([
-            'order_id' => $validated['order_id'],
-            'order_number' => $validated['order_number'],
-            'total_amount' => $order->total_amount,
-            'cash_received' => $order->cash_amount,
-            'change_given' => $validated['change_given'],
-            'completion_time' => $completionTime,  // Changed
-            'receipt_printed' => $validated['receipt_printed'],
-            'printer_used' => 'GOOJPRT PT-210',
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+        try {
+            // Convert ISO format to MySQL datetime format
+            $completionTime = Carbon::parse($validated['completion_time'])->format('Y-m-d H:i:s');
 
-        Log::info('GOOJPRT PT-210 - Order completed and saved to sales', [
-            'order_id' => $validated['order_id']
-        ]);
+            // Update order status to completed
+            $order = Order::findOrFail($validated['order_id']);
+            $order->update([
+                'status' => 'completed',
+                'completed_at' => $completionTime  // Changed
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order completed and saved to sales'
-        ]);
-    } catch (Exception $e) {
-        Log::error('GOOJPRT PT-210 - Error completing order', [
-            'order_id' => $validated['order_id'],
-            'error' => $e->getMessage()
-        ]);
+            // Insert into daily_sales table
+            DB::table('daily_sales')->insert([
+                'order_id' => $validated['order_id'],
+                'order_number' => $validated['order_number'],
+                'total_amount' => $order->total_amount,
+                'cash_received' => $order->cash_amount,
+                'change_given' => $validated['change_given'],
+                'completion_time' => $completionTime,  // Changed
+                'receipt_printed' => $validated['receipt_printed'],
+                'printer_used' => 'GOOJPRT PT-210',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to complete order'
-        ], 500);
+            Log::info('GOOJPRT PT-210 - Order completed and saved to sales', [
+                'order_id' => $validated['order_id']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order completed and saved to sales'
+            ]);
+        } catch (Exception $e) {
+            Log::error('GOOJPRT PT-210 - Error completing order', [
+                'order_id' => $validated['order_id'],
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete order'
+            ], 500);
+        }
     }
-}
 
     public function confirmMayaPayment(Request $request)
     {

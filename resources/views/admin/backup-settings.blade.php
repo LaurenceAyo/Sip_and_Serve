@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,6 +84,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
@@ -146,8 +148,8 @@
                                 Backup Location
                             </h5>
                             <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="backup_location" id="local" value="local" 
-                                    {{ (isset($settings) && $settings->backup_location == 'local') ? 'checked' : 'checked' }}>
+                                <input class="form-check-input" type="radio" name="backup_location" id="local"
+                                    value="local" {{ ($settings->backup_location ?? 'local') == 'local' ? 'checked' : 'checked' }}>
                                 <label class="form-check-label" for="local">
                                     <strong>Local Storage</strong>
                                     <br>
@@ -155,8 +157,8 @@
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="backup_location" id="server" value="server" disabled
-                                    {{ (isset($settings) && $settings->backup_location == 'server') ? 'checked' : '' }}>
+                                <input class="form-check-input" type="radio" name="backup_location" id="server"
+                                    value="server" disabled {{ ($settings->backup_location ?? 'local') == 'server' ? 'checked' : '' }}>
                                 <label class="form-check-label text-muted" for="server">
                                     <strong>Remote Server</strong>
                                     <br>
@@ -171,8 +173,8 @@
                                 Backup Schedule
                             </h5>
                             <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="backup_schedule" id="weekly" value="weekly"
-                                    {{ (isset($settings) && $settings->backup_schedule == 'weekly') ? 'checked' : 'checked' }}>
+                                <input class="form-check-input" type="radio" name="backup_schedule" id="weekly"
+                                    value="weekly" {{ ($settings->backup_schedule ?? 'weekly') == 'weekly' ? 'checked' : 'checked' }}>
                                 <label class="form-check-label" for="weekly">
                                     <strong>Weekly</strong>
                                     <br>
@@ -180,8 +182,8 @@
                                 </label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="backup_schedule" id="monthly" value="monthly"
-                                    {{ (isset($settings) && $settings->backup_schedule == 'monthly') ? 'checked' : '' }}>
+                                <input class="form-check-input" type="radio" name="backup_schedule" id="monthly"
+                                    value="monthly" {{ ($settings->backup_schedule ?? 'weekly') == 'monthly' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="monthly">
                                     <strong>Monthly</strong>
                                     <br>
@@ -189,7 +191,21 @@
                                 </label>
                             </div>
                         </div>
-
+                        <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-robot me-2 text-primary"></i>
+                            Auto Backup
+                        </h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="auto_backup_enabled"
+                                id="auto_backup_enabled" value="1" {{ ($settings->auto_backup_enabled ?? false) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="auto_backup_enabled">
+                                <strong>Enable Automatic Backups</strong>
+                                <br>
+                                <small class="text-muted">Automatically create backups according to schedule</small>
+                            </label>
+                        </div>
+                    </div>
                         <div class="mb-4">
                             <h5 class="mb-3">
                                 <i class="fas fa-upload me-2 text-primary"></i>
@@ -199,11 +215,14 @@
                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                 Your current data will be replaced with the backup. Proceed carefully.
                             </div>
-                            <input type="file" id="backupFile" accept=".json" style="display: none;" onchange="handleFileSelect(event)">
-                            <button type="button" class="btn btn-outline-info" onclick="document.getElementById('backupFile').click()">
+                            <input type="file" id="backupFile" accept=".json" style="display: none;"
+                                onchange="handleFileSelect(event)">
+                            <button type="button" class="btn btn-outline-info"
+                                onclick="document.getElementById('backupFile').click()">
                                 <i class="fas fa-file-upload me-2"></i>
                                 Choose Backup File
                             </button>
+                            
                         </div>
 
                         <div class="d-flex gap-2">
@@ -216,6 +235,7 @@
                                 Download Backup
                             </button>
                         </div>
+                        
                     </form>
                 </div>
             </div>
@@ -229,22 +249,23 @@
                     <div class="mb-3">
                         <strong>Current Location:</strong>
                         <span class="badge bg-primary ms-2">
-                            {{ isset($settings) ? ucfirst($settings->backup_location) : 'Local' }}
+                            {{ ucfirst($settings->backup_location ?? 'local') }}
                         </span>
                     </div>
                     <div class="mb-3">
                         <strong>Schedule:</strong>
                         <span class="badge bg-info ms-2">
-                            {{ isset($settings) ? ucfirst($settings->backup_schedule) : 'Weekly' }}
+                            {{ ucfirst($settings->backup_schedule ?? 'weekly') }}
                         </span>
                     </div>
                     <div class="mb-3">
                         <strong>Last Backup:</strong>
                         <br>
                         <small class="text-muted">
-                            {{ isset($settings) && $settings->updated_at ? $settings->updated_at->format('M d, Y H:i') : 'Never' }}
+                            {{ $settings->last_backup_at ? $settings->last_backup_at->format('M d, Y H:i') : 'Never' }}
                         </small>
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -266,7 +287,8 @@
                         <i class="fas fa-database text-warning" style="font-size: 3rem;"></i>
                     </div>
                     <h5>Are you sure you want to restore this backup?</h5>
-                    <p class="text-muted">This will replace all current data with the backup data. This action cannot be undone.</p>
+                    <p class="text-muted">This will replace all current data with the backup data. This action cannot be
+                        undone.</p>
                     <div class="alert alert-danger">
                         <strong>Warning:</strong> All existing users, orders, and settings will be replaced.
                     </div>
@@ -296,10 +318,10 @@
                     alert('Please select a valid JSON backup file.');
                     return;
                 }
-                
+
                 selectedFile = file;
                 document.getElementById('selectedFileName').textContent = file.name;
-                
+
                 // Show confirmation modal
                 const modal = new bootstrap.Modal(document.getElementById('restoreModal'));
                 modal.show();
@@ -326,7 +348,7 @@
                 if (result.success) {
                     // Close modal
                     bootstrap.Modal.getInstance(document.getElementById('restoreModal')).hide();
-                    
+
                     // Show success message
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show';
@@ -335,7 +357,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     `;
                     document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
-                    
+
                     // Reload page after 2 seconds
                     setTimeout(() => {
                         window.location.reload();
@@ -359,6 +381,7 @@
                     method: 'GET',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
                     }
                 });
 
@@ -367,33 +390,53 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'cafe_backup_' + new Date().toISOString().slice(0, 19).replace(/:/g, '_') + '.json';
+
+                    // Get filename from response headers or generate one
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = 'cafe_backup_' + new Date().toISOString().slice(0, 19).replace(/:/g, '_') + '.json';
+
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    a.download = filename;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
 
                     // Show success message
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-                    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-                    alertDiv.innerHTML = `
-                        Backup downloaded successfully!
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    document.body.appendChild(alertDiv);
-
-                    setTimeout(() => {
-                        if (alertDiv.parentNode) {
-                            alertDiv.remove();
-                        }
-                    }, 5000);
+                    showAlert('Backup downloaded successfully!', 'success');
                 } else {
-                    alert('Backup failed. Please try again.');
+                    const error = await response.json();
+                    showAlert('Backup failed: ' + (error.message || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Backup failed:', error);
-                alert('Backup failed. Please try again.');
+                showAlert('Backup failed. Please try again.', 'error');
             }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+            alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
         }
     </script>
 </body>
+
 </html>

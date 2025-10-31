@@ -35,4 +35,38 @@ return [
         ],
     ],
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Maya Payment Gateway Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Maya (formerly PayMaya) payment gateway integration.
+    | Get your API keys from: https://developers.maya.ph/
+    |
+    */
+
+    'maya' => [
+        // API Keys
+        'public_key' => env('MAYA_PUBLIC_KEY'),
+        'secret_key' => env('MAYA_SECRET_KEY'),
+        
+        // Environment (sandbox or production)
+        'environment' => env('MAYA_ENVIRONMENT', 'sandbox'),
+        
+        // Webhook Secret for signature verification
+        'webhook_secret' => env('MAYA_WEBHOOK_SECRET'),
+        
+        // API Base URL (determined by environment)
+        'api_url' => env('MAYA_ENVIRONMENT', 'sandbox') === 'production' 
+            ? 'https://pg.paymaya.com' 
+            : 'https://pg-sandbox.paymaya.com',
+        
+        // Webhook Configuration
+        'webhook_url' => env('APP_URL') . '/maya/qr/webhook',
+        
+        // Checkout Settings
+        'checkout_timeout' => 900, // 15 minutes in seconds
+    ],
+
 ];

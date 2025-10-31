@@ -250,121 +250,36 @@ class KioskController extends Controller
             }
         }
     }
-    public function processMayaPayment(Request $request)
-    {
-        // Validate incoming data
-        $validated = $request->validate([
-            'total_amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:maya'
-        ]);
 
-        try {
-            $cart = Session::get('cart', []);
-            $orderType = Session::get('orderType', 'dine-in');
-            $totalAmount = floatval($validated['total_amount']);
-
-            if (empty($cart)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Your cart is empty. Please add items before proceeding.'
-                ], 400);
-            }
-
-            // Check stock availability
-            $stockCheck = $this->checkStockAvailability($cart);
-            if (!empty($stockCheck)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Sorry, this item is currently unavailable due to ingredient shortage. Please select a different item or contact staff for assistance.'
-                ], 400);
-            }
-
-            DB::transaction(function () use ($cart, $orderType, $totalAmount, &$order) {
-                // Create the order with Maya payment method
-                $order = Order::create([
-                    'subtotal' => $totalAmount,
-                    'tax_amount' => 0.00,
-                    'discount_amount' => 0.00,
-                    'total_amount' => $totalAmount,
-                    'payment_method' => 'maya', // Explicitly set to maya
-                    'payment_status' => 'pending',
-                    'status' => 'pending',
-                    'cash_amount' => $totalAmount, // For Maya, set to total amount
-                    'change_amount' => 0,
-                    'order_type' => $orderType,
-                    'notes' => "Kiosk order - Type: {$orderType} - Maya Payment",
-                ]);
-
-                // Create order items AND deduct ingredients
-                foreach ($cart as $id => $item) {
-                    $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
-                    $orderItem = OrderItem::create([
-                        'order_id' => $order->id,
-                        'menu_item_id' => $item['menu_item_id'] ?? null,
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $itemPrice,
-                        'total_price' => $itemPrice * $item['quantity'],
-                        'special_instructions' => isset($item['modifiers']) && is_array($item['modifiers']) ? implode(', ', $item['modifiers']) : null,
-                        'status' => 'pending'
-                    ]);
-
-                    // Deduct ingredients for each item
-                    $this->deductIngredients($orderItem->id, $orderItem->quantity);
-                }
-
-                // Deduct packaging supplies for takeout orders
-                if ($orderType === 'take-out') {
-                    $this->deductPackagingSupplies($cart, $orderType);
-                }
-            });
-
-            // Clear the cart and store the last order ID
-            Session::forget('cart');
-            if ($order) {
-                Session::put('last_order_id', $order->id);
-                Log::info('Maya payment processed successfully for Order ID: ' . $order->id);
-                $orderNumber = 'M' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
-            } else {
-                Log::error('Order object is null after transaction.');
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Order could not be created. Please try again.'
-                ], 500);
-            }
-
-            return response()->json([
-                'success' => true,
-                'order_id' => $order->id,
-                'order_number' => $orderNumber,
-                'total_amount' => $totalAmount,
-                'payment_method' => 'maya',
-                'message' => 'Maya order processed successfully. Order sent to cashier.'
-            ]);
-        } catch (Exception $e) {
-            Log::error('Maya payment failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'An unexpected error occurred. Please contact staff for assistance.'
-            ], 500);
-        }
-    }
     /**
-     * Process cash payment - TAX-INCLUSIVE PRICING
+     * Process cash payment - TAX-INCLUSIVE PRICING - FIXED: Removed table_number
      */
     public function processCashPayment(Request $request)
     {
-        // Validate incoming data
+        // Add logging to debug
+        Log::info('🔥 PAYMENT METHOD DEBUG', [
+            'raw_input' => $request->input('payment_method'),
+            'all_request' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'cash_amount' => 'required|numeric|min:0',
+            'payment_method' => 'required|string|in:cash,maya'
+        ]);
+
+        Log::info('🔥 VALIDATED', [
+            'payment_method' => $validated['payment_method']
         ]);
 
         try {
             $cart = Session::get('cart', []);
             $orderType = Session::get('orderType', 'dine-in');
             $cashAmount = floatval($validated['cash_amount']);
+            $paymentMethod = $validated['payment_method']; // ← Get from validated data
+
+            Log::info('🔥 PAYMENT METHOD VARIABLE', [
+                'paymentMethod' => $paymentMethod
+            ]);
 
             if (empty($cart)) {
                 return response()->json([
@@ -379,51 +294,67 @@ class KioskController extends Controller
                 $subtotal += $itemPrice * ($item['quantity'] ?? 1);
             }
 
-            // For cash payments, prices are treated as tax-inclusive.
             $tax = 0;
             $total = $subtotal;
 
-            if ($cashAmount < $total) {
+            if ($paymentMethod === 'cash' && $cashAmount < $total) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Insufficient cash amount provided.'
                 ], 400);
             }
 
-            $actualChange = $cashAmount - $total;
+            if ($paymentMethod === 'maya') {
+                $cashAmount = $total;
+                $actualChange = 0;
+            } else {
+                $actualChange = $cashAmount - $total;
+            }
+
             $order = null;
-
-
             $stockCheck = $this->checkStockAvailability($cart);
             if (!empty($stockCheck)) {
-                $shortageMessage = "Insufficient stock for:\n";
-                foreach ($stockCheck as $shortage) {
-                    $shortageMessage .= "• {$shortage['menu_item']}: {$shortage['ingredient']} (need {$shortage['needed']}, have {$shortage['available']})\n";
-                }
-
                 return response()->json([
                     'success' => false,
-                    'message' => 'Sorry, this item is currently unavailable due to ingredient shortage. Please select a different item or contact staff for assistance.'
+                    'message' => 'Sorry, this item is currently unavailable due to ingredient shortage.'
                 ], 400);
             }
 
-            DB::transaction(function () use ($cart, $orderType, $subtotal, $tax, $total, $cashAmount, $actualChange, &$order) {
-                // Create the order
-                $order = Order::create([
+            DB::transaction(function () use ($cart, $orderType, $subtotal, $tax, $total, $cashAmount, $actualChange, $paymentMethod, &$order) {
+
+                // CRITICAL: Create array first, log it, THEN create order
+                $orderData = [
                     'subtotal' => $subtotal,
                     'tax_amount' => $tax,
                     'discount_amount' => 0.00,
                     'total_amount' => $total,
-                    'payment_method' => 'cash',
+                    'payment_method' => $paymentMethod, // ← Using the variable
                     'payment_status' => 'pending',
                     'status' => 'pending',
                     'cash_amount' => $cashAmount,
                     'change_amount' => $actualChange,
                     'order_type' => $orderType,
-                    'notes' => "Kiosk order - Type: {$orderType}",
+                    'notes' => "Kiosk order - Type: {$orderType} - Payment: {$paymentMethod}",
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+
+                Log::info('🔥 ORDER DATA BEFORE CREATE', $orderData);
+
+                $order = Order::create($orderData);
+
+                Log::info('🔥 ORDER CREATED', [
+                    'order_id' => $order->id,
+                    'payment_method_from_model' => $order->payment_method,
+                    'payment_method_from_attributes' => $order->getAttributes()['payment_method'] ?? 'NULL'
                 ]);
 
-                // Create order items AND deduct ingredients
+                // Check database immediately
+                $dbCheck = DB::table('orders')->where('id', $order->id)->first();
+                Log::info('🔥 DB CHECK', [
+                    'payment_method_in_db' => $dbCheck->payment_method ?? 'NULL'
+                ]);
+
                 foreach ($cart as $id => $item) {
                     $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
                     $orderItem = OrderItem::create([
@@ -436,25 +367,34 @@ class KioskController extends Controller
                         'status' => 'pending'
                     ]);
 
-                    // Deduct ingredients for each item
                     $this->deductIngredients($orderItem->id, $orderItem->quantity);
-                    $this->deductPackagingSupplies($orderItem->id, $orderItem->quantity);
+                }
+
+                if ($orderType === 'take-out') {
+                    $this->deductPackagingSupplies($cart, $orderType);
                 }
             });
 
-            // Clear the cart and store the last order ID for the confirmation page
             Session::forget('cart');
-            if ($order) {
-                Session::put('last_order_id', $order->id);
-                Log::info('Cash payment processed successfully for Order ID: ' . $order->id);
-                $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
-            } else {
-                Log::error('Order object is null after transaction.');
+
+            if (!$order) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Order could not be created. Please try again.'
                 ], 500);
             }
+
+            Session::put('last_order_id', $order->id);
+            $orderNumber = ($paymentMethod === 'maya' ? 'M' : 'C') . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
+            $order->refresh();
+
+            // Final verification
+            Log::info('🔥 FINAL VERIFICATION', [
+                'order_id' => $order->id,
+                'payment_method' => $order->payment_method,
+                'order_number' => $orderNumber
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -463,13 +403,13 @@ class KioskController extends Controller
                 'cash_amount' => $cashAmount,
                 'change_amount' => $actualChange,
                 'total_amount' => $total,
-                'message' => 'Cash order processed successfully. Please proceed to the cashier.'
+                'payment_method' => $order->payment_method, // Return from database
+                'message' => $paymentMethod === 'maya'
+                    ? 'Maya order processed successfully. Order sent to kitchen.'
+                    : 'Cash order processed successfully. Please proceed to the cashier.'
             ]);
         } catch (Exception $e) {
-            Log::error('Cash payment failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
+            Log::error('Payment processing failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An unexpected error occurred. Please contact staff for assistance.'
@@ -477,9 +417,139 @@ class KioskController extends Controller
         }
     }
 
+    /**
+     * Process Maya payment from kiosk (similar to cashier's accept-order)
+     */
+    /**
+     * Process Maya payment from kiosk (similar to cashier's accept-order)
+     */
+    public function processMayaPayment(Request $request)
+    {
+        try {
+            Log::info('=== MAYA PAYMENT PROCESSING STARTED ===');
+            Log::info('Request data:', $request->all());
+
+            // Validate the incoming request
+            $validated = $request->validate([
+                'cash_amount' => 'required|numeric|min:0',
+                'payment_method' => 'required|string|in:maya'
+            ]);
+
+            Log::info('Validation passed:', $validated);
+
+            // Get cart from session
+            $cart = session('cart', []);
+
+            if (empty($cart)) {
+                Log::warning('Maya payment attempted with empty cart');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cart is empty'
+                ], 400);
+            }
+
+            Log::info('Cart contents for debugging:', $cart);
+
+            // Calculate order totals
+            $subtotal = 0;
+            foreach ($cart as $item) {
+                $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
+                $itemTotal = $itemPrice * ($item['quantity'] ?? 1);
+                $subtotal += $itemTotal;
+            }
+
+            $total = $subtotal;
+            $cashAmount = floatval($validated['cash_amount']);
+
+            Log::info('Order calculation:', [
+                'subtotal' => $subtotal,
+                'total' => $total,
+                'cash_amount' => $cashAmount,
+                'cart_items' => count($cart)
+            ]);
+
+            // Create the order with Maya payment method
+            $order = Order::create([
+                'order_type' => session('orderType', 'dine-in'),
+                'subtotal' => $subtotal,
+                'total_amount' => $total, // Changed from 'total' to match your schema
+                'payment_method' => 'maya',
+                'payment_status' => 'pending',
+                'status' => 'pending', // Changed from 'order_status' to match your schema
+                'cash_amount' => $cashAmount,
+                'change_amount' => 0,
+                'notes' => "Kiosk order - Type: " . session('orderType', 'dine-in') . " - Payment: maya",
+            ]);
+
+            Log::info('Order created successfully:', [
+                'order_id' => $order->id,
+                'payment_method' => $order->payment_method,
+                'total' => $order->total_amount
+            ]);
+
+            // Add order items - FIXED: Use correct keys from session cart
+            foreach ($cart as $item) {
+                $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
+
+                $orderItem = $order->orderItems()->create([
+                    'menu_item_id' => $item['menu_item_id'] ?? null, // ← FIXED: Use menu_item_id instead of id
+                    'quantity' => $item['quantity'] ?? 1,
+                    'unit_price' => $itemPrice,
+                    'total_price' => $itemPrice * ($item['quantity'] ?? 1),
+                    'special_instructions' => isset($item['modifiers']) && is_array($item['modifiers']) ? implode(', ', $item['modifiers']) : null,
+                ]);
+
+                Log::info('Order item added:', [
+                    'order_item_id' => $orderItem->id,
+                    'menu_item_id' => $item['menu_item_id'] ?? 'unknown'
+                ]);
+            }
+
+            // Clear cart
+            session()->forget('cart');
+            Log::info('Cart cleared from session');
+
+            Log::info('=== MAYA PAYMENT PROCESSING COMPLETED ===');
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $order->id,
+                'order_number' => str_pad($order->id, 3, '0', STR_PAD_LEFT),
+                'total_amount' => $order->total_amount,
+                'cash_amount' => $order->cash_amount,
+                'payment_method' => $order->payment_method,
+                'payment_status' => $order->payment_status,
+                'message' => 'Order placed successfully with Maya payment'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Maya payment validation failed:', [
+                'errors' => $e->errors(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            Log::error('Maya payment processing error:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing Maya payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
-     * Process GCash payment via PayMongo - KEEPS 10% TAX FOR ONLINE PAYMENTS
+     * Process GCash payment via PayMongo - KEEPS 10% TAX FOR ONLINE PAYMENTS (not needed anymore)
      */
     public function processGCashPayment(Request $request)
     {
@@ -511,7 +581,7 @@ class KioskController extends Controller
                 'payment_method' => 'gcash'
             ]);
 
-            // STEP 1: Save order to database FIRST
+            // STEP 1: Save order to database FIRST - FIXED: Removed table_number
             DB::beginTransaction();
 
             $order = Order::create([
@@ -1425,7 +1495,8 @@ class KioskController extends Controller
     {
         $request->validate([
             'table_number' => 'nullable|integer|min:1|max:50',
-            'customer_name' => 'nullable|string|max:100'
+            'customer_name' => 'nullable|string|max:100',
+            'payment_method' => 'required|in:cash,maya' // Add validation for payment method
         ]);
 
         $cart = session('cart', []);
@@ -1451,13 +1522,16 @@ class KioskController extends Controller
             $tax = 0;
             $total = $subtotal;
 
+            // Get payment method from request
+            $paymentMethod = $request->input('payment_method', 'cash');
+
             // Create the order using your actual database columns
             $order = Order::create([
                 'subtotal' => $subtotal,
                 'tax_amount' => $tax,
                 'discount_amount' => 0.00,
                 'total_amount' => $total,
-                'payment_method' => 'cash',
+                'payment_method' => $paymentMethod, // Use the payment method from request
                 'payment_status' => 'pending',
                 'status' => 'pending',
                 'order_type' => $orderType,
@@ -1489,7 +1563,8 @@ class KioskController extends Controller
 
             Log::info('Order submitted successfully:', [
                 'order_id' => $order->id,
-                'total_amount' => $total
+                'total_amount' => $total,
+                'payment_method' => $paymentMethod
             ]);
 
             return redirect()->route('kiosk.orderConfirmation', $order->id)

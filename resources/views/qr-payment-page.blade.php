@@ -262,15 +262,10 @@
                 // Show static QR code instead of generating dynamic one
                 document.getElementById('qrContainer').innerHTML = `
             <div class="qr-code">
-                <img src="/assets/maya-qr.png" alt="Maya QR Code" style="width: 250px; height: 250px;">
+                
             </div>
             <p class="mt-3 text-muted">Scan with Maya app to pay</p>
-            <div class="manual-payment">
-                <h6>Manual Payment Instructions:</h6>
-                <p><strong>Account Name:</strong> L PRIMERO CAFE</p>
-                <p><strong>Reference:</strong> Order #${orderId}</p>
-                <p><strong>Amount:</strong> ₱{{ isset($order) ? number_format((float) $order->total_amount, 2) : '150.00' }}</p>
-            </div>
+            
         `;
             } catch (error) {
                 console.error('QR display error:', error);

@@ -2,6 +2,23 @@
 <html lang="en">
 
 <head>
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- Pusher Configuration for Real-time Notifications -->
+    {{-- Use config defaults or environment fallbacks to avoid missing config errors --}}
+    @php
+        // Safely read nested broadcasting.connection values without causing "Config [...] not found"
+        $pusherConnections = config('broadcasting.connections', []);
+        $pusherKey = data_get($pusherConnections, 'pusher.key', env('PUSHER_APP_KEY', ''));
+        $pusherCluster = data_get($pusherConnections, 'pusher.options.cluster', env('PUSHER_APP_CLUSTER', ''));
+    @endphp
+    <meta name="pusher-key" content="{{ $pusherKey }}">
+    <meta name="pusher-cluster" content="{{ $pusherCluster }}">
+
+    <!-- Pusher Library -->
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -1363,6 +1380,77 @@
                 padding: 15px;
             }
 
+            /* Add to your existing CSS */
+            @keyframes blink {
+
+                0%,
+                20% {
+                    opacity: 0.2;
+                }
+
+                50% {
+                    opacity: 1;
+                }
+
+                100% {
+                    opacity: 0.2;
+                }
+            }
+
+            @keyframes highlightGreen {
+                0% {
+                    background-color: #c8e6c9;
+                }
+
+                50% {
+                    background-color: #a5d6a7;
+                }
+
+                100% {
+                    background-color: #c8e6c9;
+                }
+            }
+
+            @keyframes slideInFromRight {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .loading-dots span {
+                font-size: 24px;
+                color: #856404;
+            }
+
+            .maya-reference-box {
+                animation: highlightGreen 2s ease-in-out;
+            }
+
+            @keyframes blink {
+
+                0%,
+                20%,
+                50%,
+                80%,
+                100% {
+                    opacity: 1;
+                }
+
+                40% {
+                    opacity: 0.3;
+                }
+
+                60% {
+                    opacity: 0.5;
+                }
+            }
+
             .processing-actions {
                 flex-direction: column;
             }
@@ -1433,6 +1521,7 @@
 </head>
 
 <body>
+
     <div class="header">
         SIP & SERVE - CASHIER
 
@@ -1551,6 +1640,66 @@
                                 <button class="btn btn-cancel" onclick="cancelOrder('{{ $order['id'] }}')">
                                     ❌ Cancel
                                 </button>
+                                @if($order['payment_method'] === 'maya')
+                                    <div class="maya-payment-section"
+                                        style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 2px solid #1976d2; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                            <span style="font-size: 24px;">📱</span>
+                                            <strong style="color: #1565c0; font-size: 1.1rem;">Maya QR Payment</strong>
+                                        </div>
+
+                                        @if(isset($order['maya_reference']) && $order['maya_reference'])
+                                            <!-- Reference Received -->
+                                            <div class="maya-reference-box"
+                                                style="background: #c8e6c9; border: 2px solid #388e3c; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                                    <span style="font-size: 20px;">✅</span>
+                                                    <strong style="color: #2e7d32;">Payment Received!</strong>
+                                                </div>
+
+                                                <div
+                                                    style="background: white; padding: 10px; border-radius: 6px; font-family: 'Courier New', monospace; text-align: center; margin-bottom: 10px;">
+                                                    <div style="font-size: 0.75rem; color: #666; margin-bottom: 4px;">Reference Number:
+                                                    </div>
+                                                    <div
+                                                        style="font-size: 1.2rem; font-weight: bold; color: #1976d2; letter-spacing: 1px;">
+                                                        {{ $order['maya_reference'] }}
+                                                    </div>
+                                                </div>
+
+                                                <div style="font-size: 0.85rem; color: #555; text-align: center; margin-bottom: 10px;">
+                                                    💡 Ask customer to show their Maya receipt<br>
+                                                    <strong>Verify the reference number matches</strong>
+                                                </div>
+
+                                                <button class="btn btn-confirm-maya"
+                                                    onclick="quickConfirmMaya({{ $order['id'] }}, '{{ $order['order_number'] }}', '{{ $order['maya_reference'] }}')"
+                                                    style="width: 100%; background: #2e7d32; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;">
+                                                    ✅ Confirm Payment Match
+                                                </button>
+                                            </div>
+                                        @else
+                                            <!-- Waiting for Payment -->
+                                            <div class="maya-waiting-box"
+                                                style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 12px; text-align: center;">
+                                                <div style="font-size: 1.5rem; margin-bottom: 8px;">⏳</div>
+                                                <div style="font-weight: 600; color: #856404; margin-bottom: 6px;">
+                                                    Waiting for Payment...
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #856404;">
+                                                    Customer is scanning QR code<br>
+                                                    Reference will appear here automatically
+                                                </div>
+
+                                                <div class="loading-dots" style="margin-top: 10px;">
+                                                    <span style="animation: blink 1.4s infinite;">●</span>
+                                                    <span style="animation: blink 1.4s infinite 0.2s;">●</span>
+                                                    <span style="animation: blink 1.4s infinite 0.4s;">●</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -1630,6 +1779,42 @@
             </div>
         </div>
     </div>
+    <!-- Maya Payment Verification Modal -->
+    <div class="modal-overlay" id="mayaVerifyModal" style="display: none;">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Verify Maya Payment</h3>
+                <p>Order #<span id="verifyOrderNumber"></span></p>
+            </div>
+            <div class="modal-content">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Amount to Verify:</strong>
+                    <div style="font-size: 1.5rem; color: #1976d2; font-weight: bold;">
+                        PHP <span id="verifyAmount">0.00</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Maya Reference Number from Receipt:</label>
+                    <input type="text" id="mayaReferenceInput" class="form-input"
+                        placeholder="Enter ref no. from customer's receipt"
+                        style="font-family: monospace; font-size: 1.1rem;">
+                    <small style="color: #666;">Ask customer to show their Maya digital receipt</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button onclick="hideMayaVerifyModal()"
+                        style="flex: 1; background: #6c757d; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button onclick="submitMayaVerification()"
+                        style="flex: 2; background: #28a745; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        Verify Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Edit Order Modal -->
     <div class="modal-overlay" id="editOrderModal">
@@ -1697,6 +1882,7 @@
     <div class="printer-status" id="printerStatus"></div>
 
     <script>
+        let verifyingOrderId = null;
         let currentAction = null;
         let currentOrderId = null;
         let currentAmount = 0;
@@ -1819,7 +2005,7 @@
                             errorMessage += ' - ' + JSON.stringify(errorData.errors);
                         }
                     } catch (e) {
-                        // If we can't parse JSON, use default message
+
                     }
                     throw new Error(errorMessage);
                 }
@@ -2196,7 +2382,7 @@
             // Always calculate from items first (most reliable)
             if (order.order_items && Array.isArray(order.order_items)) {
                 order.order_items.forEach(item => {
-                    // Get quantity (default to 1 if not specified)
+
                     const quantity = parseInt(item.quantity) || 1;
                     // Get unit price (prefer unit_price, then price, then total_price divided by quantity)
                     let unitPrice = 0;
@@ -2290,6 +2476,150 @@
                     debugLog('Auto-refresh failed:', error.message);
                     showAutoRefreshError(error.message);
                 });
+        }
+        'maya_reference' => $order -> maya_reference,
+            'maya_webhook_received_at' => $order -> maya_webhook_received_at,
+                // Listen for Maya reference updates via Pusher
+                document.addEventListener('DOMContentLoaded', function () {
+                    const pusherKey = document.querySelector('meta[name="pusher-key"]')?.content;
+                    const pusherCluster = document.querySelector('meta[name="pusher-cluster"]')?.content;
+
+                    if (pusherKey) {
+                        const pusher = new Pusher(pusherKey, {
+                            cluster: pusherCluster,
+                            encrypted: true
+                        });
+
+                        const channel = pusher.subscribe('orders');
+
+                        // Listen for Maya reference received
+                        channel.bind('maya-reference-received', function (data) {
+                            console.log('Maya reference received:', data);
+
+                            // Update the order card with the reference
+                            updateOrderCardWithMayaReference(data);
+
+                            // Show notification
+                            showMayaReferenceNotification(data);
+
+                            // Play sound
+                            playNotificationSound();
+                        });
+
+                        console.log('Maya real-time notifications enabled');
+                    }
+                });
+
+        function updateOrderCardWithMayaReference(data) {
+            const orderCard = document.getElementById(`order-${data.order_id}`);
+            if (!orderCard) return;
+
+            // Find the Maya waiting section
+            const waitingBox = orderCard.querySelector('.maya-waiting-box');
+            if (!waitingBox) return;
+
+            // Replace with reference received section
+            waitingBox.innerHTML = `
+        <div class="maya-reference-box" style="background: #c8e6c9; border: 2px solid #388e3c; border-radius: 8px; padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 20px;">✅</span>
+                <strong style="color: #2e7d32;">Payment Received!</strong>
+            </div>
+            
+            <div style="background: white; padding: 10px; border-radius: 6px; font-family: 'Courier New', monospace; text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 0.75rem; color: #666; margin-bottom: 4px;">Reference Number:</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #1976d2; letter-spacing: 1px;">
+                    ${data.maya_reference}
+                </div>
+            </div>
+            
+            <div style="font-size: 0.85rem; color: #555; text-align: center; margin-bottom: 10px;">
+                💡 Ask customer to show their Maya receipt<br>
+                <strong>Verify the reference number matches</strong>
+            </div>
+            
+            <button class="btn btn-confirm-maya" 
+                    onclick="quickConfirmMaya(${data.order_id}, '${data.order_number}', '${data.maya_reference}')"
+                    style="width: 100%; background: #2e7d32; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;">
+                ✅ Confirm Payment Match
+            </button>
+        </div>
+    `;
+
+            // Add visual highlight
+            waitingBox.style.animation = 'highlightGreen 2s ease-in-out';
+        }
+
+        function showMayaReferenceNotification(data) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+        color: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        min-width: 320px;
+        animation: slideInFromRight 0.3s ease-out;
+    `;
+
+            notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 32px;">💳</div>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">
+                    Maya Payment Detected!
+                </div>
+                <div style="opacity: 0.95; font-size: 14px;">
+                    Order #${data.order_number}
+                </div>
+                <div style="background: rgba(255,255,255,0.2); padding: 6px; border-radius: 4px; margin-top: 6px; font-family: monospace; font-size: 13px;">
+                    Ref: ${data.maya_reference}
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transition = 'all 0.3s ease-out';
+                notification.style.transform = 'translateX(400px)';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Quick confirm function
+        async function quickConfirmMaya(orderId, orderNumber, mayaReference) {
+            try {
+                const response = await fetchWithErrorHandling('/maya/quick-confirm', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        order_id: orderId
+                    })
+                });
+
+                if (response.success) {
+                    showSuccessMessage(`Order #${orderNumber} confirmed! Ref: ${mayaReference}`);
+
+                    // Remove from pending
+                    removeOrderFromPending(orderId);
+
+                    // Print receipt
+                    printReceipt(orderId);
+
+                    // Refresh after 1 second
+                    setTimeout(autoRefreshOrders, 1000);
+                } else {
+                    throw new Error(response.message || 'Confirmation failed');
+                }
+            } catch (error) {
+                showErrorMessage('Failed to confirm: ' + error.message);
+            }
         }
 
         // Add error indicator for failed auto-refresh
@@ -2406,7 +2736,7 @@
             }
 
             const currentOrderIds = Array.from(container.querySelectorAll('.order-card')).map(card => parseInt(card.getAttribute('data-order-id')));
-            const newPendingOrderIds = orders.filter(order => order.payment_status === 'pending').map(order => order.id);
+            const newPendingOrderIds = orders.filter(order => order.payment_status === 'pending' || order.payment_status === null).map(order => order.id);
             const processingOrderIds = Array.from(processingOrders.keys());
             debugLog('Order comparison during auto-refresh', {
                 currentOrderIds,
@@ -2467,14 +2797,17 @@
             }, 100);
         }
 
-        // FIXED: Create order card with correct total calculation
+
+        // FIXED: Create order card with correct total calculation and Maya reference display
         function createOrderCard(order) {
             const orderCard = document.createElement('div');
             orderCard.className = 'order-card';
             orderCard.id = `order-${order.id}`;
             orderCard.setAttribute('data-order-id', order.id);
+
             let itemsHtml = '';
-            let calculatedTotal = 0; // This will be the sum of all item prices
+            let calculatedTotal = 0;
+
             // Handle both 'order_items' and 'items' for compatibility
             const orderItems = order.order_items || order.items || [];
 
@@ -2482,8 +2815,9 @@
                 orderItems.forEach(item => {
                     let itemName = item.name || 'Custom Item';
                     itemName = itemName.replace(/\s*x\d+\s*$/, '').trim();
-                    // Get quantity (default to 1 if not specified)
+
                     const quantity = parseInt(item.quantity) || 1;
+
                     // Get unit price properly
                     let unitPrice = 0;
                     if (item.unit_price) {
@@ -2491,13 +2825,13 @@
                     } else if (item.price && !item.total_price) {
                         unitPrice = parseFloat(item.price);
                     } else if (item.total_price) {
-                        // If we only have total_price, divide by quantity to get unit price
                         unitPrice = parseFloat(item.total_price) / quantity;
                     }
+
                     // Calculate total for this item
                     const itemTotal = unitPrice * quantity;
-                    // Add to the calculated total
                     calculatedTotal += itemTotal;
+
                     debugLog(`Item in createOrderCard:`, {
                         name: itemName,
                         quantity: quantity,
@@ -2505,18 +2839,19 @@
                         itemTotal: itemTotal,
                         calculatedTotal: calculatedTotal
                     });
+
                     itemsHtml += `
-                       <div class="order-item">
-                           <span class="item-name">${itemName} x${quantity}</span>
-                           <span class="item-price">PHP ${itemTotal.toFixed(2)}</span>
-                       </div>
-                   `;
+                <div class="order-item">
+                    <span class="item-name">${itemName} x${quantity}</span>
+                    <span class="item-price">PHP ${itemTotal.toFixed(2)}</span>
+                </div>
+            `;
                 });
             }
 
             // Use the calculated total, but fallback to order.total or order.total_amount
             const totalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
-            // Log for debugging
+
             debugLog('Order total calculation in createOrderCard:', {
                 orderId: order.id,
                 orderTotal: order.total,
@@ -2525,43 +2860,109 @@
                 finalTotalUsed: totalAmount,
                 items: orderItems
             });
+
             const cashAmount = parseFloat(order.cash_amount || 0);
             let customerPaymentHtml = '';
-            // Show payment info for all cash orders, not just ones with pre-set cash amounts
+
+            // Show payment info for cash orders
             if (order.payment_method === 'cash') {
                 const expectedChange = cashAmount > 0 ? (cashAmount - totalAmount) : 0;
                 customerPaymentHtml = `
-                   <div class="customer-payment-info">
-                       <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
-                           💰 Customer's Payment Plan
-                       </div>
-                       <div class="payment-info-row">
-                           <span class="payment-info-label">🏷️ Order Total:</span>
-                           <span>PHP ${totalAmount.toFixed(2)}</span>
-                       </div>
-                       ${cashAmount > 0 ? `
-                           <div class="payment-info-row">
-                               <span class="payment-info-label">💵 Will Bring:</span>
-                               <span>PHP ${cashAmount.toFixed(2)}</span>
-                           </div>
-                           ${expectedChange > 0 ? `
-                               <div class="payment-info-row expected-change">
-                                   <span class="payment-info-label">💸 Expected Change:</span>
-                                   <span>PHP ${expectedChange.toFixed(2)}</span>
-                               </div>
-                           ` : ''}
-                       ` : `
-                           <div class="payment-info-row">
-                               <span class="payment-info-label">💵 Will Bring:</span>
-                               <span style="color: #666; font-style: italic;">Amount to be determined</span>
-                           </div>
-                       `}
-                       <div class="edit-amount-note">
-                           💡 You can edit the cash amount during payment processing
-                       </div>
-                   </div>
-               `;
+            <div class="customer-payment-info">
+                <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
+                    💰 Customer's Payment Plan
+                </div>
+                <div class="payment-info-row">
+                    <span class="payment-info-label">🏷️ Order Total:</span>
+                    <span>PHP ${totalAmount.toFixed(2)}</span>
+                </div>
+                ${cashAmount > 0 ? `
+                    <div class="payment-info-row">
+                        <span class="payment-info-label">💵 Will Bring:</span>
+                        <span>PHP ${cashAmount.toFixed(2)}</span>
+                    </div>
+                    ${expectedChange > 0 ? `
+                        <div class="payment-info-row expected-change">
+                            <span class="payment-info-label">💸 Expected Change:</span>
+                            <span>PHP ${expectedChange.toFixed(2)}</span>
+                        </div>
+                    ` : ''}
+                ` : `
+                    <div class="payment-info-row">
+                        <span class="payment-info-label">💵 Will Bring:</span>
+                        <span style="color: #666; font-style: italic;">Amount to be determined</span>
+                    </div>
+                `}
+                <div class="edit-amount-note">
+                    💡 You can edit the cash amount during payment processing
+                </div>
+            </div>
+        `;
+            } else if (order.payment_method === 'maya') {
+                // Show Maya payment info with reference if available
+                if (order.maya_reference) {
+                    customerPaymentHtml = `
+                <div class="maya-payment-section" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 2px solid #1976d2; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📱</span>
+                        <strong style="color: #1565c0; font-size: 1.1rem;">Maya QR Payment</strong>
+                    </div>
+                    
+                    <div class="maya-reference-box" style="background: #c8e6c9; border: 2px solid #388e3c; border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="font-size: 20px;">✅</span>
+                            <strong style="color: #2e7d32;">Payment Received!</strong>
+                        </div>
+                        
+                        <div style="background: white; padding: 10px; border-radius: 6px; font-family: 'Courier New', monospace; text-align: center; margin-bottom: 10px;">
+                            <div style="font-size: 0.75rem; color: #666; margin-bottom: 4px;">Reference Number:</div>
+                            <div style="font-size: 1.2rem; font-weight: bold; color: #1976d2; letter-spacing: 1px;">
+                                ${order.maya_reference}
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 0.85rem; color: #555; text-align: center; margin-bottom: 10px;">
+                            💡 Ask customer to show their Maya receipt<br>
+                            <strong>Verify the reference number matches</strong>
+                        </div>
+                        
+                        <button class="btn btn-confirm-maya" 
+                                onclick="quickConfirmMaya(${order.id}, '${order.order_number || order.id}', '${order.maya_reference}')"
+                                style="width: 100%; background: #2e7d32; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer;">
+                            ✅ Confirm Payment Match
+                        </button>
+                    </div>
+                </div>
+            `;
+                } else {
+                    customerPaymentHtml = `
+                <div class="maya-payment-section" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 2px solid #1976d2; border-radius: 10px; padding: 15px; margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <span style="font-size: 24px;">📱</span>
+                        <strong style="color: #1565c0; font-size: 1.1rem;">Maya QR Payment</strong>
+                    </div>
+                    
+                    <div class="maya-waiting-box" style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 12px; text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 8px;">⏳</div>
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 6px;">
+                            Waiting for Payment...
+                        </div>
+                        <div style="font-size: 0.85rem; color: #856404;">
+                            Customer is scanning QR code<br>
+                            Reference will appear here automatically
+                        </div>
+                        
+                        <div class="loading-dots" style="margin-top: 10px;">
+                            <span style="animation: blink 1.4s infinite;">●</span>
+                            <span style="animation: blink 1.4s infinite 0.2s;">●</span>
+                            <span style="animation: blink 1.4s infinite 0.4s;">●</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+                }
             }
+
             const orderNumber = order.order_number || order.id.toString().padStart(4, '0');
             const createdAt = order.created_at ? new Date(order.created_at) : new Date();
             const timeString = createdAt.toLocaleTimeString('en-US', {
@@ -2570,40 +2971,44 @@
                 hour12: true
             });
             const orderType = order.order_type || 'dine-in';
-            orderCard.innerHTML = `
-               <div class="order-header">
-                   <span>Order</span>
-                   <span class="order-number">#${orderNumber}</span>
-               </div>
-               <div class="order-time">
-                   Placed at ${timeString}
-                   <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
-               </div>
-               <div class="status-badge status-pending">Pending Payment</div>
-               
-               <div class="order-items">
-                   ${itemsHtml}
-               </div>
 
-               ${customerPaymentHtml}
-               
-               <div class="order-total">
-                   <span>Total Amount:</span>
-                   <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
-               </div>
-               
-               <div class="order-actions">
-                   <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
-                       ✅ Accept
-                   </button>
-                   <button class="btn btn-edit" onclick="editOrder(${order.id})">
-                       ✏️ Edit
-                   </button>
-                   <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
-                       ❌ Cancel
-                   </button>
-               </div>
-           `;
+            orderCard.innerHTML = `
+        <div class="order-header">
+            <span>Order</span>
+            <span class="order-number">#${orderNumber}</span>
+        </div>
+        <div class="order-time">
+            Placed at ${timeString}
+            <span class="order-type">${orderType.charAt(0).toUpperCase() + orderType.slice(1)}</span>
+        </div>
+        <div class="status-badge status-pending">Pending Payment</div>
+        <div class="payment-method-badge ${order.payment_method === 'maya' ? 'payment-maya' : 'payment-cash'}">
+            ${order.payment_method ? order.payment_method.toUpperCase() : 'CASH'}
+        </div>
+        
+        <div class="order-items">
+            ${itemsHtml}
+        </div>
+
+        ${customerPaymentHtml}
+        
+        <div class="order-total">
+            <span>Total Amount:</span>
+            <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
+        </div>
+        
+        <div class="order-actions">
+            <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
+                ✅ Accept
+            </button>
+            <button class="btn btn-edit" onclick="editOrder(${order.id})">
+                ✏️ Edit
+            </button>
+            <button class="btn btn-cancel" onclick="cancelOrder(${order.id})">
+                ❌ Cancel
+            </button>
+        </div>
+    `;
 
             return orderCard;
         }
@@ -2989,6 +3394,65 @@
             modal.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
+        function showMayaVerifyModal(orderId, orderNumber, amount) {
+            verifyingOrderId = orderId;
+            document.getElementById('verifyOrderNumber').textContent = orderNumber;
+            document.getElementById('verifyAmount').textContent = parseFloat(amount).toFixed(2);
+            document.getElementById('mayaReferenceInput').value = '';
+            document.getElementById('mayaVerifyModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Focus on input
+            setTimeout(() => {
+                document.getElementById('mayaReferenceInput').focus();
+            }, 300);
+        }
+
+        function hideMayaVerifyModal() {
+            document.getElementById('mayaVerifyModal').style.display = 'none';
+            document.body.style.overflow = '';
+            verifyingOrderId = null;
+        }
+
+        async function submitMayaVerification() {
+            const referenceNumber = document.getElementById('mayaReferenceInput').value.trim();
+
+            if (!referenceNumber) {
+                showErrorMessage('Please enter the Maya reference number');
+                return;
+            }
+
+            if (!verifyingOrderId) {
+                showErrorMessage('No order selected');
+                return;
+            }
+
+            try {
+                const response = await fetchWithErrorHandling('/maya/verify-payment', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        order_id: verifyingOrderId,
+                        reference_number: referenceNumber
+                    })
+                });
+
+                if (response.success) {
+                    hideMayaVerifyModal();
+                    showSuccessMessage(`Payment verified! Ref: ${referenceNumber}`);
+
+                    // Remove from pending and trigger confirmation flow
+                    removeOrderFromPending(verifyingOrderId);
+                    printReceipt(verifyingOrderId);
+
+                    // Refresh orders
+                    setTimeout(autoRefreshOrders, 1000);
+                } else {
+                    throw new Error(response.message || 'Verification failed');
+                }
+            } catch (error) {
+                showErrorMessage('Verification failed: ' + error.message);
+            }
+        }
 
         async function confirmMayaPayment() {
             try {
@@ -3022,6 +3486,12 @@
             } finally {
                 setMayaButtonLoading(false);
             }
+            // To manually verify if auto-verification fails (Maya)
+            setTimeout(() => {
+                if (currentOrderId) {
+                    showMayaVerifyModal(currentOrderId, currentOrderNumber, orderTotal);
+                }
+            }, 30000); // Show after 30 seconds if no webhook received
         }
 
         function showPaymentModal() {
@@ -3950,6 +4420,149 @@
         window.filterEditMenuItems = filterEditMenuItems;
         window.testPrinterConnection = testPrinterConnection;
         window.showPrinterInfo = showPrinterInfo;
+
+        // Initialize Pusher for real-time Maya payment notifications
+        document.addEventListener('DOMContentLoaded', function () {
+            const pusherKey = document.querySelector('meta[name="pusher-key"]')?.content;
+            const pusherCluster = document.querySelector('meta[name="pusher-cluster"]')?.content;
+
+            if (!pusherKey) {
+                console.warn('Pusher not configured. Real-time notifications disabled.');
+                return;
+            }
+
+            // Initialize Pusher
+            const pusher = new Pusher(pusherKey, {
+                cluster: pusherCluster,
+                encrypted: true
+            });
+
+            // Subscribe to orders channel
+            const channel = pusher.subscribe('orders');
+
+            // Listen for payment-received event
+            channel.bind('payment-received', function (data) {
+                console.log('Maya payment received:', data);
+
+                const order = data.order;
+
+                // Show notification
+                showMayaPaymentNotification(order);
+
+                // Play sound
+                playNotificationSound();
+
+                // Refresh orders list after 2 seconds
+                setTimeout(() => {
+                    if (typeof autoRefreshOrders === 'function') {
+                        autoRefreshOrders();
+                    }
+                }, 2000);
+            });
+
+            console.log('Real-time payment notifications enabled');
+        });
+
+        function showMayaPaymentNotification(order) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        min-width: 320px;
+        animation: slideInFromRight 0.3s ease-out;
+    `;
+
+            notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 32px;">💳</div>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">
+                    Maya Payment Received!
+                </div>
+                <div style="opacity: 0.95; font-size: 14px;">
+                    Order #${order.order_number}
+                </div>
+                <div style="font-weight: 700; font-size: 20px; margin-top: 4px;">
+                    ₱${parseFloat(order.total_amount).toFixed(2)}
+                </div>
+                <div style="font-size: 12px; margin-top: 4px; opacity: 0.9;">
+                    ✅ Payment Verified
+                </div>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: rgba(255,255,255,0.2); border: none; color: white; 
+                           width: 28px; height: 28px; border-radius: 50%; cursor: pointer; 
+                           font-size: 18px; display: flex; align-items: center; 
+                           justify-content: center;">
+                ×
+            </button>
+        </div>
+    `;
+
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+        @keyframes slideInFromRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+            if (!document.getElementById('maya-animation-styles')) {
+                style.id = 'maya-animation-styles';
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(notification);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.transition = 'all 0.3s ease-out';
+                notification.style.transform = 'translateX(400px)';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // First beep
+                const oscillator1 = audioContext.createOscillator();
+                const gainNode1 = audioContext.createGain();
+                oscillator1.connect(gainNode1);
+                gainNode1.connect(audioContext.destination);
+                oscillator1.frequency.value = 800;
+                oscillator1.type = 'sine';
+                gainNode1.gain.value = 0.3;
+                oscillator1.start();
+                oscillator1.stop(audioContext.currentTime + 0.1);
+
+                // Second beep
+                setTimeout(() => {
+                    const oscillator2 = audioContext.createOscillator();
+                    const gainNode2 = audioContext.createGain();
+                    oscillator2.connect(gainNode2);
+                    gainNode2.connect(audioContext.destination);
+                    oscillator2.frequency.value = 1000;
+                    oscillator2.type = 'sine';
+                    gainNode2.gain.value = 0.3;
+                    oscillator2.start();
+                    oscillator2.stop(audioContext.currentTime + 0.1);
+                }, 150);
+            } catch (error) {
+                console.warn('Could not play notification sound:', error);
+            }
+        }
+
     </script>
     <!-- Logout Confirmation Modal -->
     <div class="logout-modal-overlay" id="logoutModal">
@@ -3966,6 +4579,7 @@
             </div>
         </div>
     </div>
+    <script src="{{ asset('js/maya-payment-monitor.js') }}"></script>
 </body>
 
 </html>

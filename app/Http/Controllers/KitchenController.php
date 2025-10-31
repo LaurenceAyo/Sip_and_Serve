@@ -13,10 +13,18 @@ class KitchenController extends Controller
 {
     public function index()
     {
+        // Show ALL pending orders (both paid and unpaid from kiosk)
+        // Kitchen needs to see them all to start preparing
         $pendingOrders = Order::with('orderItems.menuItem')
             ->where('status', 'pending')
             ->orderBy('created_at', 'asc')
             ->get();
+
+        Log::info('Kitchen - Pending orders loaded', [
+            'count' => $pendingOrders->count(),
+            'order_ids' => $pendingOrders->pluck('id')->toArray(),
+            'payment_statuses' => $pendingOrders->pluck('payment_status', 'id')->toArray()
+        ]);
 
         $processingOrders = Order::with('orderItems.menuItem')
             ->where('status', 'processing')
@@ -30,7 +38,6 @@ class KitchenController extends Controller
             ->limit(10)
             ->get();
 
-        // ADD THIS - Get cancelled orders
         $cancelledOrders = Order::with('orderItems.menuItem')
             ->where('status', 'cancelled')
             ->where('updated_at', '>=', now()->subHours(2))
@@ -55,6 +62,11 @@ class KitchenController extends Controller
             'started_at' => now()
         ]);
 
+        Log::info('Kitchen - Order started', [
+            'order_id' => $order->id,
+            'status' => 'processing'
+        ]);
+
         return redirect()->back()->with('success', 'Order started successfully!');
     }
 
@@ -65,6 +77,11 @@ class KitchenController extends Controller
         $order->update([
             'status' => 'completed',
             'completed_at' => now()
+        ]);
+
+        Log::info('Kitchen - Order completed', [
+            'order_id' => $order->id,
+            'status' => 'completed'
         ]);
 
         return redirect()->back()->with('success', 'Order completed!');
@@ -84,6 +101,12 @@ class KitchenController extends Controller
                 ->update(['status' => 'archived']);
 
             $totalArchived = $completedCount + $cancelledCount;
+
+            Log::info('Kitchen - Orders archived', [
+                'completed_count' => $completedCount,
+                'cancelled_count' => $cancelledCount,
+                'total' => $totalArchived
+            ]);
 
             return redirect()->back()->with('success', "Archived {$totalArchived} orders!");
         } catch (\Exception $e) {

@@ -15,6 +15,8 @@ class Order extends Model
         'order_type',
         'subtotal',
         'tax_amount', 
+        'maya_reference',
+        'maya_webhook_received_at',
         'discount_amount',
         'total_amount',
         'cash_amount',
@@ -29,7 +31,6 @@ class Order extends Model
         'completed_at',
         'paid_at',
         'estimated_prep_time', // Add this field - in minutes
-        'table_number',
         'paymongo_payment_intent_id',
         'paymongo_payment_method_id',
         'created_at',
@@ -55,6 +56,7 @@ class Order extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'paid_at' => 'datetime',
+        'maya_webhook_received_at' => 'datetime',
         'estimated_prep_time' => 'integer', // in minutes
     ];
 

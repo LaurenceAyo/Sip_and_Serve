@@ -32,6 +32,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
 use Ladumor\LaravelPwa\LaravelPWA;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\MayaQRController;
+use App\Http\Controllers\MayaWebhookController;
 
 // =============================================================================
 // PUBLIC ROUTES (No Authentication Required)
@@ -53,6 +55,34 @@ Route::get('/unauthorized', function () {
 Route::get('/adminContact', function () {
     return view('adminContact');
 })->name('admin.contact');
+
+// Maya QR Payment Routes (for table-based POS)
+Route::prefix('maya/qr')->name('maya.qr.')->group(function () {
+
+    // Generate QR code for payment (called from tablet when customer selects Maya)
+    Route::post('/generate', [MayaQRController::class, 'generateQR'])
+        ->name('generate');
+
+    // Display QR code page on tablet
+    Route::get('/payment/{orderId}', [MayaQRController::class, 'showQRPage'])
+        ->name('payment');
+
+    // Check payment status (polled by both tablet and cashier)
+    Route::get('/status/{orderId}', [MayaQRController::class, 'checkPaymentStatus'])
+        ->name('status');
+
+    // Webhook endpoint for Maya notifications (exclude from CSRF)
+    Route::post('/webhook', [MayaQRController::class, 'webhook'])
+        ->name('webhook');
+});
+Route::post('maya/qr/webhook', [MayaQRController::class, 'webhook'])->name('maya.qr.webhook');
+
+// Update your existing review order route to handle Maya selection
+Route::post('/order/payment/maya', function (Request $request) {
+    // This would be called when customer clicks "Pay with Maya"
+    return redirect()->route('maya.qr.generate', $request->all());
+});
+
 
 //==============================================================================
 // PWA routes
@@ -79,6 +109,10 @@ Route::middleware('guest')->group(function () {
 // =============================================================================
 // KIOSK SYSTEM (Public - No Auth Required)
 // =============================================================================
+Route::post('/kiosk/process-cash-payment', [KioskController::class, 'processCashPayment'])
+    ->name('kiosk.processCashPayment');
+Route::post('/kiosk/process-maya-payment', [KioskController::class, 'processMayaPayment'])
+    ->name('kiosk.processMayaPayment');  // ← ADD THIS LINE
 Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/', [KioskController::class, 'index'])->name('index');
     Route::post('/dine-in', [KioskController::class, 'dineIn'])->name('dineIn');
@@ -108,7 +142,6 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/payment', [KioskController::class, 'payment'])->name('payment');
     Route::post('/process-payment', [KioskController::class, 'processPayment'])->name('processPayment');
     Route::post('/process-cash-payment', [PaymentController::class, 'processCashPayment'])->name('processCashPayment');
-    Route::post('/process-maya-payment', [KioskController::class, 'processMayaPayment'])->name('processMayaPayment');
     Route::post('/process-gcash-payment', [KioskController::class, 'processGCashPayment'])->name('processGCashPayment');
 
     // Payment Result Pages
@@ -129,6 +162,17 @@ Route::prefix('qr')->name('qr.')->group(function () {
 });
 
 // =============================================================================
+// Backup Routes
+// =============================================================================
+Route::prefix('admin')->middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'])->group(function () {
+    Route::get('/backup-settings', [BackupSettingsController::class, 'index'])->name('admin.backup-settings');
+    Route::put('/backup-settings', [BackupSettingsController::class, 'update'])->name('admin.backup-settings.update');
+    Route::get('/backup', [BackupSettingsController::class, 'backup'])->name('admin.backup.download');
+    Route::post('/restore-backup', [BackupSettingsController::class, 'restore'])->name('admin.backup.restore');
+});
+
+
+// =============================================================================
 // API ROUTES (Public)
 // =============================================================================
 Route::prefix('api')->group(function () {
@@ -146,7 +190,7 @@ Route::prefix('api')->group(function () {
 // WEBHOOK ROUTES (Public - No CSRF)
 // =============================================================================
 Route::post('/paymongo/webhook', [POSPaymentController::class, 'handleWebhook']);
-Route::post('/webhooks/paymongo', [PaymongoWebhookController::class, 'handleWebhook'])->name('paymongo.webhook');
+//Route::post('/webhooks/paymongo', [PaymongoWebhookController::class, 'handleWebhook'])->name('paymongo.webhook');
 
 // =============================================================================
 // PUBLIC API & UTILITY ROUTES
@@ -239,8 +283,6 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App
 // CASHIER ROUTES (Cashier, Manager, and Administrator)
 // =============================================================================
 
-Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
-
 Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App\Http\Middleware\CheckPinLock::class, \App\Http\Middleware\RoleMiddleware::class . ':cashier', \App\Http\Middleware\CheckInactivity::class])->group(function () {
     Route::prefix('cashier')->name('cashier.')->group(function () {
         Route::get('/', [CashierController::class, 'index'])->name('index');
@@ -260,8 +302,9 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App
     });
 
     // Maya Payment Routes
+    
     Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
-    Route::post('/kiosk/process-maya-payment', [KioskController::class, 'processMayaPayment'])->name('kiosk.processMayaPayment');
+    
     // Receipt and Printer Routes
     Route::get('/simple-thermer/{id}', [App\Http\Controllers\CashierController::class, 'simpleThermerTest']);
     Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
@@ -320,7 +363,15 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class])->gr
         Route::post('/process-order', [KioskController::class, 'processOrder'])->name('processOrder');
     });
 });
+//Maya Webhook and Payment Verification Routes
+// Maya webhook and confirmation
+Route::post('/maya/qr/webhook', [MayaWebhookController::class, 'handleWebhook'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+    ->name('maya.webhook');
 
+Route::post('/maya/quick-confirm', [MayaWebhookController::class, 'quickConfirm'])
+    ->middleware('auth')
+    ->name('maya.quickConfirm');
 // =============================================================================
 // PRINTER TESTING ROUTES (Staff only)
 // =============================================================================
@@ -416,7 +467,7 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App
         }
     });
 });
-Route::middleware(['auth'])->post('/cashier/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment']);
+
 // =============================================================================
 // DEBUG & TESTING ROUTES (Remove in Production)
 // =============================================================================
@@ -468,7 +519,7 @@ Route::middleware(['auth'])->group(function () {
         ]);
     });
 
-    Route::get('/webhooks/paymongo/test', [PaymongoWebhookController::class, 'testWebhook'])->name('paymongo.webhook.test');
+    //Route::get('/webhooks/paymongo/test', [PaymongoWebhookController::class, 'testWebhook'])->name('paymongo.webhook.test');
 });
 
 require __DIR__ . '/auth.php';

@@ -42,28 +42,60 @@ class BackupSettingsController extends Controller
 
     public function restore(Request $request)
     {
+        if (Auth::user()->email !== 'laurenceayo7@gmail.com') {
+            abort(403, 'Access denied');
+        }
+
+        $request->validate([
+            'backup_file' => 'required|file|mimes:json|max:10240'
+        ]);
+
         $file = $request->file('backup_file');
-        $data = json_decode(file_get_contents($file), true);
+        $data = json_decode(file_get_contents($file->getPathname()), true);
+
+        // Validate backup file structure
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['users'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid backup file format'
+            ], 400);
+        }
 
         DB::transaction(function () use ($data) {
-            // Clear existing data
-            User::truncate();
-            Ingredient::truncate();
-            MenuItem::truncate();
-            Order::truncate();
+            // Clear existing data from all tables
+            DB::table('users')->truncate();
+            DB::table('ingredients')->truncate();
+            DB::table('menu_items')->truncate();
+            DB::table('orders')->truncate();
+            DB::table('order_items')->truncate();
+            DB::table('categories')->truncate();
+            DB::table('inventory')->truncate();
+            DB::table('settings')->truncate();
 
-            // Restore data
+            // Restore data to all tables
             foreach ($data['users'] as $user) {
-                User::create($user);
+                DB::table('users')->insert((array) $user);
             }
             foreach ($data['ingredients'] as $ingredient) {
-                Ingredient::create($ingredient);
+                DB::table('ingredients')->insert((array) $ingredient);
             }
             foreach ($data['menu_items'] as $item) {
-                MenuItem::create($item);
+                DB::table('menu_items')->insert((array) $item);
             }
             foreach ($data['orders'] as $order) {
-                Order::create($order);
+                DB::table('orders')->insert((array) $order);
+            }
+            foreach ($data['order_items'] ?? [] as $orderItem) {
+                DB::table('order_items')->insert((array) $orderItem);
+            }
+            foreach ($data['categories'] ?? [] as $category) {
+                DB::table('categories')->insert((array) $category);
+            }
+            foreach ($data['inventory'] ?? [] as $inventory) {
+                DB::table('inventory')->insert((array) $inventory);
+            }
+            foreach ($data['settings'] ?? [] as $setting) {
+                DB::table('settings')->insert((array) $setting);
             }
         });
 
@@ -75,7 +107,9 @@ class BackupSettingsController extends Controller
             abort(403, 'Access denied');
         }
 
-        return view('admin.backup-settings');
+        $settings = BackupSetting::first();
+
+        return view('admin.backup-settings', compact('settings'));
     }
 
     public function update(Request $request)

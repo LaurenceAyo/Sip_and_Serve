@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -327,15 +328,15 @@
                 margin: 0;
                 border-radius: 0;
             }
-            
+
             .header {
                 padding: 15px;
             }
-            
+
             .title {
                 font-size: 24px;
             }
-            
+
             .order-item {
                 padding: 15px;
                 gap: 10px;
@@ -357,6 +358,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -416,8 +418,8 @@
     <script>
         // Use real cart data from controller
         let orderData = {
-            items: @json($cart ?? []),
-            orderType: "{{ $orderType ?? 'Dine In' }}",
+            items: [], // Will be populated from Laravel
+            orderType: "Dine In",
             tableNumber: "A5",
             serviceChargeRate: 0,
             taxRate: 0,
@@ -458,30 +460,30 @@
 
         function updateOrderTime() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
+            const timeString = now.toLocaleTimeString('en-US', {
+                hour: 'numeric',
                 minute: '2-digit',
-                hour12: true 
+                hour12: true
             });
             document.getElementById('orderTime').textContent = timeString;
         }
 
         function renderOrderItems() {
             const container = document.getElementById('orderItems');
-            
+
             if (orderData.items.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-cart">
-                        <div class="empty-cart-icon">🛒</div>
-                        <div class="empty-cart-message">Your cart is empty</div>
-                        <div class="empty-cart-submessage">Add some delicious items to get started!</div>
-                    </div>
-                `;
+            <div class="empty-cart">
+                <div class="empty-cart-icon">🛒</div>
+                <div class="empty-cart-message">Your cart is empty</div>
+                <div class="empty-cart-submessage">Add some delicious items to get started!</div>
+            </div>
+        `;
                 return;
             }
 
             container.innerHTML = '';
-            
+
             orderData.items.forEach(item => {
                 const itemElement = createOrderItemElement(item);
                 container.appendChild(itemElement);
@@ -496,29 +498,29 @@
             const unitPrice = parseFloat(item.price || item.unitPrice || 0);
             const quantity = parseInt(item.quantity || 1);
             const totalPrice = unitPrice * quantity;
-            
-            const modifiersText = item.modifiers && item.modifiers.length > 0 
-                ? `*${item.modifiers.join(', ')}` 
+
+            const modifiersText = item.modifiers && item.modifiers.length > 0
+                ? `*${item.modifiers.join(', ')}`
                 : '';
 
             const defaultImage = "https://images.unsplash.com/photo-1580933073521-dc49ac0d4e6a?w=60&h=60&fit=crop";
             const itemImage = item.image || defaultImage;
 
             itemDiv.innerHTML = `
-                <img src="${itemImage}" alt="${item.name}" class="item-image">
-                <div class="item-details">
-                    <div class="item-name">${item.name}</div>
-                    ${modifiersText ? `<div class="item-modifier">${modifiersText}</div>` : ''}
-                    <div class="item-unit-price">${config.currency} ${unitPrice.toFixed(2)} each</div>
-                </div>
-                <div class="quantity-controls">
-                    <button class="quantity-btn" onclick="decreaseQuantity(${item.id || item.menu_item_id})" ${quantity <= config.minQuantity ? 'disabled' : ''}>−</button>
-                    <span class="quantity-display">${quantity}</span>
-                    <button class="quantity-btn" onclick="increaseQuantity(${item.id || item.menu_item_id})" ${quantity >= config.maxQuantity ? 'disabled' : ''}>+</button>
-                </div>
-                <div class="item-price">${config.currency} ${totalPrice.toFixed(2)}</div>
-                <button class="delete-btn" onclick="removeItem(${item.id || item.menu_item_id})" title="Remove item">🗑</button>
-            `;
+        <img src="${itemImage}" alt="${item.name}" class="item-image">
+        <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            ${modifiersText ? `<div class="item-modifier">${modifiersText}</div>` : ''}
+            <div class="item-unit-price">${config.currency} ${unitPrice.toFixed(2)} each</div>
+        </div>
+        <div class="quantity-controls">
+            <button class="quantity-btn" onclick="decreaseQuantity(${item.id || item.menu_item_id})" ${quantity <= config.minQuantity ? 'disabled' : ''}>−</button>
+            <span class="quantity-display">${quantity}</span>
+            <button class="quantity-btn" onclick="increaseQuantity(${item.id || item.menu_item_id})" ${quantity >= config.maxQuantity ? 'disabled' : ''}>+</button>
+        </div>
+        <div class="item-price">${config.currency} ${totalPrice.toFixed(2)}</div>
+        <button class="delete-btn" onclick="removeItem(${item.id || item.menu_item_id})" title="Remove item">🗑</button>
+    `;
 
             return itemDiv;
         }
@@ -536,7 +538,7 @@
             if (!item || item.quantity <= config.minQuantity) return;
 
             item.quantity--;
-            
+
             const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
             if (itemElement) {
                 const newElement = createOrderItemElement(item);
@@ -552,7 +554,7 @@
             if (!item || item.quantity >= config.maxQuantity) return;
 
             item.quantity++;
-            
+
             const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
             if (itemElement) {
                 const newElement = createOrderItemElement(item);
@@ -568,14 +570,14 @@
             if (itemIndex === -1) return;
 
             const item = orderData.items[itemIndex];
-            
+
             if (confirm(`Remove "${item.name}" from your order?`)) {
                 const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
                 if (itemElement) {
                     itemElement.style.transition = 'all 0.3s ease';
                     itemElement.style.opacity = '0';
                     itemElement.style.transform = 'translateX(-100%)';
-                    
+
                     setTimeout(() => {
                         orderData.items.splice(itemIndex, 1);
                         renderOrderItems();
@@ -626,26 +628,27 @@
         function backToMenu() {
             if (orderData.items.length > 0) {
                 if (confirm('Go back to menu? Your current order will be saved.')) {
-                    window.location.href = '{{ route("kiosk.main") }}';
+                    window.location.href = '/kiosk/main'; // Update with your route
                 }
             } else {
-                window.location.href = '{{ route("kiosk.main") }}';
+                window.location.href = '/kiosk/main'; // Update with your route
             }
         }
 
         function cancelOrder() {
             const itemCount = orderData.items.length;
-            const message = itemCount > 0 
+            const message = itemCount > 0
                 ? `Cancel your order with ${itemCount} item${itemCount > 1 ? 's' : ''}? This action cannot be undone.`
                 : 'Cancel your order?';
-                
+
             if (confirm(message)) {
                 orderData.items = [];
-                window.location.href = '{{ route("kiosk.main") }}';
+                window.location.href = '/kiosk/main'; // Update with your route
             }
         }
 
-        function proceedToPay() {
+        // FIXED: Maya QR Payment Function
+        async function proceedToPay() {
             if (orderData.items.length === 0) {
                 alert('Please add items to your order before proceeding to payment.');
                 return;
@@ -656,27 +659,70 @@
                 const quantity = parseInt(item.quantity || 1);
                 return sum + (unitPrice * quantity);
             }, 0);
-            
+
             const finalTotal = Math.max(0, subtotal - orderData.discountAmount);
 
-            const confirmMessage = `Proceed to payment for exactly ${config.currency} ${finalTotal.toFixed(2)}?\n\nThis is the final amount with no additional fees.`;
-            
-            if (confirm(confirmMessage)) {
-                // Navigate to QR payment
-                const itemsParam = encodeURIComponent(JSON.stringify(orderData.items.map(item => ({
-                    menu_item_id: item.menu_item_id || item.id,
-                    quantity: item.quantity,
-                    special_instructions: item.modifiers?.join(', ') || null
-                }))));
-                
-                window.location.href = `/qr/payment/new?type=${orderData.orderType.toLowerCase().replace(' ', '-')}&items=${itemsParam}`;
+            const confirmMessage = `Proceed to Maya payment for ${config.currency} ${finalTotal.toFixed(2)}?`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // Show loading state
+            const payButton = document.getElementById('payButton');
+            const originalText = payButton.textContent;
+            payButton.textContent = 'Generating QR Code...';
+            payButton.disabled = true;
+
+            try {
+                // Prepare order data for Maya QR
+                const orderPayload = {
+                    order_type: orderData.orderType.toLowerCase().replace(' ', '-'),
+                    table_number: orderData.tableNumber || null,
+                    items: orderData.items.map(item => ({
+                        menu_item_id: item.menu_item_id || item.id,
+                        quantity: item.quantity,
+                        special_instructions: item.modifiers?.join(', ') || null
+                    }))
+                };
+
+                console.log('Sending to Maya QR API:', orderPayload);
+
+                // Call Maya QR generation API
+                const response = await fetch('/maya/qr/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(orderPayload)
+                });
+
+                const result = await response.json();
+                console.log('Maya QR API response:', result);
+
+                if (result.success) {
+                    // Redirect to QR payment page
+                    window.location.href = `/maya/qr/payment/${result.order.id}`;
+                } else {
+                    throw new Error(result.message || 'Failed to generate QR code');
+                }
+            } catch (error) {
+                console.error('Error generating Maya QR:', error);
+                alert('Failed to generate QR code: ' + error.message);
+
+                // Restore button
+                payButton.textContent = originalText;
+                payButton.disabled = false;
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('Cart data received:', orderData);
             initializePage();
         });
     </script>
 </body>
+
 </html>

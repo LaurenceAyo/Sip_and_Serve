@@ -1879,23 +1879,30 @@
         }
         function showFinishPaymentModal() {
             const modal = document.createElement('div');
-            modal.className = 'modal-overlay show'; // Add 'show' class immediately
+            modal.className = 'modal-overlay show';
             modal.id = 'finishPaymentModal';
             modal.innerHTML = `
-        <div class="modal" style="max-width: 400px;">
-            <div class="modal-header">
-                <h2>Payment Complete?</h2>
+        <div class="payment-modal-container" style="max-width: 400px;">
+            <div class="payment-modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h2 style="color: white; margin: 0;">Payment Complete?</h2>
+                <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; margin-top: 8px;">Total: PHP ${totalAmount.toFixed(2)}</p>
             </div>
-            <div class="modal-content">
-                <p style="text-align: center; margin: 20px 0; font-size: 1.1rem;">
-                    Are you done using the QR?
-                </p>
+            <div class="payment-modal-content" style="padding: 30px;">
+                <div style="text-align: center; margin: 20px 0;">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">💳</div>
+                    <p style="font-size: 1.1rem; font-weight: 600; color: #333;">
+                        Have you completed the Maya payment?
+                    </p>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                        Make sure you received the digital receipt
+                    </p>
+                </div>
                 <div style="display: flex; gap: 15px; margin-top: 20px;">
-                    <button onclick="hideFinishPaymentModal()" style="background: #6c757d; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1;">
-                        NO
+                    <button onclick="hideFinishPaymentModal()" style="background: #6c757d; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1; font-size: 1rem; font-weight: 600;">
+                        NO - Go Back
                     </button>
-                    <button onclick="completePaymentAndReturn()" style="background: #28a745; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1;">
-                        YES
+                    <button onclick="confirmMayaPaymentComplete()" style="background: #28a745; color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; flex: 1; font-size: 1rem; font-weight: 600;">
+                        YES - Complete
                     </button>
                 </div>
             </div>
@@ -1906,6 +1913,99 @@
             document.body.style.overflow = 'hidden';
         }
 
+        async function confirmMayaPaymentComplete() {
+            try {
+                console.log('=== MAYA PAYMENT STARTED ===');
+
+                hideFinishPaymentModal();
+                hideGCashModal();
+
+                const gcashBtn = document.getElementById('gcashProceedBtn');
+                if (gcashBtn) {
+                    gcashBtn.disabled = true;
+                    gcashBtn.textContent = 'Processing...';
+                }
+
+                // Send to the SAME endpoint with payment_method explicitly set
+                const orderData = {
+                    cash_amount: parseFloat(totalAmount),
+                    payment_method: 'maya'  // THIS MUST BE SENT
+                };
+
+                console.log('Sending to server:', orderData);
+
+                const response = await fetch('/kiosk/process-maya-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                const data = await response.json();
+                console.log('Server response:', data);
+
+                if (data.success) {
+                    showMayaSuccessConfirmation(data);
+                } else {
+                    throw new Error(data.message || 'Failed to process Maya payment');
+                }
+
+            } catch (error) {
+                console.error('Maya payment error:', error);
+                alert('Failed to complete Maya payment: ' + error.message);
+
+                const gcashBtn = document.getElementById('gcashProceedBtn');
+                if (gcashBtn) {
+                    gcashBtn.disabled = false;
+                    gcashBtn.textContent = 'FINISH PAYMENT';
+                }
+                showGCashModal();
+            }
+        }
+
+        
+        function showMayaSuccessConfirmation(data) {
+            const modal = document.getElementById('cashConfirmationModal');
+            if (!modal) {
+                console.error('Confirmation modal not found');
+                return;
+            }
+
+            const orderNumber = data.order_number || 'M001';
+
+            // Update order number display
+            const orderNumberDisplay = document.getElementById('orderNumberDisplay');
+            if (orderNumberDisplay) orderNumberDisplay.textContent = orderNumber;
+
+            // Update cashier instruction
+            const cashierInstruction = document.getElementById('cashierInstruction');
+            if (cashierInstruction) {
+                cashierInstruction.textContent = `"Order #${orderNumber} - Maya Payment"`;
+            }
+
+            // Update steps
+            const step2Text = document.getElementById('step2Text');
+            const step3Text = document.getElementById('step3Text');
+            if (step2Text) step2Text.textContent = `Tell them: "Order #${orderNumber} - Maya Payment"`;
+            if (step3Text) step3Text.textContent = `Show your Maya receipt with reference number`;
+
+            // Update payment amount
+            const totalAmountFromData = parseFloat(data.total_amount) || totalAmount;
+            const confirmationTotal = document.getElementById('confirmationTotal');
+            if (confirmationTotal) confirmationTotal.textContent = `PHP ${totalAmountFromData.toFixed(2)}`;
+
+            // Update change display
+            const confirmationChange = document.getElementById('confirmationChange');
+            if (confirmationChange) confirmationChange.textContent = '✅ Paid via Maya';
+
+            // Show modal
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
         function hideFinishPaymentModal() {
             const modal = document.getElementById('finishPaymentModal');
             if (modal) {
@@ -1917,13 +2017,18 @@
         function completePaymentAndReturn() {
             // Create order with Maya payment method
             const orderData = {
-                payment_method: 'maya',
-                total_amount: totalAmount,
                 cash_amount: totalAmount,
-                change_amount: 0
+                payment_method: 'maya'  // FIXED: Simplified data structure
             };
 
-            // Use the generic process-order endpoint or create a maya-specific one
+            console.log('Completing payment with data:', orderData);
+
+            // Show loading state
+            const yesBtn = event.target;
+            const originalText = yesBtn.textContent;
+            yesBtn.disabled = true;
+            yesBtn.textContent = 'Processing...';
+
             fetch('/kiosk/process-maya-payment', {
                 method: 'POST',
                 headers: {
@@ -1934,18 +2039,30 @@
                 },
                 body: JSON.stringify(orderData)
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('Error response:', text);
+                            throw new Error(`Server error: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Maya payment response:', data);
                     if (data.success) {
-                        // Order sent to cashier, redirect to kiosk home
+                        hideFinishPaymentModal();
+                        hideGCashModal();
                         window.location.href = '{{ route("kiosk.index") }}';
                     } else {
-                        alert('Error processing order: ' + (data.message || 'Unknown error'));
+                        throw new Error(data.message || 'Unknown error');
                     }
                 })
                 .catch(error => {
                     console.error('Order processing error:', error);
                     alert('Error processing order: ' + error.message);
+                    yesBtn.disabled = false;
+                    yesBtn.textContent = originalText;
                 });
         }
 
@@ -2079,7 +2196,6 @@
                 return;
             }
 
-            // Show loading state
             const proceedBtn = document.getElementById('proceedPaymentBtn');
             const originalText = proceedBtn ? proceedBtn.textContent : '';
             if (proceedBtn) {
@@ -2087,15 +2203,16 @@
                 proceedBtn.textContent = 'Processing...';
             }
 
+            // FIXED: Explicitly set payment_method to 'cash'
             const orderData = {
-                exactPaymentAmount: totalAmount,
                 cash_amount: cashAmount,
-                change_amount: cashAmount - totalAmount
+                payment_method: 'cash'  // Explicitly set as cash
             };
 
-            console.log('Sending payment request:', orderData);
+            console.log('Sending cash payment request:', orderData);
+            console.log('Payment method:', orderData.payment_method);
 
-           fetch('/kiosk/process-cash-payment', {
+            fetch('/kiosk/process-cash-payment', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2122,6 +2239,7 @@
                 })
                 .then(data => {
                     console.log('Success response:', data);
+                    console.log('Order payment method:', data.payment_method);
                     if (data.success) {
                         hidePaymentModal();
                         showCashPaymentConfirmation(data);
@@ -2195,6 +2313,7 @@
 
         function completeOrder() {
             window.location.href = '{{ route("kiosk.index") }}';
+            //must include here the payment_method -> 'maya' to be added to the order placed
         }
 
         function showCancelModal() {
@@ -2276,6 +2395,12 @@
                 });
             }
         });
+
+        // Global exports (add to bottom of script)
+        window.showFinishPaymentModal = showFinishPaymentModal;
+        window.hideFinishPaymentModal = hideFinishPaymentModal;
+        window.confirmMayaPaymentComplete = confirmMayaPaymentComplete;
+        window.showMayaSuccessConfirmation = showMayaSuccessConfirmation;
     </script>
 </body>
 
