@@ -201,6 +201,10 @@
                     <i class="fas fa-cog me-2"></i>
                     Backup Settings
                 </a>
+                <a href="{{ route('pin.change.form') }}" class="nav-link">
+                    <i class="fas fa-key me-2"></i>
+                    Change PIN
+                </a>
                 <a href="#" class="nav-link">
                     <i class="fas fa-arrow-left me-2"></i>
                     Back to Dashboard
@@ -283,7 +287,7 @@
             </div>
         </div>
     </div>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allUsers = [];
@@ -409,4 +413,5 @@
         });
     </script>
 </body>
+
 </html>

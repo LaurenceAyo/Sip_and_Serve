@@ -34,6 +34,7 @@ use Ladumor\LaravelPwa\LaravelPWA;
 use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\MayaQRController;
 use App\Http\Controllers\MayaWebhookController;
+use App\Http\Controllers\PinController;
 
 // =============================================================================
 // PUBLIC ROUTES (No Authentication Required)
@@ -215,6 +216,10 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class])->gr
     Route::post('/pin-login', [AuthController::class, 'pinLogin'])->name('pin.authenticate');
     Route::post('/pin-logout', [AuthController::class, 'pinLogout'])->name('pin.logout');
 
+    // PIN Change routes
+    Route::get('/change-pin', [PinController::class, 'showChangePinForm'])->name('pin.change.form');
+    Route::post('/change-pin', [PinController::class, 'changePin'])->name('pin.change');
+    
     // POS PIN routes
     Route::get('/pos/pin/setup', [PosAuthController::class, 'showPinSetup'])->name('pos.pin.setup');
     Route::post('/pos/pin/setup', [PosAuthController::class, 'setupPin']);
@@ -302,9 +307,9 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class, \App
     });
 
     // Maya Payment Routes
-    
+
     Route::post('/confirm-maya-payment', [CashierController::class, 'confirmMayaPayment'])->name('cashier.confirmMaya');
-    
+
     // Receipt and Printer Routes
     Route::get('/simple-thermer/{id}', [App\Http\Controllers\CashierController::class, 'simpleThermerTest']);
     Route::get('/thermer/receipt/{id}', [App\Http\Controllers\CashierController::class, 'thermerReceipt'])->name('thermer.receipt');
