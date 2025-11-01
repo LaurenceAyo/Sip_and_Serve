@@ -243,6 +243,10 @@
                 <i class="fas fa-cog me-2"></i>
                 Backup Settings
             </a>
+            <a href="<?php echo e(route('pin.change.form')); ?>" class="btn btn-warning me-2">
+                <i class="fas fa-key me-2"></i>
+                Change PIN
+            </a>
             <a href="#" class="nav-link" onclick="goToDashboard()">
                 <i class="fas fa-arrow-left me-2"></i>
                 Back to Dashboard

@@ -221,10 +221,17 @@
                 <h2 class="mb-1">User Management</h2>
                 <p class="text-muted">Manage System Users and their permissions</p>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                <i class="fas fa-user-plus me-2"></i>
-                Add New User
-            </button>
+            <div>
+                <!-- Add Change PIN button here -->
+                <a href="{{ route('pin.change.form') }}" class="btn btn-warning me-2">
+                    <i class="fas fa-key me-2"></i>
+                    Change PIN
+                </a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Add New User
+                </button>
+            </div>
         </div>
 
         <!-- Stats Cards -->
@@ -287,7 +294,7 @@
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allUsers = [];
