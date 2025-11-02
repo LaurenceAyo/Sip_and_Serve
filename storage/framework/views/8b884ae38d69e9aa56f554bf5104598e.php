@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title>Sales Dashboard - L' PRIMERO CAFE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -738,7 +738,7 @@
                         <h2 class="text-3xl font-light header-title">CAFE DASHBOARD</h2>
                     </div>
                     <div class="manager-info">
-                        <p class="text-sm font-medium">Manager ID: {{ Auth::user()->manager_id ?? 'N/A' }}</p>
+                        <p class="text-sm font-medium">Manager ID: <?php echo e(Auth::user()->manager_id ?? 'N/A'); ?></p>
                     </div>
                 </div>
             </div>
@@ -760,13 +760,15 @@
                             <div class="report-item">
                                 <div class="report-item-label">Today's Total</div>
                                 <div class="report-item-value" id="reportTotalSales">PHP
-                                    {{ number_format($todaysSales->total_sales, 2) }}
+                                    <?php echo e(number_format($todaysSales->total_sales, 2)); ?>
+
                                 </div>
                             </div>
                             <div class="report-item">
                                 <div class="report-item-label">Orders Completed</div>
                                 <div class="report-item-value" id="reportOrdersCompleted">
-                                    {{ $todaysSales->total_orders }}
+                                    <?php echo e($todaysSales->total_orders); ?>
+
                                 </div>
                             </div>
                         </div>
@@ -774,13 +776,15 @@
                             <div class="report-item">
                                 <div class="report-item-label">Items Sold</div>
                                 <div class="report-item-value" id="reportItemsSold">
-                                    {{ $TopItems->sum('quantity') }}
+                                    <?php echo e($TopItems->sum('quantity')); ?>
+
                                 </div>
                             </div>
                             <div class="report-item">
                                 <div class="report-item-label">Average Order</div>
                                 <div class="report-item-value" id="reportAverageOrder">PHP
-                                    {{ number_format($averageOrder, 2) }}
+                                    <?php echo e(number_format($averageOrder, 2)); ?>
+
                                 </div>
                             </div>
                         </div>
@@ -790,16 +794,16 @@
                     <div class="report-section">
                         <h3>🏆 Top Selling Items</h3>
                         <ul class="top-items-list">
-                            @foreach($TopItems as $index => $item)
+                            <?php $__currentLoopData = $TopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <li>
-                                    <div class="item-rank">{{ $index + 1 }}</div>
+                                    <div class="item-rank"><?php echo e($index + 1); ?></div>
                                     <div class="item-details">
-                                        <span class="item-name">{{ $item->name }}</span>
-                                        <span class="item-sales">{{ $item->quantity }} sold - PHP
-                                            {{ number_format($item->revenue, 2) }}</span>
+                                        <span class="item-name"><?php echo e($item->name); ?></span>
+                                        <span class="item-sales"><?php echo e($item->quantity); ?> sold - PHP
+                                            <?php echo e(number_format($item->revenue, 2)); ?></span>
                                     </div>
                                 </li>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </ul>
                     </div>
 
@@ -824,21 +828,21 @@
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Today's Total:</h4>
-                        <p class="text-2xl font-bold">PHP {{ number_format($todaysSales->total_sales, 2) }}</p>
+                        <p class="text-2xl font-bold">PHP <?php echo e(number_format($todaysSales->total_sales, 2)); ?></p>
                     </div>
                 </div>
 
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Orders Completed:</h4>
-                        <p class="text-2xl font-bold">{{ $todaysSales->total_orders }}</p>
+                        <p class="text-2xl font-bold"><?php echo e($todaysSales->total_orders); ?></p>
                     </div>
                 </div>
 
                 <div class="sales-card">
                     <div class="metric-card">
                         <h4 class="font-semibold text-lg mb-2">Average Order:</h4>
-                        <p class="text-2xl font-bold">PHP {{ number_format($averageOrder, 2) }}</p>
+                        <p class="text-2xl font-bold">PHP <?php echo e(number_format($averageOrder, 2)); ?></p>
                     </div>
                 </div>
             </div>
@@ -847,10 +851,10 @@
             <div class="controls-section flex justify-between items-center mb-6">
                 <div class="filter-section flex items-center space-x-4">
                     <select class="filter-dropdown" id="filterDropdown">
-                        <option value="TODAY" {{ ($filter ?? 'TODAY') == 'TODAY' ? 'selected' : '' }}>TODAY</option>
-                        <option value="THIS WEEK" {{ ($filter ?? 'TODAY') == 'THIS WEEK' ? 'selected' : '' }}>THIS WEEK
+                        <option value="TODAY" <?php echo e(($filter ?? 'TODAY') == 'TODAY' ? 'selected' : ''); ?>>TODAY</option>
+                        <option value="THIS WEEK" <?php echo e(($filter ?? 'TODAY') == 'THIS WEEK' ? 'selected' : ''); ?>>THIS WEEK
                         </option>
-                        <option value="THIS MONTH" {{ ($filter ?? 'TODAY') == 'THIS MONTH' ? 'selected' : '' }}>THIS MONTH
+                        <option value="THIS MONTH" <?php echo e(($filter ?? 'TODAY') == 'THIS MONTH' ? 'selected' : ''); ?>>THIS MONTH
                         </option>
                     </select>
                 </div>
@@ -864,16 +868,16 @@
             <div class="report-section">
                 <h3>🏆 Top Selling Items</h3>
                 <ul class="top-items-list">
-                    @foreach($TopItems as $index => $item)
+                    <?php $__currentLoopData = $TopItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li>
-                            <div class="item-rank">{{ $index + 1 }}</div>
+                            <div class="item-rank"><?php echo e($index + 1); ?></div>
                             <div class="item-details">
-                                <span class="item-name">{{ $item->name }}</span>
-                                <span class="item-sales">{{ $item->quantity }} sold - PHP
-                                    {{ number_format($item->revenue, 2) }}</span>
+                                <span class="item-name"><?php echo e($item->name); ?></span>
+                                <span class="item-sales"><?php echo e($item->quantity); ?> sold - PHP
+                                    <?php echo e(number_format($item->revenue, 2)); ?></span>
                             </div>
                         </li>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </ul>
             </div>
 
@@ -894,7 +898,7 @@
     </div>
 
     <script>
-        const TopItems = @json($TopItems);
+        const TopItems = <?php echo json_encode($TopItems, 15, 512) ?>;
         // Define helper functions first
         function debugLog(message, data = null) {
             console.log('[DEBUG]', message, data !== null ? data : '');
@@ -1121,4 +1125,4 @@
     </script>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/sales.blade.php ENDPATH**/ ?>

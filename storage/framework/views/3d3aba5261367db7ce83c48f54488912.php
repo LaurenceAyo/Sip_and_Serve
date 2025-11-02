@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     
     <title>Products - Cafe Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -688,7 +688,7 @@
                         <h2 class="text-3xl font-light header-title">CAFE DASHBOARD</h2>
                     </div>
                     <div class="manager-info">
-                        <p class="text-sm font-medium">Manager ID: {{ Auth::user()->manager_id ?? 'N/A' }}</p>
+                        <p class="text-sm font-medium">Manager ID: <?php echo e(Auth::user()->manager_id ?? 'N/A'); ?></p>
                     </div>
                 </div>
             </div>
@@ -720,20 +720,20 @@
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
-                            @if(isset($menu_items) && count($menu_items) > 0)
-                                @foreach($menu_items as $item)
-                                    <tr class="cursor-pointer" data-product-id="{{ $item->id ?? $item['id'] }}">
-                                        <td>{{ $item->name ?? $item['name'] ?? 'Unknown' }}</td>
-                                        <td>PHP {{ number_format($item->price ?? $item['price'] ?? 0, 2) }}</td>
-                                        <td>PHP {{ number_format($item->cost ?? $item['cost'] ?? 0, 2) }}</td>
-                                        <td>{{ isset($item->ingredients) ? count($item->ingredients) : 0 }} items</td>
+                            <?php if(isset($menu_items) && count($menu_items) > 0): ?>
+                                <?php $__currentLoopData = $menu_items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <tr class="cursor-pointer" data-product-id="<?php echo e($item->id ?? $item['id']); ?>">
+                                        <td><?php echo e($item->name ?? $item['name'] ?? 'Unknown'); ?></td>
+                                        <td>PHP <?php echo e(number_format($item->price ?? $item['price'] ?? 0, 2)); ?></td>
+                                        <td>PHP <?php echo e(number_format($item->cost ?? $item['cost'] ?? 0, 2)); ?></td>
+                                        <td><?php echo e(isset($item->ingredients) ? count($item->ingredients) : 0); ?> items</td>
                                     </tr>
-                                @endforeach
-                            @else
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <?php else: ?>
                                 <tr>
                                     <td colspan="4" style="padding: 2rem; color: #6b7280;">No menu items found</td>
                                 </tr>
-                            @endif
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -882,21 +882,21 @@
 
     <script>
         let selectedProductId = null;
-        const ingredients = @json($ingredients ?? []);
+        const ingredients = <?php echo json_encode($ingredients ?? [], 15, 512) ?>;
         let products = [
-            @if(isset($menu_items) && count($menu_items) > 0)
-                @foreach($menu_items as $item)
+            <?php if(isset($menu_items) && count($menu_items) > 0): ?>
+                <?php $__currentLoopData = $menu_items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                             {
-                        id: {{ $item->id ?? $item['id'] ?? 0 }},
-                        name: "{{ $item->name ?? $item['name'] ?? 'Unknown' }}",
-                        price: {{ $item->price ?? $item['price'] ?? 0 }},
-                        cost: {{ $item->cost ?? $item['cost'] ?? 0 }},
-                        category: "{{ $item->category ?? $item['category'] ?? 'NULL' }}",
-                        description: "{{ $item->description ?? $item['description'] ?? '' }}",
-                        ingredients: @json($item->ingredients ?? [])
-                    }@if(!$loop->last), @endif
-                @endforeach
-            @endif
+                        id: <?php echo e($item->id ?? $item['id'] ?? 0); ?>,
+                        name: "<?php echo e($item->name ?? $item['name'] ?? 'Unknown'); ?>",
+                        price: <?php echo e($item->price ?? $item['price'] ?? 0); ?>,
+                        cost: <?php echo e($item->cost ?? $item['cost'] ?? 0); ?>,
+                        category: "<?php echo e($item->category ?? $item['category'] ?? 'NULL'); ?>",
+                        description: "<?php echo e($item->description ?? $item['description'] ?? ''); ?>",
+                        ingredients: <?php echo json_encode($item->ingredients ?? [], 15, 512) ?>
+                    }<?php if(!$loop->last): ?>, <?php endif; ?>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            <?php endif; ?>
         ];
 
         // Initialize
@@ -1311,4 +1311,4 @@
     </script>
 </body>
 
-</html>
+</html><?php /**PATH C:\Users\Laurence Ayo\sip_and_serve_final\resources\views/profile/product.blade.php ENDPATH**/ ?>

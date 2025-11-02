@@ -1546,9 +1546,9 @@
     </div>
 
     <div class="container">
-        <!-- Left Panel - Pending Cash Orders -->
+        <!-- Left Panel - Pending Orders -->
         <div class="left-panel">
-            <h2 class="section-title">Pending Cash Orders</h2>
+            <h2 class="section-title">Pending Orders</h2>
 
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
@@ -1716,6 +1716,7 @@
                         <small>Orders will appear here when customers place cash orders</small>
                     </div>
                 @endif
+            </div>
             </div>
        
 

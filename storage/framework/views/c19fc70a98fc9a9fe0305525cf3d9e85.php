@@ -1546,9 +1546,9 @@
     </div>
 
     <div class="container">
-        <!-- Left Panel - Pending Cash Orders -->
+        <!-- Left Panel - Pending Orders -->
         <div class="left-panel">
-            <h2 class="section-title">Pending Cash Orders</h2>
+            <h2 class="section-title">Pending Orders</h2>
 
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
@@ -1574,6 +1574,11 @@
                                 <?php echo e(strtoupper($order['payment_method'])); ?>
 
                             </div>
+
+                            <!-- ADD THE MAYA REFERENCE DATA HERE AS HIDDEN FIELDS -->
+                            <input type="hidden" class="maya-reference" value="<?php echo e($order['maya_reference'] ?? ''); ?>">
+                            <input type="hidden" class="maya-webhook-time"
+                                value="<?php echo e($order['maya_webhook_received_at'] ?? ''); ?>">
                             <div class="order-items">
                                 <?php if(isset($order['order_items']) && is_array($order['order_items'])): ?>
                                     <?php $__currentLoopData = $order['order_items']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -1715,7 +1720,8 @@
                     </div>
                 <?php endif; ?>
             </div>
-        </div>
+            </div>
+       
 
         <!-- Right Panel - Processing Order Section -->
         <div class="right-panel">
@@ -2480,37 +2486,37 @@
                     showAutoRefreshError(error.message);
                 });
         }
-        
-                // Listen for Maya reference updates via Pusher
-                document.addEventListener('DOMContentLoaded', function () {
-                    const pusherKey = document.querySelector('meta[name="pusher-key"]')?.content;
-                    const pusherCluster = document.querySelector('meta[name="pusher-cluster"]')?.content;
 
-                    if (pusherKey) {
-                        const pusher = new Pusher(pusherKey, {
-                            cluster: pusherCluster,
-                            encrypted: true
-                        });
+        // Listen for Maya reference updates via Pusher
+        document.addEventListener('DOMContentLoaded', function () {
+            const pusherKey = document.querySelector('meta[name="pusher-key"]')?.content;
+            const pusherCluster = document.querySelector('meta[name="pusher-cluster"]')?.content;
 
-                        const channel = pusher.subscribe('orders');
-
-                        // Listen for Maya reference received
-                        channel.bind('maya-reference-received', function (data) {
-                            console.log('Maya reference received:', data);
-
-                            // Update the order card with the reference
-                            updateOrderCardWithMayaReference(data);
-
-                            // Show notification
-                            showMayaReferenceNotification(data);
-
-                            // Play sound
-                            playNotificationSound();
-                        });
-
-                        console.log('Maya real-time notifications enabled');
-                    }
+            if (pusherKey) {
+                const pusher = new Pusher(pusherKey, {
+                    cluster: pusherCluster,
+                    encrypted: true
                 });
+
+                const channel = pusher.subscribe('orders');
+
+                // Listen for Maya reference received
+                channel.bind('maya-reference-received', function (data) {
+                    console.log('Maya reference received:', data);
+
+                    // Update the order card with the reference
+                    updateOrderCardWithMayaReference(data);
+
+                    // Show notification
+                    showMayaReferenceNotification(data);
+
+                    // Play sound
+                    playNotificationSound();
+                });
+
+                console.log('Maya real-time notifications enabled');
+            }
+        });
 
         function updateOrderCardWithMayaReference(data) {
             const orderCard = document.getElementById(`order-${data.order_id}`);

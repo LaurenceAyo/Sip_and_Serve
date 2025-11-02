@@ -13,7 +13,6 @@ class SalesController extends Controller
     {
         $filter = $request->get('filter', 'TODAY');
 
-        // Set date range based on filter
         switch ($filter) {
             case 'THIS WEEK':
                 $startDate = now()->startOfWeek();
@@ -30,9 +29,9 @@ class SalesController extends Controller
                 break;
         }
 
-        // Get sales data for the selected period
-        $todaysSales = Order::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
+        // ✅ FIXED: Get from daily_sales table (cashier completed orders)
+        $todaysSales = DB::table('daily_sales')
+            ->whereBetween('completion_time', [$startDate, $endDate])
             ->selectRaw('COUNT(*) as total_orders, SUM(total_amount) as total_sales')
             ->first();
 
@@ -44,23 +43,21 @@ class SalesController extends Controller
             ? $todaysSales->total_sales / $todaysSales->total_orders
             : 0;
 
-        // Changed variable name to match Blade view ($TopItems with capital T)
+        // ✅ FIXED: Get top items from completed orders only
         $TopItems = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('daily_sales', 'order_items.order_id', '=', 'daily_sales.order_id')
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->select(
-                'menu_items.name', 
-                DB::raw('SUM(order_items.quantity) as quantity'), 
+                'menu_items.name',
+                DB::raw('SUM(order_items.quantity) as quantity'),
                 DB::raw('SUM(order_items.total_price) as revenue')
             )
-            ->whereBetween('orders.created_at', [$startDate, $endDate])
-            ->where('orders.status', 'completed')
+            ->whereBetween('daily_sales.completion_time', [$startDate, $endDate])
             ->groupBy('menu_items.id', 'menu_items.name')
             ->orderBy('quantity', 'desc')
             ->limit(5)
             ->get();
 
-        // Pass $topItems instead of $formattedTopItems
         return view('sales', compact('todaysSales', 'averageOrder', 'TopItems', 'filter'));
     }
 }

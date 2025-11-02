@@ -411,8 +411,8 @@
                     <div class="order-total">
                         Total: ₱{{ number_format($order->total_amount, 2) }}
                         @if($order->payment_method === 'cash')
-                            <small>(Cash: ₱{{ number_format($order->cash_amount ?? 0, 2) }}, Change:
-                                ₱{{ number_format($order->change_amount ?? 0, 2) }})</small>
+                            <small>(Cash: ₱{{ number_format($order->cash_amount ?? 0, 2) }}
+                                )</small>
                         @else
                             <small>({{ strtoupper($order->payment_method ?? 'N/A') }})</small>
                         @endif

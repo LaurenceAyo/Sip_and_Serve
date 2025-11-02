@@ -414,8 +414,9 @@
                         Total: ₱<?php echo e(number_format($order->total_amount, 2)); ?>
 
                         <?php if($order->payment_method === 'cash'): ?>
-                            <small>(Cash: ₱<?php echo e(number_format($order->cash_amount ?? 0, 2)); ?>, Change:
-                                ₱<?php echo e(number_format($order->change_amount ?? 0, 2)); ?>)</small>
+                            <small>(Cash: ₱<?php echo e(number_format($order->cash_amount ?? 0, 2)); ?>
+
+                                )</small>
                         <?php else: ?>
                             <small>(<?php echo e(strtoupper($order->payment_method ?? 'N/A')); ?>)</small>
                         <?php endif; ?>
