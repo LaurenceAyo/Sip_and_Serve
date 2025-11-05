@@ -153,6 +153,7 @@ class CashierController extends Controller
         try {
             Log::info('Cashier index method called - GOOJPRT PT-210 System');
 
+            // Remove kitchen_received_at filter
             $cashOrders = Order::with([
                 'orderItems',
                 'orderItems.menuItem',
@@ -160,22 +161,27 @@ class CashierController extends Controller
             ])
                 ->whereIn('payment_method', ['cash', 'maya'])
                 ->where(function ($query) {
-                    $query->where('payment_status', 'pending')
-                        ->orWhereNull('payment_status');
+                    // Show orders that are:
+                    // 1. Pending payment (payment_status = pending or null)
+                    // 2. OR paid but not yet sent to kitchen (kitchen_received_at is null)
+                    $query->where(function ($q) {
+                        $q->where('payment_status', 'pending')
+                            ->orWhereNull('payment_status');
+                    })
+                        ->orWhere(function ($q) {
+                            $q->where('payment_status', 'paid')
+                                ->whereNull('kitchen_received_at');
+                        });
                 })
-                ->where('status', 'pending')
+                ->whereIn('status', ['pending', 'processing'])
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            Log::info('GOOJPRT PT-210 Cashier Debug - Orders Found', [
+            Log::info('Cashier orders fetched', [
                 'count' => $cashOrders->count(),
                 'order_ids' => $cashOrders->pluck('id')->toArray(),
-                'query_used' => [
-                    'payment_method' => 'cash OR maya',
-                    'payment_status' => 'pending',
-                    'status' => 'pending OR preparing',
-                    'kitchen_received_at' => 'NULL'
-                ]
+                'payment_statuses' => $cashOrders->pluck('payment_status')->toArray(),
+                'statuses' => $cashOrders->pluck('status')->toArray()
             ]);
 
             // Get categories for manual order creation
@@ -186,8 +192,15 @@ class CashierController extends Controller
             // Format orders for display
             $pendingOrders = $cashOrders->map(function ($order) {
                 $calculatedTotal = $this->calculateCorrectTotal($order);
+
+                // Calculate discount
+                $hasDiscount = $order->discount_type && $order->discount_type !== 'none' && $order->discount_amount > 0;
+                $discountAmount = $hasDiscount ? (float)$order->discount_amount : 0;
+                $amountBeforeDiscount = $hasDiscount ? (float)$order->amount_before_discount : $calculatedTotal;
+                $finalTotal = $hasDiscount ? ($amountBeforeDiscount - $discountAmount) : $calculatedTotal;
+
                 $cashAmount = (float) ($order->cash_amount ?? 0);
-                $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
+                $expectedChange = $cashAmount > 0 ? ($cashAmount - $finalTotal) : 0;
 
                 return [
                     'id' => $order->id,
@@ -196,8 +209,13 @@ class CashierController extends Controller
                     'time' => $order->created_at->format('H:i'),
                     'items' => $this->formatOrderItemsFixed($order->orderItems),
                     'order_items' => $this->formatOrderItemsFixed($order->orderItems),
-                    'total' => $calculatedTotal,
-                    'total_amount' => $calculatedTotal,
+                    'total' => $finalTotal,
+                    'total_amount' => $finalTotal,
+                    'amount_before_discount' => $amountBeforeDiscount,
+                    'discount_type' => $order->discount_type,
+                    'discount_percent' => $order->discount_percent ?? 20,
+                    'discount_amount' => $discountAmount,
+                    'discount_id_number' => $order->discount_id_number,
                     'cash_amount' => $cashAmount,
                     'expected_change' => $expectedChange,
                     'order_type' => $order->order_type ?? 'dine-in',
@@ -212,14 +230,15 @@ class CashierController extends Controller
                 ];
             })->toArray();
 
-            Log::info('GOOJPRT PT-210 system - Orders formatted', [
+            Log::info('Orders formatted for cashier', [
                 'count' => count($pendingOrders),
             ]);
 
             return view('cashier', compact('pendingOrders', 'categories'));
         } catch (Exception $e) {
-            Log::error('Error loading GOOJPRT PT-210 cashier page', [
+            Log::error('Error loading cashier page', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             $pendingOrders = [];
@@ -229,7 +248,7 @@ class CashierController extends Controller
     }
 
     /**
-     * FIXED: Calculate the correct total from order items
+     * Calculate the correct total from order items
      */
     private function calculateCorrectTotal($order)
     {
@@ -279,6 +298,161 @@ class CashierController extends Controller
         ]);
 
         return $total;
+    }
+
+    /**
+     * Apply discount to an order
+     */
+    public function applyDiscount(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'order_id' => 'required|integer|exists:orders,id',
+                'discount_type' => 'required|in:senior_citizen,pwd',
+                'id_number' => 'required|string|max:50'
+            ]);
+
+            DB::beginTransaction();
+
+            $order = Order::with('orderItems')->findOrFail($validated['order_id']);
+
+            // Check if order is still pending
+            if ($order->payment_status !== 'pending' && $order->payment_status !== null) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot apply discount - payment already processed'
+                ], 422);
+            }
+
+            // ✅ NEW: Check if discount already applied
+            if ($order->discount_type && $order->discount_type !== 'none' && $order->discount_amount > 0) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Discount already applied to this order. Please remove the existing discount first.'
+                ], 422);
+            }
+
+            // Calculate original total (use amount_before_discount if it exists, otherwise calculate)
+            $originalTotal = $order->amount_before_discount ?? $this->calculateCorrectTotal($order);
+
+            // Calculate 20% discount
+            $discountPercentage = 20;
+            $discountAmount = $originalTotal * ($discountPercentage / 100);
+            $newTotal = $originalTotal - $discountAmount;
+
+            // Update order with discount
+            $order->update([
+                'discount_type' => $validated['discount_type'],
+                'discount_id_number' => $validated['id_number'],
+                'discount_percent' => $discountPercentage,
+                'discount_amount' => $discountAmount,
+                'amount_before_discount' => $originalTotal,
+                'total_amount' => $newTotal,
+                'payment_status' => 'pending' // ✅ Ensure it stays pending
+            ]);
+
+            DB::commit();
+
+            Log::info('Discount applied to order', [
+                'order_id' => $order->id,
+                'discount_type' => $validated['discount_type'],
+                'id_number' => $validated['id_number'],
+                'original_total' => $originalTotal,
+                'discount_amount' => $discountAmount,
+                'new_total' => $newTotal
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount applied successfully',
+                'discount_details' => [
+                    'discount_type' => $validated['discount_type'],
+                    'discount_percent' => $discountPercentage,
+                    'original_total' => $originalTotal,
+                    'discount_amount' => $discountAmount,
+                    'new_total' => $newTotal
+                ]
+            ]);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error applying discount', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'order_id' => $validated['order_id'] ?? null
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to apply discount: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove discount from an order
+     */
+    public function removeDiscount(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'order_id' => 'required|integer|exists:orders,id'
+            ]);
+
+            DB::beginTransaction();
+
+            $order = Order::findOrFail($validated['order_id']);
+
+            if ($order->payment_status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot remove discount - payment already processed'
+                ], 422);
+            }
+
+            // Restore original total
+            $originalTotal = $order->amount_before_discount ?? $this->calculateCorrectTotal($order);
+
+            $order->update([
+                'discount_type' => 'none',
+                'discount_id_number' => null,
+                'discount_percent' => 0,
+                'discount_amount' => 0,
+                'amount_before_discount' => null,
+                'total_amount' => $originalTotal
+            ]);
+
+            DB::commit();
+
+            Log::info('Discount removed from order', [
+                'order_id' => $order->id,
+                'restored_total' => $originalTotal
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount removed successfully',
+                'new_total' => $originalTotal
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error removing discount', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove discount: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 
@@ -354,35 +528,49 @@ class CashierController extends Controller
     public function refreshOrders()
     {
         try {
-
             $cashOrders = Order::with([
                 'orderItems',
                 'orderItems.menuItem',
                 'orderItems.menuItem.category'
             ])
                 ->whereIn('payment_method', ['cash', 'maya'])
+                ->where('status', 'pending')
                 ->where(function ($query) {
                     $query->where('payment_status', 'pending')
                         ->orWhereNull('payment_status');
                 })
-                ->where('status', 'pending')
                 ->orderBy('created_at', 'asc')
                 ->get();
 
+            Log::info('Refresh orders called', [
+                'count' => $cashOrders->count(),
+                'order_ids' => $cashOrders->pluck('id')->toArray()
+            ]);
 
             return response()->json([
                 'success' => true,
                 'orders' => $cashOrders->map(function ($order) {
                     $calculatedTotal = $this->calculateCorrectTotal($order);
+
+                    $hasDiscount = $order->discount_type && $order->discount_type !== 'none' && $order->discount_amount > 0;
+                    $discountAmount = $hasDiscount ? (float)$order->discount_amount : 0;
+                    $amountBeforeDiscount = $hasDiscount ? (float)$order->amount_before_discount : $calculatedTotal;
+                    $finalTotal = $hasDiscount ? ($amountBeforeDiscount - $discountAmount) : $calculatedTotal;
+
                     $cashAmount = (float) ($order->cash_amount ?? 0);
-                    $expectedChange = $cashAmount > 0 ? ($cashAmount - $calculatedTotal) : 0;
+                    $expectedChange = $cashAmount > 0 ? ($cashAmount - $finalTotal) : 0;
 
                     return [
                         'id' => $order->id,
                         'order_number' => $order->order_number ?? str_pad($order->id, 4, '0', STR_PAD_LEFT),
                         'order_type' => $order->order_type,
-                        'total_amount' => $calculatedTotal,
-                        'total' => $calculatedTotal,
+                        'total_amount' => $finalTotal,
+                        'total' => $finalTotal,
+                        'amount_before_discount' => $amountBeforeDiscount,
+                        'discount_type' => $order->discount_type,
+                        'discount_percent' => $order->discount_percent ?? 20,
+                        'discount_amount' => $discountAmount,
+                        'discount_id_number' => $order->discount_id_number,
                         'cash_amount' => $cashAmount,
                         'expected_change' => $expectedChange,
                         'change_amount' => (float) ($order->change_amount ?? 0),
@@ -397,8 +585,9 @@ class CashierController extends Controller
                 })
             ]);
         } catch (Exception $e) {
-            Log::error('GOOJPRT PT-210 - Error refreshing cashier orders', [
-                'error' => $e->getMessage()
+            Log::error('Error refreshing cashier orders', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
@@ -410,7 +599,6 @@ class CashierController extends Controller
 
     public function acceptOrder(Request $request)
     {
-
         try {
             $validated = $request->validate([
                 'order_id' => 'required|integer|exists:orders,id',
@@ -432,58 +620,62 @@ class CashierController extends Controller
 
         try {
             $order = Order::with(['orderItems.menuItem'])->findOrFail($validated['order_id']);
-            $calculatedTotal = $this->calculateCorrectTotal($order);
+
+            // ✅ FIX: Use the order's current total_amount (which includes discount)
+            // Don't recalculate - respect the discounted amount already in database
+            $orderTotal = (float) $order->total_amount;
+
+            // Log for debugging
+            Log::info('Processing payment with discount consideration', [
+                'order_id' => $order->id,
+                'order_total_amount' => $order->total_amount,
+                'has_discount' => $order->discount_type && $order->discount_type !== 'none',
+                'discount_amount' => $order->discount_amount,
+                'amount_before_discount' => $order->amount_before_discount,
+                'final_total' => $orderTotal
+            ]);
 
             // Determine payment method
             $paymentMethod = $validated['payment_method'] ?? 'cash';
-
-            // Initialize $cashAmount for logging to avoid undefined variable; will be recalculated below for Maya payments
             $cashAmount = $validated['cash_amount'] ?? null;
-
             $isMayaPayment = $paymentMethod === 'maya' || ($validated['maya_confirmed'] ?? false);
-
-            Log::info('🔥 KIOSK PAYMENT DEBUG', [
-                'payment_method_from_request' => $request->input('payment_method'),
-                'payment_method_validated' => $validated['payment_method'] ?? 'NOT SET',
-                'payment_method_final' => $paymentMethod,
-                'all_request_data' => $request->all(),
-                'cash_amount' => $cashAmount
-            ]);
 
             // For Maya payments, set cash_amount to total (no change needed)
             if ($isMayaPayment) {
-                $cashAmount = $calculatedTotal;
+                $cashAmount = $orderTotal;
                 $changeAmount = 0;
             } else {
-                // Cash payment logic
-                if ($validated['cash_amount'] < $calculatedTotal) {
+                // ✅ Cash payment logic - use the DISCOUNTED total
+                if ($validated['cash_amount'] < $orderTotal) {
+                    DB::rollBack();
                     return response()->json([
                         'success' => false,
-                        'message' => 'Cash amount is insufficient'
+                        'message' => 'Cash amount is insufficient. Required: PHP ' . number_format($orderTotal, 2)
                     ], 422);
                 }
                 $cashAmount = $validated['cash_amount'];
-                $changeAmount = $validated['cash_amount'] - $calculatedTotal;
+                $changeAmount = $validated['cash_amount'] - $orderTotal;
             }
 
-            // CRITICAL FIX: Keep status as 'pending' so kitchen receives the order
+            // Update order - keep the existing total_amount (with discount already applied)
             $order->update([
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
                 'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
-                'total_amount' => $calculatedTotal,
-                'payment_status' => 'paid', // Payment is done
-                'status' => 'pending', // FIXED: Keep as 'pending' for kitchen
+                // ✅ DON'T update total_amount - it already has the discount applied
+                // 'total_amount' => $orderTotal, // REMOVE THIS LINE
+                'payment_status' => 'paid',
+                'status' => 'pending',
                 'paid_at' => now(),
-                //'kitchen_received_at' => now(), // Mark when sent to kitchen
             ]);
 
             Log::info('Payment processed - Order sent to kitchen', [
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
-                'status' => 'pending', // Confirm it's pending for kitchen
-                'payment_status' => 'paid',
-                'items_count' => $order->orderItems->count()
+                'final_total' => $orderTotal,
+                'cash_received' => $cashAmount,
+                'change_given' => $changeAmount,
+                'had_discount' => $order->discount_type && $order->discount_type !== 'none'
             ]);
 
             $receiptPrinted = false;
@@ -500,7 +692,6 @@ class CashierController extends Controller
                 try {
                     $drawerOpened = $this->cashDrawerService->openDrawer(1);
 
-                    // Log drawer operation
                     DB::table('cash_drawer_logs')->insert([
                         'drawer_number' => 1,
                         'action' => 'order_payment',
@@ -524,7 +715,6 @@ class CashierController extends Controller
                         'error' => $drawerError
                     ]);
 
-                    // Still log the attempt
                     DB::table('cash_drawer_logs')->insert([
                         'drawer_number' => 1,
                         'action' => 'order_payment',
@@ -569,12 +759,12 @@ class CashierController extends Controller
             Log::info('Order payment processed and sent to kitchen', [
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
-                'total_amount' => $calculatedTotal,
+                'total_amount' => $orderTotal,
                 'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
                 'drawer_opened' => $drawerOpened,
-                'kitchen_status' => 'pending' // Confirm sent to kitchen
+                'kitchen_status' => 'pending'
             ]);
 
             return response()->json([
@@ -582,7 +772,7 @@ class CashierController extends Controller
                 'message' => ($isMayaPayment ? 'Maya' : 'Cash') . ' payment processed - Order sent to kitchen',
                 'order_id' => $order->id,
                 'payment_method' => $isMayaPayment ? 'maya' : 'cash',
-                'total_amount' => $calculatedTotal,
+                'total_amount' => $orderTotal,
                 'cash_amount' => $cashAmount,
                 'change_amount' => $changeAmount,
                 'receipt_printed' => $receiptPrinted,
@@ -604,38 +794,6 @@ class CashierController extends Controller
                 'message' => 'Payment processing failed: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-
-    public function simpleThermerTest($id)
-    {
-        header('Content-Type: application/json');
-        header('Cache-Control: no-cache');
-
-        echo json_encode([
-            [
-                "type" => 0,
-                "content" => "SIP & SERVE CAFE",
-                "bold" => 1,
-                "align" => 1,
-                "format" => 0
-            ],
-            [
-                "type" => 0,
-                "content" => "Test Order #" . $id,
-                "bold" => 0,
-                "align" => 0,
-                "format" => 0
-            ],
-            [
-                "type" => 0,
-                "content" => "Total: P95.00",
-                "bold" => 1,
-                "align" => 2,
-                "format" => 0
-            ]
-        ]);
-        exit;
     }
 
     /**

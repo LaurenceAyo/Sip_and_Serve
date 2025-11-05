@@ -29,7 +29,8 @@ class SalesController extends Controller
                 break;
         }
 
-        // ✅ FIXED: Get from daily_sales table (cashier completed orders)
+        // FIXED: Get from daily_sales table with proper total calculation
+        // The total_amount in daily_sales should already reflect discounts from cashier
         $todaysSales = DB::table('daily_sales')
             ->whereBetween('completion_time', [$startDate, $endDate])
             ->selectRaw('COUNT(*) as total_orders, SUM(total_amount) as total_sales')
@@ -39,11 +40,23 @@ class SalesController extends Controller
             $todaysSales = (object) ['total_orders' => 0, 'total_sales' => 0];
         }
 
+        // Calculate discount statistics
+        $discountStats = DB::table('orders')
+            ->whereBetween('completed_at', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->selectRaw('
+                COUNT(CASE WHEN discount_type IS NOT NULL AND discount_type != "none" THEN 1 END) as discount_count,
+                SUM(CASE WHEN discount_amount > 0 THEN discount_amount ELSE 0 END) as total_discounts,
+                SUM(CASE WHEN discount_type = "senior_citizen" THEN discount_amount ELSE 0 END) as senior_discounts,
+                SUM(CASE WHEN discount_type = "pwd" THEN discount_amount ELSE 0 END) as pwd_discounts
+            ')
+            ->first();
+
         $averageOrder = $todaysSales->total_orders > 0
             ? $todaysSales->total_sales / $todaysSales->total_orders
             : 0;
 
-        // ✅ FIXED: Get top items from completed orders only
+        // Get top items from completed orders only
         $TopItems = DB::table('order_items')
             ->join('daily_sales', 'order_items.order_id', '=', 'daily_sales.order_id')
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
@@ -58,6 +71,12 @@ class SalesController extends Controller
             ->limit(5)
             ->get();
 
-        return view('sales', compact('todaysSales', 'averageOrder', 'TopItems', 'filter'));
+        return view('sales', compact(
+            'todaysSales', 
+            'averageOrder', 
+            'TopItems', 
+            'filter',
+            'discountStats'
+        ));
     }
 }

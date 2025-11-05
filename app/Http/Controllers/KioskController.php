@@ -472,10 +472,10 @@ class KioskController extends Controller
             $order = Order::create([
                 'order_type' => session('orderType', 'dine-in'),
                 'subtotal' => $subtotal,
-                'total_amount' => $total, // Changed from 'total' to match your schema
+                'total_amount' => $total, 
                 'payment_method' => 'maya',
                 'payment_status' => 'pending',
-                'status' => 'pending', // Changed from 'order_status' to match your schema
+                'status' => 'pending', 
                 'cash_amount' => $cashAmount,
                 'change_amount' => 0,
                 'notes' => "Kiosk order - Type: " . session('orderType', 'dine-in') . " - Payment: maya",
@@ -487,7 +487,7 @@ class KioskController extends Controller
                 'total' => $order->total_amount
             ]);
 
-            // Add order items - FIXED: Use correct keys from session cart
+            // Add order items 
             foreach ($cart as $item) {
                 $itemPrice = ($item['price'] ?? 0) + ($item['addonsPrice'] ?? 0);
 
@@ -581,7 +581,7 @@ class KioskController extends Controller
                 'payment_method' => 'gcash'
             ]);
 
-            // STEP 1: Save order to database FIRST - FIXED: Removed table_number
+            // STEP 1: Save order to database FIRST 
             DB::beginTransaction();
 
             $order = Order::create([
@@ -615,7 +615,7 @@ class KioskController extends Controller
             // Generate order number
             $orderNumber = 'C' . str_pad($order->id, 3, '0', STR_PAD_LEFT);
 
-            // COMMIT ORDER TO DATABASE - This ensures order exists before PayMongo
+            // COMMIT ORDER TO DATABASE - This ensures order exists before anything else
             DB::commit();
 
             Log::info('Order committed to database before PayMongo', [

@@ -1524,7 +1524,6 @@
 
     <div class="header">
         SIP & SERVE - CASHIER
-
         <!-- Printer Test Controls -->
         <div class="printer-controls">
             <button class="printer-btn" onclick="testPrinterConnection()">
@@ -1634,11 +1633,42 @@
                                     {{ number_format($order['total'] ?? $order['total_amount'] ?? 0, 2) }}</span>
                             </div>
 
+                            <!-- ADD DISCOUNT BADGE IF APPLIED -->
+                            @if(isset($order['discount_type']) && $order['discount_type'] !== 'none' && isset($order['discount_amount']) && $order['discount_amount'] > 0)
+                                <div class="discount-badge"
+                                    style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; padding: 10px 12px; border-radius: 8px; margin: 10px 0; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);">
+                                    🎫 {{ $order['discount_type'] === 'senior_citizen' ? 'Senior Citizen' : 'PWD' }} Discount
+                                    Applied (20%)
+                                    <div style="font-size: 0.85rem; opacity: 0.95; margin-top: 4px;">
+                                        ID: {{ $order['discount_id_number'] ?? 'N/A' }} • Saved: PHP
+                                        {{ number_format($order['discount_amount'], 2) }}
+                                    </div>
+                                    <button onclick="removeDiscount({{ $order['id'] }})"
+                                        style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 12px; border-radius: 5px; margin-top: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.35)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.25)'">
+                                        ✕ Remove Discount
+                                    </button>
+                                </div>
+                            @endif
+
                             <div class="order-actions">
+                                <!-- ADD DISCOUNT BUTTON FIRST - Only show if NO discount applied -->
+                                @if(!isset($order['discount_type']) || $order['discount_type'] === 'none' || !isset($order['discount_amount']) || $order['discount_amount'] <= 0)
+                                    <button class="btn btn-discount"
+                                        onclick="openDiscountModal({{ $order['id'] }}, {{ $order['total'] ?? $order['total_amount'] ?? 0 }})"
+                                        style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; width: 100%; margin-bottom: 10px;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(156, 39, 176, 0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                        🎫 Apply Discount (Senior/PWD)
+                                    </button>
+                                @endif
+
                                 <button class="btn btn-accept"
                                     onclick="acceptOrder('{{ $order['id'] }}', {{ $order['total'] ?? $order['total_amount'] ?? 0 }}, '{{ $order['order_number'] ?? $order['id'] }}', {{ $order['cash_amount'] ?? 0 }})">
                                     ✅ Accept
                                 </button>
+
                                 <button class="btn btn-edit" onclick="editOrder('{{ $order['id'] }}')">
                                     ✏️ Edit
                                 </button>
@@ -1717,8 +1747,8 @@
                     </div>
                 @endif
             </div>
-            </div>
-       
+        </div>
+
 
         <!-- Right Panel - Processing Order Section -->
         <div class="right-panel">
@@ -1864,6 +1894,75 @@
         </div>
     </div>
 
+    <!-- Discount Modal -->
+    <div class="modal-overlay" id="discountModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <div class="modal-icon">🎫</div>
+                <h2 class="modal-title">Apply Discount</h2>
+                <p class="modal-subtitle" id="discountModalSubtitle">Senior Citizen / PWD Discount (20%)</p>
+            </div>
+
+            <div class="modal-content">
+                <form id="discountForm">
+                    <input type="hidden" id="discount_order_id" name="order_id">
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                            Discount Type <span style="color: #dc3545;">*</span>
+                        </label>
+                        <select id="discount_type" name="discount_type" required class="form-input"
+                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                            <option value="">-- Select Discount Type --</option>
+                            <option value="senior_citizen">Senior Citizen (20% OFF)</option>
+                            <option value="pwd">PWD (20% OFF)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                            ID Number <span style="color: #dc3545;">*</span>
+                        </label>
+                        <input type="text" id="id_number" name="id_number" required placeholder="Enter ID Card Number"
+                            class="form-input"
+                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
+                            Please verify the customer's ID card
+                        </small>
+                    </div>
+
+                    <div class="discount-preview" id="discountPreview"
+                        style="background: #e3f2fd; border: 2px solid #1976d2; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: none;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: #1565c0;">💰 Discount Preview:</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Original Total:</span>
+                            <span id="previewOriginalTotal" style="font-weight: 600;">PHP 0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #d32f2f;">
+                            <span>Discount (20%):</span>
+                            <span id="previewDiscount" style="font-weight: 600;">- PHP 0.00</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 2px solid #1976d2; color: #1565c0;">
+                            <span style="font-weight: 700; font-size: 1.1rem;">New Total:</span>
+                            <span id="previewNewTotal" style="font-weight: 700; font-size: 1.1rem;">PHP 0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions" style="display: flex; gap: 10px;">
+                        <button type="button" onclick="closeDiscountModal()" class="modal-btn modal-btn-cancel"
+                            style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="modal-btn modal-btn-confirm" style="flex: 2; background: #9c27b0;">
+                            Apply Discount
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal">
@@ -1888,6 +1987,29 @@
     <div class="printer-status" id="printerStatus"></div>
 
     <script>
+
+        // ========== DEFINE debugLog FIRST ==========
+        function debugLog(message, data = null) {
+            console.log(`[Cashier Debug] ${message}`, data !== null ? data : '');
+        }
+
+        function showPrinterStatus(message, type = 'info') {
+            const printerStatus = document.getElementById('printerStatus');
+            if (!printerStatus) {
+                console.log('[PRINTER]', type.toUpperCase(), ':', message);
+                return;
+            }
+
+            printerStatus.textContent = message;
+            printerStatus.className = `printer-status show ${type}`;
+            const delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 4000;
+            setTimeout(() => {
+                printerStatus.classList.remove('show');
+            }, delay);
+        }
+        const REFRESH_INTERVAL = 5000; // 5 seconds (adjust as needed)
+        let currentDiscountOrderId = null;
+        let currentDiscountOrderTotal = 0;
         let verifyingOrderId = null;
         let currentAction = null;
         let currentOrderId = null;
@@ -1899,7 +2021,7 @@
         let processingOrders = new Map();
         let autoReloadInterval = null;
         let isProcessingPayment = false;
-        // Edit Order Modal Variables
+        isRefreshing = false;
         let editOrderData = null;
         let editMenuItems = [
             { id: 1, name: 'Cappuccino', price: 120.00, category: 'Coffee' },
@@ -1918,14 +2040,181 @@
             { id: 14, name: 'Green Tea', price: 80.00, category: 'Tea' },
             { id: 15, name: 'Earl Grey Tea', price: 85.00, category: 'Tea' }
         ];
-
         window.Laravel = {
             csrfToken: '{{ csrf_token() }}'
         };
 
-        function debugLog(message, data = null) {
-            console.log(`[Cashier Debug] ${message}`, data);
+        function openDiscountModal(orderId, orderTotal) {
+            currentDiscountOrderId = orderId;
+            currentDiscountOrderTotal = orderTotal;
+
+            document.getElementById('discount_order_id').value = orderId;
+            document.getElementById('discountModalSubtitle').textContent = `Order #${orderId} - Apply Discount`;
+
+            // Reset form
+            document.getElementById('discountForm').reset();
+            document.getElementById('discountPreview').style.display = 'none';
+
+            // Show modal
+            document.getElementById('discountModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            debugLog('Discount modal opened', { orderId, orderTotal });
         }
+
+        function closeDiscountModal() {
+            document.getElementById('discountModal').classList.remove('show');
+            document.body.style.overflow = '';
+
+            currentDiscountOrderId = null;
+            currentDiscountOrderTotal = 0;
+
+            debugLog('Discount modal closed');
+        }
+
+        function updateDiscountPreview() {
+            const discountType = document.getElementById('discount_type').value;
+            const idNumber = document.getElementById('id_number').value.trim();
+            const previewDiv = document.getElementById('discountPreview');
+
+            if (discountType && idNumber && currentDiscountOrderTotal > 0) {
+                const discountAmount = currentDiscountOrderTotal * 0.20;
+                const newTotal = currentDiscountOrderTotal - discountAmount;
+
+                document.getElementById('previewOriginalTotal').textContent = `PHP ${currentDiscountOrderTotal.toFixed(2)}`;
+                document.getElementById('previewDiscount').textContent = `- PHP ${discountAmount.toFixed(2)}`;
+                document.getElementById('previewNewTotal').textContent = `PHP ${newTotal.toFixed(2)}`;
+
+                previewDiv.style.display = 'block';
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        // Add event listeners for discount preview
+        document.addEventListener('DOMContentLoaded', function () {
+            const discountType = document.getElementById('discount_type');
+            const idNumber = document.getElementById('id_number');
+
+            if (discountType) {
+                discountType.addEventListener('change', updateDiscountPreview);
+            }
+
+            if (idNumber) {
+                idNumber.addEventListener('input', updateDiscountPreview);
+            }
+        });
+
+        // Handle discount form submission
+        // Handle discount form submission
+        document.getElementById('discountForm')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const data = {
+                order_id: parseInt(formData.get('order_id')),
+                discount_type: formData.get('discount_type'),
+                id_number: formData.get('id_number')
+            };
+
+            debugLog('Applying discount', data);
+
+            try {
+                const response = await fetchWithErrorHandling('/cashier/apply-discount', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                if (response.success) {
+                    showSuccessMessage(`Discount applied! New total: PHP ${response.discount_details.new_total.toFixed(2)}`);
+                    closeDiscountModal();
+
+                    // ✅ IMPROVED: Update the specific order card immediately
+                    const orderId = data.order_id;
+
+                    // Remove the old card
+                    const oldCard = document.getElementById(`order-${orderId}`);
+                    if (oldCard) {
+                        oldCard.remove();
+                    }
+
+                    // Fetch fresh order data and create new card
+                    setTimeout(async () => {
+                        try {
+                            const refreshResponse = await fetchWithErrorHandling('/cashier/refresh', {
+                                method: 'GET'
+                            });
+
+                            if (refreshResponse.success && Array.isArray(refreshResponse.orders)) {
+                                // Find the updated order
+                                const updatedOrder = refreshResponse.orders.find(order => order.id === orderId);
+
+                                if (updatedOrder) {
+                                    // Create and insert the new card
+                                    const container = document.getElementById('ordersContainer');
+                                    const newCard = createOrderCard(updatedOrder);
+
+                                    // Add with animation
+                                    newCard.style.opacity = '0';
+                                    newCard.style.transform = 'scale(0.95)';
+                                    container.insertBefore(newCard, container.firstChild);
+
+                                    // Animate in
+                                    setTimeout(() => {
+                                        newCard.style.transition = 'all 0.3s ease';
+                                        newCard.style.opacity = '1';
+                                        newCard.style.transform = 'scale(1)';
+                                    }, 50);
+
+                                    debugLog('Order card updated with discount', {
+                                        orderId,
+                                        discount: response.discount_details
+                                    });
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error refreshing after discount:', error);
+                            // Fallback to full refresh
+                            autoRefreshOrders();
+                        }
+                    }, 300);
+                } else {
+                    throw new Error(response.message || 'Failed to apply discount');
+                }
+            } catch (error) {
+                console.error('Error applying discount:', error);
+                showErrorMessage('Failed to apply discount: ' + error.message);
+            }
+        });
+
+        async function removeDiscount(orderId) {
+            if (!confirm('Remove discount from this order?')) return;
+
+            debugLog('Removing discount from order', { orderId });
+
+            try {
+                const response = await fetchWithErrorHandling('/cashier/remove-discount', {
+                    method: 'POST',
+                    body: JSON.stringify({ order_id: orderId })
+                });
+
+                if (response.success) {
+                    showSuccessMessage(`Discount removed! Total restored to: PHP ${response.new_total.toFixed(2)}`);
+
+                    // ✅ Refresh orders immediately
+                    autoRefreshOrders();
+
+                    debugLog('Discount removed, orders refreshed');
+                } else {
+                    throw new Error(response.message || 'Failed to remove discount');
+                }
+            } catch (error) {
+                console.error('Error removing discount:', error);
+                showErrorMessage('Failed to remove discount: ' + error.message);
+            }
+        }
+
+
 
         function getCSRFToken() {
             // Try multiple methods to get CSRF token
@@ -2442,46 +2731,73 @@
                 }, 500); // Small delay to ensure all modals are checked properly
             }
         });
-        // Auto-refresh function with better error handling
-        function autoRefreshOrders() {
+
+
+        async function autoRefreshOrders() {
+            // Prevent multiple simultaneous refresh calls
+            if (isRefreshing) {
+                console.log('[Auto-Refresh] Already refreshing, skipping...');
+                return;
+            }
+
+            isRefreshing = true;
+
+            // Check if modals are open - skip refresh to avoid disrupting user
             const paymentModal = document.getElementById('paymentModal');
             const confirmModal = document.getElementById('confirmModal');
             const editModal = document.getElementById('editOrderModal');
-            // Skip refreshing if modals are open to avoid triggering printing
+            const discountModal = document.getElementById('discountModal');
+
             if ((paymentModal && paymentModal.classList.contains('show')) ||
                 (confirmModal && confirmModal.classList.contains('show')) ||
-                (editModal && editModal.classList.contains('show'))) {
-                debugLog('Skipping auto-refresh: Modal is open');
+                (editModal && editModal.classList.contains('show')) ||
+                (discountModal && discountModal.classList.contains('show'))) {
+                console.log('[Auto-Refresh] Modal is open - skipping refresh');
+                isRefreshing = false;
                 return;
             }
-            debugLog('Auto-refreshing orders...');
-            fetchWithErrorHandling('/cashier/refresh', { method: 'GET' })
-                .then(data => {
-                    if (data && data.success === true && Array.isArray(data.orders)) {
-                        const currentPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
-                            parseInt(card.getAttribute('data-order-id'))
-                        );
-                        updateOrdersDisplay(data.orders);
-                        const newPendingOrders = Array.from(document.querySelectorAll('.order-card')).map(card =>
-                            parseInt(card.getAttribute('data-order-id'))
-                        );
-                        debugLog('Orders auto-refreshed successfully', {
-                            serverTotal: data.orders.length,
-                            beforePending: currentPendingOrders.length,
-                            afterPending: newPendingOrders.length,
-                            processingCount: processingOrders.size
-                        });
-                        showAutoRefreshIndicator();
-                    } else {
-                        debugLog('Auto-refresh returned invalid data structure', data);
-                        showAutoRefreshError('Invalid data received');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error auto-refreshing orders:', error);
-                    debugLog('Auto-refresh failed:', error.message);
-                    showAutoRefreshError(error.message);
+
+            console.log('[Auto-Refresh] Starting refresh at', new Date().toLocaleTimeString());
+
+            try {
+                const response = await fetch('/cashier/refresh', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': getCSRFToken()
+                    },
+                    credentials: 'same-origin'
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                console.log('[Auto-Refresh] Response received:', {
+                    success: data.success,
+                    ordersCount: data.orders ? data.orders.length : 0,
+                    orders: data.orders ? data.orders.map(o => ({ id: o.id, order_number: o.order_number })) : 'none'
+                });
+
+                if (data && data.success === true && Array.isArray(data.orders)) {
+                    console.log('[Auto-Refresh] Successfully fetched', data.orders.length, 'orders');
+                    updateOrdersDisplay(data.orders);
+                    showAutoRefreshIndicator('success');
+                    lastRefreshTime = Date.now();
+                } else {
+                    console.warn('[Auto-Refresh] Invalid data structure received', data);
+                    showAutoRefreshIndicator('warning');
+                }
+            } catch (error) {
+                console.error('[Auto-Refresh] Error:', error.message);
+                showAutoRefreshIndicator('error');
+            } finally {
+                isRefreshing = false;
+            }
         }
 
         // Listen for Maya reference updates via Pusher
@@ -2691,14 +3007,22 @@
             }, 2000);
         }
 
-        // Start auto-reload timer
+        /**
+ * Start the auto-refresh timer
+ */
         function startAutoReload() {
+            // Clear any existing interval
             if (autoReloadInterval) {
                 clearInterval(autoReloadInterval);
             }
 
-            autoReloadInterval = setInterval(autoRefreshOrders, 25000);
-            debugLog('Auto-reload started: every 25 seconds');
+            // Do initial refresh immediately
+            autoRefreshOrders();
+
+            // Start new interval
+            autoReloadInterval = setInterval(autoRefreshOrders, REFRESH_INTERVAL);
+
+            console.log(`[Auto-Refresh] Started - refreshing every ${REFRESH_INTERVAL / 1000} seconds`);
         }
 
         // Stop auto-reload timer
@@ -2706,104 +3030,199 @@
             if (autoReloadInterval) {
                 clearInterval(autoReloadInterval);
                 autoReloadInterval = null;
-                debugLog('Auto-reload stopped');
+                console.log('[Auto-Refresh] Stopped');
             }
         }
 
-        // ENHANCED: Auto-refresh with better order tracking - PREVENTS RE-ADDING PROCESSED ORDERS
+        // Add this debug function
+        function debugAutoRefresh() {
+            console.log('=== AUTO-REFRESH DEBUG ===');
+            console.log('isRefreshing:', isRefreshing);
+            console.log('autoReloadInterval:', autoReloadInterval);
+            console.log('REFRESH_INTERVAL:', REFRESH_INTERVAL);
+
+            // Check if any modals are open
+            const modals = [
+                { id: 'paymentModal', name: 'Payment Modal' },
+                { id: 'confirmModal', name: 'Confirm Modal' },
+                { id: 'editOrderModal', name: 'Edit Modal' },
+                { id: 'discountModal', name: 'Discount Modal' }
+            ];
+
+            modals.forEach(modal => {
+                const element = document.getElementById(modal.id);
+                const isOpen = element && element.classList.contains('show');
+                console.log(`${modal.name}: ${isOpen ? 'OPEN (blocking refresh)' : 'closed'}`);
+            });
+
+            // Check page visibility
+            console.log('Page hidden:', document.hidden);
+            console.log('Visibility state:', document.visibilityState);
+
+            // Check if auto-reload is running
+            if (autoReloadInterval) {
+                console.log('✅ Auto-reload interval is RUNNING');
+            } else {
+                console.log('❌ Auto-reload interval is NOT RUNNING');
+            }
+        }
+
+        // Call this immediately to see the current state
+        setTimeout(debugAutoRefresh, 1000);
+
+
+
+        
         function updateOrdersDisplay(orders) {
             const container = document.getElementById('ordersContainer');
-            const emptyState = document.getElementById('emptyState');
-
-            if (!container) return;
-
-            if (!orders || !Array.isArray(orders)) {
-                debugLog('Invalid orders data received, skipping update', orders);
-                return;
-            }
-            // Handle empty orders response
-            if (orders.length === 0) {
-                const existingOrders = container.querySelectorAll('.order-card');
-                if (existingOrders.length === 0) {
-                    container.innerHTML = emptyState ? emptyState.outerHTML : `
-                       <div class="empty-state" id="emptyState">
-                           <div class="empty-state-icon">📭</div>
-                           <p>No pending cash orders</p>
-                           <small>Orders will appear here when customers place cash orders</small>
-                           <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                               <span>🔄</span>
-                               <span>Auto-updating every 25 seconds</span>
-                           </div>
-                       </div>
-                   `;
-                }
+            if (!container) {
+                console.error('[Auto-Refresh] ordersContainer not found');
                 return;
             }
 
-            const currentOrderIds = Array.from(container.querySelectorAll('.order-card')).map(card => parseInt(card.getAttribute('data-order-id')));
-            const newPendingOrderIds = orders.filter(order => order.payment_status === 'pending' || order.payment_status === null).map(order => order.id);
-            const processingOrderIds = Array.from(processingOrders.keys());
-            debugLog('Order comparison during auto-refresh', {
-                currentOrderIds,
-                newPendingOrderIds,
-                processingOrderIds,
-                ordersReceived: orders.length
-            });
+            // Get current order IDs
+            const currentOrderIds = Array.from(container.querySelectorAll('.order-card'))
+                .map(card => parseInt(card.getAttribute('data-order-id')));
 
+            const newOrderIds = orders.map(order => order.id);
+
+            console.log('[Auto-Refresh] Current orders in DOM:', currentOrderIds);
+            console.log('[Auto-Refresh] New orders from server:', newOrderIds);
+
+            // Remove orders that no longer exist
             currentOrderIds.forEach(orderId => {
-                if (!newPendingOrderIds.includes(orderId) && !processingOrderIds.includes(orderId)) {
+                if (!newOrderIds.includes(orderId)) {
                     const card = document.getElementById(`order-${orderId}`);
                     if (card) {
-                        debugLog(`Auto-refresh removing order ${orderId} - confirmed not pending and not processing`);
-                        card.remove();
-                    }
-                } else if (processingOrderIds.includes(orderId)) {
-                    // This order is being processed - REMOVE IT from pending if it exists
-                    const card = document.getElementById(`order-${orderId}`);
-                    if (card) {
-                        debugLog(`REMOVING processed order ${orderId} from pending panel - should only be in processing`);
-                        card.remove();
+                        console.log('[Auto-Refresh] Removing order', orderId);
+                        card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateX(-20px)';
+
+                        setTimeout(() => {
+                            if (card.parentElement) {
+                                card.remove();
+                                console.log('[Auto-Refresh] Order removed from DOM:', orderId);
+                            }
+                        }, 300);
                     }
                 }
             });
-            // Add new pending orders (but NEVER add ones we're already processing)
+
+            // Add or update orders
             orders.forEach(order => {
-                if (order.payment_status === 'pending' &&
-                    !document.getElementById(`order-${order.id}`) &&
-                    !processingOrders.has(order.id)) { // CRITICAL: Don't add if already processing
+                const existingCard = document.getElementById(`order-${order.id}`);
 
-                    debugLog(`Adding new order ${order.id}`);
-                    container.appendChild(createOrderCard(order));
+                if (existingCard) {
+                    // Update existing card - replace with new content
+                    console.log('[Auto-Refresh] Updating existing order', order.id);
+                    const newCard = createOrderCard(order);
+                    existingCard.replaceWith(newCard);
+                } else {
+                    // Add new order with animation
+                    console.log('[Auto-Refresh] Adding NEW order', order.id);
+                    const newCard = createOrderCard(order);
 
-                    const emptyStateElement = container.querySelector('.empty-state');
-                    if (emptyStateElement) {
-                        emptyStateElement.remove();
+                    // Remove empty state if it exists
+                    const emptyState = container.querySelector('.empty-state');
+                    if (emptyState) {
+                        emptyState.remove();
                     }
-                } else if (processingOrders.has(order.id)) {
-                    debugLog(`SKIPPING order ${order.id} - already in processing, should not be in pending`);
+
+                    // Add with animation at the top
+                    newCard.style.opacity = '0';
+                    newCard.style.transform = 'translateY(-20px)';
+                    container.insertBefore(newCard, container.firstChild);
+
+                    // Trigger animation
+                    setTimeout(() => {
+                        newCard.style.transition = 'all 0.3s ease';
+                        newCard.style.opacity = '1';
+                        newCard.style.transform = 'translateY(0)';
+                    }, 50);
+
+                    // Play notification sound for new orders
+                    playNotificationSound();
+
+                    // Show notification for new order
+                    showNewOrderNotification(order);
                 }
             });
-            // Check if we need to show empty state
-            setTimeout(() => {
+
+            // Show empty state if no orders
+            if (orders.length === 0) {
                 const remainingCards = container.querySelectorAll('.order-card');
-                if (remainingCards.length === 0) {
-                    container.innerHTML = emptyState ? emptyState.outerHTML : `
-                       <div class="empty-state" id="emptyState">
-                           <div class="empty-state-icon">📭</div>
-                           <p>No pending cash orders</p>
-                           <small>Orders will appear here when customers place cash orders</small>
-                           <div style="margin-top: 15px; font-size: 0.8rem; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                               <span>🔄</span>
-                               <span>Auto-updating every 25 seconds</span>
-                           </div>
-                       </div>
-                   `;
+                if (remainingCards.length === 0 && !container.querySelector('.empty-state')) {
+                    container.innerHTML = `
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">📭</div>
+                    <p>No pending orders</p>
+                    <small>Orders will appear here automatically</small>
+                    <div style="margin-top: 15px; font-size: 0.8rem; color: #666;">
+                        🔄 Auto-refreshing every ${REFRESH_INTERVAL / 1000} seconds
+                    </div>
+                </div>
+            `;
                 }
-            }, 100);
+            }
         }
 
+        function showNewOrderNotification(order) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        min-width: 300px;
+        text-align: center;
+        animation: slideDown 0.3s ease-out;
+    `;
 
-        // FIXED: Create order card with correct total calculation and Maya reference display
+            notification.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <span style="font-size: 24px;">🆕</span>
+            <div>
+                <div style="font-weight: 700; font-size: 16px;">New Order Received!</div>
+                <div style="font-size: 14px; opacity: 0.9;">Order #${order.order_number || order.id}</div>
+            </div>
+        </div>
+    `;
+
+            // Add animation style if not exists
+            if (!document.getElementById('slideDown-animation')) {
+                const style = document.createElement('style');
+                style.id = 'slideDown-animation';
+                style.textContent = `
+            @keyframes slideDown {
+                from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+        `;
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(notification);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transition = 'all 0.3s ease-out';
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(-50%) translateY(-100%)';
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+
         function createOrderCard(order) {
             const orderCard = document.createElement('div');
             orderCard.className = 'order-card';
@@ -2854,15 +3273,24 @@
                 });
             }
 
-            // Use the calculated total, but fallback to order.total or order.total_amount
-            const totalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
+            // Calculate total with discount consideration
+            let subtotalAmount = calculatedTotal > 0 ? calculatedTotal : (parseFloat(order.total || order.total_amount || 0));
+
+            // Check if discount is applied
+            const hasDiscount = order.discount_type && order.discount_type !== 'none' && order.discount_amount > 0;
+            const discountAmount = hasDiscount ? parseFloat(order.discount_amount) : 0;
+            const amountBeforeDiscount = hasDiscount ? parseFloat(order.amount_before_discount || subtotalAmount) : subtotalAmount;
+            const finalTotal = hasDiscount ? (amountBeforeDiscount - discountAmount) : subtotalAmount;
 
             debugLog('Order total calculation in createOrderCard:', {
                 orderId: order.id,
                 orderTotal: order.total,
                 orderTotalAmount: order.total_amount,
                 calculatedFromItems: calculatedTotal,
-                finalTotalUsed: totalAmount,
+                hasDiscount: hasDiscount,
+                discountAmount: discountAmount,
+                amountBeforeDiscount: amountBeforeDiscount,
+                finalTotal: finalTotal,
                 items: orderItems
             });
 
@@ -2871,7 +3299,7 @@
 
             // Show payment info for cash orders
             if (order.payment_method === 'cash') {
-                const expectedChange = cashAmount > 0 ? (cashAmount - totalAmount) : 0;
+                const expectedChange = cashAmount > 0 ? (cashAmount - finalTotal) : 0;
                 customerPaymentHtml = `
             <div class="customer-payment-info">
                 <div style="font-weight: 700; margin-bottom: 8px; color: #1565c0; display: flex; align-items: center; gap: 8px;">
@@ -2879,7 +3307,7 @@
                 </div>
                 <div class="payment-info-row">
                     <span class="payment-info-label">🏷️ Order Total:</span>
-                    <span>PHP ${totalAmount.toFixed(2)}</span>
+                    <span>PHP ${finalTotal.toFixed(2)}</span>
                 </div>
                 ${cashAmount > 0 ? `
                     <div class="payment-info-row">
@@ -2977,6 +3405,22 @@
             });
             const orderType = order.order_type || 'dine-in';
 
+            // Discount badge HTML (show if discount applied)
+            const discountBadgeHtml = hasDiscount ? `
+        <div class="discount-badge" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; padding: 10px 12px; border-radius: 8px; margin: 10px 0; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);">
+            🎫 ${order.discount_type === 'senior_citizen' ? 'Senior Citizen' : 'PWD'} Discount Applied (20%)
+            <div style="font-size: 0.85rem; opacity: 0.95; margin-top: 4px;">
+                ID: ${order.discount_id_number || 'N/A'} • Saved: PHP ${discountAmount.toFixed(2)}
+            </div>
+            <button onclick="removeDiscount(${order.id})" 
+                    style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 12px; border-radius: 5px; margin-top: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.35)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.25)'">
+                ✕ Remove Discount
+            </button>
+        </div>
+    ` : '';
+
             orderCard.innerHTML = `
         <div class="order-header">
             <span>Order</span>
@@ -2991,6 +3435,8 @@
             ${order.payment_method ? order.payment_method.toUpperCase() : 'CASH'}
         </div>
         
+        ${discountBadgeHtml}
+        
         <div class="order-items">
             ${itemsHtml}
         </div>
@@ -2998,14 +3444,33 @@
         ${customerPaymentHtml}
         
         <div class="order-total">
-            <span>Total Amount:</span>
-            <span class="total-amount">PHP ${totalAmount.toFixed(2)}</span>
+            ${hasDiscount ? `
+                <div style="text-decoration: line-through; color: #999; font-size: 0.9rem; margin-bottom: 5px;">
+                    <span>Original:</span>
+                    <span>PHP ${amountBeforeDiscount.toFixed(2)}</span>
+                </div>
+                <div style="color: #9c27b0; font-weight: 700; font-size: 1.1rem;">
+                    <span>Discounted Total:</span>
+                    <span class="total-amount">PHP ${finalTotal.toFixed(2)}</span>
+                </div>
+            ` : `
+                <span>Total Amount:</span>
+                <span class="total-amount">PHP ${finalTotal.toFixed(2)}</span>
+            `}
         </div>
         
         <div class="order-actions">
-            <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${totalAmount}, '${orderNumber}', ${cashAmount})">
+            <button class="btn btn-accept" onclick="acceptOrder(${order.id}, ${finalTotal}, '${orderNumber}', ${cashAmount})">
                 ✅ Accept
             </button>
+            ${!hasDiscount ? `
+                <button class="btn btn-discount" onclick="openDiscountModal(${order.id}, ${amountBeforeDiscount})" 
+                        style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(156, 39, 176, 0.4)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    🎫 Discount
+                </button>
+            ` : ''}
             <button class="btn btn-edit" onclick="editOrder(${order.id})">
                 ✏️ Edit
             </button>
@@ -3017,8 +3482,8 @@
 
             return orderCard;
         }
+        //END OF CREATEORDER FUNCTION
 
-        // Your existing acceptOrder function stays the same
         function acceptOrder(orderId, amount, orderNumber, cashAmount = null) {
             currentOrderId = parseInt(orderId);
             currentAmount = parseFloat(amount) || 0;
@@ -4401,6 +4866,11 @@
         document.head.appendChild(style);
 
         // Global function exports
+        // Export functions to global scope
+        window.openDiscountModal = openDiscountModal;
+        window.closeDiscountModal = closeDiscountModal;
+        window.removeDiscount = removeDiscount;
+        window.updateDiscountPreview = updateDiscountPreview;
         window.logout = logout;
         window.hideLogoutModal = hideLogoutModal;
         window.confirmLogout = confirmLogout;
@@ -4462,7 +4932,7 @@
                     if (typeof autoRefreshOrders === 'function') {
                         autoRefreshOrders();
                     }
-                }, 2000);
+                }, 1500);
             });
 
             console.log('Real-time payment notifications enabled');
@@ -4567,7 +5037,9 @@
                 console.warn('Could not play notification sound:', error);
             }
         }
-
+        window.autoRefreshOrders = autoRefreshOrders;
+        window.startAutoReload = startAutoReload;
+        window.stopAutoReload = stopAutoReload;
     </script>
     <!-- Logout Confirmation Modal -->
     <div class="logout-modal-overlay" id="logoutModal">
@@ -4584,6 +5056,7 @@
             </div>
         </div>
     </div>
+
     <script src="{{ asset('js/maya-payment-monitor.js') }}"></script>
 </body>
 

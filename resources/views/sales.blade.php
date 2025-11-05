@@ -843,6 +843,52 @@
                 </div>
             </div>
 
+            <!-- Discount Summary Section -->
+            @if(isset($discountStats) && $discountStats->discount_count > 0)
+                <div class="discount-summary-section mb-6"
+                    style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); border-radius: 12px; padding: 20px; color: white; box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3);">
+                    <h3
+                        style="font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        🎫 Discount Summary
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="discount-stat"
+                            style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">Discounted Orders</div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">{{ $discountStats->discount_count }}</div>
+                        </div>
+
+                        <div class="discount-stat"
+                            style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">Total Discounts Given</div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">PHP
+                                {{ number_format($discountStats->total_discounts, 2) }}</div>
+                        </div>
+
+                        <div class="discount-stat"
+                            style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">Senior Citizen</div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">PHP
+                                {{ number_format($discountStats->senior_discounts, 2) }}</div>
+                        </div>
+
+                        <div class="discount-stat"
+                            style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">PWD</div>
+                            <div style="font-size: 1.8rem; font-weight: 700;">PHP
+                                {{ number_format($discountStats->pwd_discounts, 2) }}</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top: 15px; padding: 12px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 0.9rem; text-align: center;">
+                        💡 <strong>Note:</strong> All amounts shown are after discount deductions. Revenue reflects actual
+                        collected amounts.
+                    </div>
+                </div>
+            @endif
+
             <!-- Controls Section -->
             <div class="controls-section flex justify-between items-center mb-6">
                 <div class="filter-section flex items-center space-x-4">

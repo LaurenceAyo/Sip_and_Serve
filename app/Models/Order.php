@@ -14,7 +14,7 @@ class Order extends Model
         'order_number',
         'order_type',
         'subtotal',
-        'tax_amount', 
+        'tax_amount',
         'maya_reference',
         'maya_webhook_received_at',
         'discount_amount',
@@ -33,6 +33,11 @@ class Order extends Model
         'estimated_prep_time', // Add this field - in minutes
         'paymongo_payment_intent_id',
         'paymongo_payment_method_id',
+        'discount_type',
+        'discount_id_number',
+        'discount_amount',
+        'discount_percentage',
+        'amount_before_discount',
         'created_at',
         'updated_at'
     ];
@@ -41,9 +46,9 @@ class Order extends Model
 
 
     public function getFormattedCompletedAtAttribute()
-{
-    return $this->completed_at ? $this->completed_at->format('g:i A') : 'N/A';
-}
+    {
+        return $this->completed_at ? $this->completed_at->format('g:i A') : 'N/A';
+    }
 
     protected $casts = [
         'subtotal' => 'decimal:2',
@@ -58,6 +63,8 @@ class Order extends Model
         'paid_at' => 'datetime',
         'maya_webhook_received_at' => 'datetime',
         'estimated_prep_time' => 'integer', // in minutes
+        'discount_percentage' => 'decimal:2',
+        'amount_before_discount' => 'decimal:2',
     ];
 
     public function orderItems()
@@ -79,7 +86,7 @@ class Order extends Model
 
         $startTime = Carbon::parse($this->started_at);
         $endTime = $this->completed_at ? Carbon::parse($this->completed_at) : now();
-        
+
         $diffInSeconds = $startTime->diffInSeconds($endTime);
         $minutes = floor($diffInSeconds / 60);
         $seconds = $diffInSeconds % 60;
@@ -121,18 +128,18 @@ class Order extends Model
     public function calculateEstimatedPrepTime()
     {
         $totalPrepTime = 0;
-        
+
         foreach ($this->orderItems as $item) {
             // Assume each menu item has a prep_time_minutes field
             $itemPrepTime = $item->menuItem->prep_time_minutes ?? 5; // default 5 minutes
             $totalPrepTime += ($itemPrepTime * $item->quantity);
         }
-        
+
         // Add base time and consider parallel cooking
         $estimatedTime = max(15, ceil($totalPrepTime * 0.7)); // 70% efficiency for parallel cooking
-        
+
         $this->update(['estimated_prep_time' => $estimatedTime]);
-        
+
         return $estimatedTime;
     }
 

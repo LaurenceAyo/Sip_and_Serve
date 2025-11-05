@@ -235,6 +235,13 @@ Route::middleware(['auth', \App\Http\Middleware\BlockCustomerAccess::class])->gr
 });
 
 // =============================================================================
+// Additional Cashier ROUTES (Discounts for PWD and Senior Citizens)
+// =============================================================================
+Route::post('/cashier/apply-discount', [CashierController::class, 'applyDiscount'])->name('cashier.applyDiscount');
+Route::post('/cashier/remove-discount', [CashierController::class, 'removeDiscount'])->name('cashier.removeDiscount');
+Route::post('/cashier/refresh', [CashierController::class, 'refreshOrders'])->name('cashier.autoRefreshOrders');
+
+// =============================================================================
 // ADMINISTRATOR ROUTES (Administrator only)
 // =============================================================================
 Route::middleware(['auth', \App\Http\Middleware\RoleMiddleware::class . ':admin'])->group(function () {
